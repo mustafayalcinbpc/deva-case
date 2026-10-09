@@ -43,6 +43,17 @@ services:
     depends_on:
       - app
 
+  # Arayüz asset'leri için Vite geliştirme sunucusu (HMR). Üretim için: npm run build
+  vite:
+    image: node:24-alpine
+    working_dir: /app
+    init: true
+    command: sh -c "npm install --no-audit --no-fund && exec npm run dev"
+    volumes:
+      - ./:/app
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+
   mysql:
     image: mysql:8.4
     # Olay tablosunu koruyan trigger'ların SUPER yetkisi olmadan oluşturulabilmesi için.

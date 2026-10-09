@@ -1,0 +1,67 @@
+// Çalışma zamanı tasarım değişkenleri (CSS custom properties).
+//
+// Uygulamaya özel bileşenler (durum rozetleri, hareketler) yalnızca bu değişkenleri kullanır;
+// renk ya da süre değiştirmek için derleme gerekmez. Koyu tema için değerler aşağıda ayrıca verilir.
+
+:root,
+[data-bs-theme="light"] {
+    // Temizlik kaydı durumları
+    --app-status-created-bg: #e9ecef;
+    --app-status-created-fg: #495057;
+    --app-status-in-progress-bg: #cfe2ff;
+    --app-status-in-progress-fg: #084298;
+    --app-status-completed-bg: #d1e7dd;
+    --app-status-completed-fg: #0f5132;
+    --app-status-expired-bg: #fff3cd;
+    --app-status-expired-fg: #664d03;
+    --app-status-cancelled-bg: #f8d7da;
+    --app-status-cancelled-fg: #842029;
+
+    // Adım ve faz durumları (completed / in_progress yukarıdakileri kullanır)
+    --app-status-pending-bg: #e9ecef;
+    --app-status-pending-fg: #495057;
+    --app-status-running-bg: #cfe2ff;
+    --app-status-running-fg: #084298;
+    --app-status-paused-bg: #fff3cd;
+    --app-status-paused-fg: #664d03;
+
+    // "Bana ait" işareti ve satır vurgusu
+    --app-mine-bg: #e7f1ff;
+    --app-mine-fg: #0a58ca;
+    --app-mine-row-bg: rgb(13 110 253 / 0.05);
+
+    // Biçim
+    --app-badge-radius: 999px;
+    --app-card-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.1);
+
+    // Hareket
+    --app-motion-duration: 200ms;
+    --app-motion-duration-slow: 350ms;
+    --app-motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+[data-bs-theme="dark"] {
+    --app-status-created-bg: #343a40;
+    --app-status-created-fg: #ced4da;
+    --app-status-in-progress-bg: #031633;
+    --app-status-in-progress-fg: #6ea8fe;
+    --app-status-completed-bg: #051b11;
+    --app-status-completed-fg: #75b798;
+    --app-status-expired-bg: #332701;
+    --app-status-expired-fg: #ffda6a;
+    --app-status-cancelled-bg: #2c0b0e;
+    --app-status-cancelled-fg: #ea868f;
+
+    --app-status-pending-bg: #343a40;
+    --app-status-pending-fg: #ced4da;
+    --app-status-running-bg: #031633;
+    --app-status-running-fg: #6ea8fe;
+    --app-status-paused-bg: #332701;
+    --app-status-paused-fg: #ffda6a;
+
+    --app-mine-bg: #031633;
+    --app-mine-fg: #6ea8fe;
+    --app-mine-row-bg: rgb(110 168 254 / 0.08);
+
+    --app-card-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+}

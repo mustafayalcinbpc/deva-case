@@ -1,0 +1,28 @@
+// Derleme zamanı tasarım değişkenleri.
+//
+// Buradaki değerler Bootstrap ve AdminLTE derlenmeden önce okunur; butonlar, formlar,
+// kartlar, sidebar gibi bütün hazır bileşenler bunlardan türetilir. Şimdilik AdminLTE
+// varsayılanlarıdır; yeni tasarımda ilk değiştirilecek yer burasıdır.
+// Tam liste: node_modules/bootstrap/scss/_variables.scss ve
+//            node_modules/admin-lte/src/scss/_variables.scss
+
+// Palet
+$primary:   #0d6efd;
+$secondary: #6c757d;
+$success:   #198754;
+$info:      #0dcaf0;
+$warning:   #ffc107;
+$danger:    #dc3545;
+
+// Yazı tipi (vite.config.js'teki bunny() ile yüklenir)
+$font-family-sans-serif: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+// Köşeler
+$border-radius:    .375rem;
+$border-radius-sm: .25rem;
+$border-radius-lg: .5rem;
+
+// AdminLTE yerleşimi ve hareket
+$lte-sidebar-width:     250px;
+$lte-transition-speed:  .3s;
+$lte-transition-fn:     ease-in-out;
