@@ -8,12 +8,13 @@ Temel amaç yalnızca temizlik kaydının oluşturulması değil; sürecin **kim
 
 ## Teknik Yaklaşım
 
-* Laravel
-* MySQL
+* Laravel 13 (PHP 8.4)
+* MySQL 8.4
 * Redis
 * RabbitMQ
 * Laravel Queue
-* AdminLTE
+* AdminLTE 4 (Bootstrap 5.3), Vite + Sass
+* dompdf (denetim raporu PDF'i)
 * Docker / Docker Compose
 
 Uygulama Docker üzerinde çalışacak şekilde yapılandırılmıştır.
@@ -32,8 +33,10 @@ Uygulama Docker üzerinde çalışacak şekilde yapılandırılmıştır.
 * Yetki bazlı kullanıcı işlemleri
 * Açık ve tamamlanmış temizliklerin takibi
 * Temizlik geçmişi ve detaylı kayıt görüntüleme
-* Aktivite / işlem geçmişi
-* Raporlama ve filtreleme
+* Aktivite / işlem geçmişi (temizlik kayıtları için hash zincirli olay kaydı, tanımlar için değişiklik günlüğü)
+* Raporlama ve filtreleme (süre ve efor, sapmalar, malzeme izlenebilirliği, denetim raporu, PDF/CSV)
+* Bildirimler (RabbitMQ kuyruğunda işlenen domain olayları)
+* Denetim kontrol noktaları ve bütünlük doğrulaması
 
 ## Kritik İş Kuralları
 
@@ -86,15 +89,12 @@ Uygulama Docker ortamında çalışacak şekilde tasarlanmıştır.
 Browser
    │
    ▼
-Laravel + AdminLTE
-   │
-   ├── MySQL
-   ├── Redis
-   │
-   └── RabbitMQ
-          │
-          ▼
-     Queue Worker
+nginx ─▶ Laravel (php-fpm) + AdminLTE / Nocturne teması
+            │
+            ├── MySQL     kayıtlar, olay zinciri, kontrol noktaları (trigger'larla korunur)
+            ├── Redis     cache, oturum, zamanlanmış görev kilitleri
+            └── RabbitMQ ─▶ Queue Worker   bildirimler, PDF/CSV dışa aktarma
+                              Scheduler    süresi dolan kayıtlar, kontrol noktası, doğrulama
 ```
 
 Redis cache ve oturumlar için, RabbitMQ kuyruk (Laravel Queue) için kullanılır. Eşzamanlılık garantisi (aynı makinede iki temizlik, aynı kişinin iki adımda çalışması) Redis'te değil MySQL'deki unique index'lerdedir; ayrıntı aşağıda **Durum Yönetimi** bölümünde.
@@ -195,6 +195,7 @@ Faz minimum süresi, fazın ayarına göre net ya da brüt süreyle kontrol edil
 - Bir kez dolan alanlar (sahip, başlangıç/bitiş zamanları, ölçülen süreler) model seviyesinde değiştirilemez, kayıtlar silinemez.
 - Zamanlar her zaman sunucudan alınır.
 - Her işlem `cleaning_events` tablosuna yazılır. Bu tablo MySQL trigger'larıyla UPDATE/DELETE'e kapalıdır. Her olay bir önceki olayın SHA-256 hash'ini içerir; `CleaningEventRecorder::verify()` zinciri baştan hesaplayarak sonradan yapılan değişikliği tespit eder.
+- Hash zinciri tek başına, veritabanına doğrudan yazabilen birinin zinciri baştan hesaplamasını ya da sona sahte olay eklemesini fark edemez. Bunun için saatlik **kontrol noktaları** vardır (aşağıda).
 
 ## Ekranlar
 
@@ -208,15 +209,107 @@ Faz minimum süresi, fazın ayarına göre net ya da brüt süreyle kontrol edil
 
 Bütün aksiyonlar `CleaningWorkflow` üzerinden çalışır. Kural ihlalinde kullanıcı aynı sayfaya mesajla döner; ekranlar kural tekrarlamaz, yalnızca hangi butonun gösterileceğine `CleaningPermissions` ile karar verir.
 
+## Yönetim (yönetici)
+
+Yönetim ekranları yalnızca yöneticiye açıktır (`manage-definitions`); operatör tanımlara müdahale edemez (R-42).
+
+- **Tesis, hat ve makine:**
+  - Kayıt numarasında geçen kodlar, o yere ait ilk temizlik kaydı açıldıktan sonra değiştirilemez (K-17); adlar değiştirilebilir.
+  - Açık kaydı olan makine kullanımdan kaldırılamaz (K-16). Kaldırılan makine silinmez, geçmişte görünmeye devam eder.
+- **Prosedürler:**
+  - Taslak hazırlanır, fazlar ve adımlar düzenlenir (minimum süre, adımlar arası boşluk ayarı, açıklama, fotoğraf/video), sonra hemen ya da ileri bir tarihte yayımlanır.
+  - Yayımlanmış versiyon ve fazları/adımları model seviyesinde değiştirilemez (K-15). Açık kayıtlar açıldıkları versiyonla devam eder.
+- **Malzemeler ve iş emirleri:** Malzeme silinmez, kullanımdan kaldırılır; kaldırılan malzeme yeni kayıtlarda seçilemez. İş emri bir hatta ya da makineye bağlanabilir (K-19).
+- **Kullanıcılar:**
+  - Pasife alınan kullanıcı açık oturumundan da çıkarılır.
+  - Açık kayıtları varsa listelenir; yönetici bu kayıtları "personel ayrıldı" gerekçesiyle iptal edebilir (K-08).
+  - Yönetici kendini pasife alamaz.
+- **Değişiklik günlüğü:** Yönetimdeki her değişiklik kaydedilir: kim, ne zaman, neyi hangi değerden hangi değere değiştirdi. Şifre değerleri yazılmaz. Günlük, olay tablosu gibi veritabanında değiştirilemez ve silinemez.
+
+## Raporlar (yönetici)
+
+- **Süre ve efor:** Makine bazında tamamlanan temizlik sayısı; ortalama, en kısa ve en uzun net süre; brüt süre ve insan eforu. Bir makine seçilince faz bazında ortalama süre ve minimum sürenin altında kalma sayısı görünür. "Bu makinenin temizliği 30 dakika mı sürüyor, 50 mi; hangi faz uzun?" sorusunun cevabı buradadır.
+- **Sapmalar:** Minimum süre altında kapanan fazlar (gerekçe, kim, ne zaman) ve eşikten uzun çalışma dilimleri.
+- **Malzeme izlenebilirliği:** Malzeme ya da lot numarasıyla geriye dönük arama (R-10).
+- **Denetim raporu:** Bir kaydın bütün hikâyesi (R-45) ve olay zincirinin doğrulama sonucu. Yazdırılabilir; PDF olarak da hazırlanabilir.
+- **Dışa aktarma:** PDF ve CSV dosyaları kuyrukta üretilir; hazır olunca isteyene bildirim gider.
+
+Filtrelerdeki tarihler Türkiye saatiyle yorumlanır.
+
+## Kuyruk ve Bildirimler (RabbitMQ)
+
+Durum makinesi önemli geçişlerde domain olayları yayımlar: minimum süre altı faz, temizlik tamamlandı, iptal, süre dolumu. Olaylar transaction commit edildikten sonra yayımlanır; reddedilen bir işlem hiçbir olay üretmez.
+
+Olayları dinleyen işler RabbitMQ kuyruğunda çalışır ve ilgili kişilere bildirim yazar:
+- minimum süre altı faz → bütün aktif yöneticilere;
+- başkası tarafından iptal → kayıt sahibine;
+- süre dolumu → kayıt sahibine.
+
+Rapor dışa aktarmaları da aynı kuyrukta üretilir. Bildirimler üst bardaki zilde ve `/notifications` sayfasında görünür.
+
+## Denetim Kontrol Noktaları
+
+`audit:checkpoint` komutu saatte bir çalışır:
+- Her kaydın zincir başını tek bir özete (digest) bağlar.
+- Bu özeti bir önceki kontrol noktasına zincirler.
+- Kontrol noktasını hem değiştirilemez `audit_checkpoints` tablosuna hem `storage/logs/audit-checkpoints.log` dosyasına yazar.
+
+**Log dosyası sunucu dışına taşınmalıdır.** Taşındığı anda dış çapa (anchor) olur: veritabanına doğrudan yazabilen biri geçmişi yeniden hesaplasa bile dışarıdaki kopyayla tutmaz.
+
+```bash
+docker compose exec app php artisan audit:checkpoint
+docker compose exec app php artisan audit:verify            # --log ya da --log-path=/dis/kopya.log ile log karşılaştırması
+```
+
+`audit:verify` şunları kontrol eder ve sorun bulursa sıfırdan farklı kodla çıkar:
+- her kaydın zinciri;
+- kontrol noktalarının kendi zinciri;
+- her kontrol noktasının bugünkü verilerden yeniden hesaplanan özeti;
+- kontrol noktasından sonra eklenmiş ama tarihi geriye atılmış olaylar;
+- istenirse log kopyası.
+
+Her gece zamanlanmış olarak çalışır ve sonucu loglar. Son kontrol noktasından sonraki olaylar, bir sonraki kontrol noktasına kadar yalnızca kayıt bazındaki hash zinciriyle korunur.
+
+## Production
+
+`compose.prod.yaml` ayrı bir production kurulumudur:
+- Kod ve bağımlılıklar imaja gömülüdür (`composer --no-dev`, derlenmiş asset'ler); Vite sunucusu yoktur.
+- `APP_ENV=production`, `APP_DEBUG=false`, config/route/view önbelleklidir.
+- Demo verisi varsayılan olarak kapalıdır.
+
+```bash
+cp docker/production.env.example .env.production   # APP_KEY, DB_PASSWORD, RABBITMQ_PASSWORD doldurulur
+echo "base64:$(openssl rand -base64 32)"            # APP_KEY: bir kez üretilir ve saklanır
+docker compose -f compose.prod.yaml --env-file .env.production up -d --build
+docker compose -f compose.prod.yaml --env-file .env.production exec app php artisan about
+docker compose -f compose.prod.yaml --env-file .env.production down   # -v verileri de siler
+```
+
+`APP_KEY`, `DB_PASSWORD` ve `RABBITMQ_PASSWORD` zorunludur; eksikse compose başlamaz. Gerçek anahtar repoya konmaz.
+
 ## Arayüz ve Tema
 
-Arayüz AdminLTE 4 (Bootstrap 5.3) üzerine kuruludur ve Vite + Sass ile derlenir. Görünüm (renkler, yazı tipi, köşeler, hareketler) tamamen `resources/scss/theme/` altından yönetilir. View'larda satır içi stil yoktur; yeniden tasarım yalnızca bu dosyalara dokunur.
+Arayüz AdminLTE 4 (Bootstrap 5.3) üzerine kuruludur ve Vite + Sass ile derlenir.
+
+**Görünüm: "Nocturne" tasarım dili.**
+- Açık renkli sidebar ve vurgulu menü bağlantıları.
+- Üst barda breadcrumb, tema düğmesi ve bildirim zili.
+- KPI kartları, etiket rozetleri, kenarlara doğru solan tablo ayırıcıları.
+- Inter yazı tipi.
+
+**Açık ve koyu tema.** İkisi de yalnızca token değerleriyle değişir. Seçim tarayıcıda saklanır; ilk açılışta işletim sisteminin tercihi kullanılır. Tema, sayfa çizilmeden önce uygulandığı için yanıp sönme olmaz.
+
+Görünüm tamamen `resources/scss/theme/` altından yönetilir. View'larda satır içi stil yoktur; yeniden tasarım yalnızca bu dosyalara dokunur.
 
 | Dosya | Ne için |
 |---|---|
-| `theme/_variables.scss` | Derleme zamanı değişkenleri: ana palet, yazı tipi, köşe yuvarlaklığı, sidebar genişliği, AdminLTE geçiş süresi. Butonlar, formlar, kartlar bunlardan türer. |
-| `theme/_tokens.scss` | Çalışma zamanı CSS değişkenleri (`--app-*`): durum renkleri, "Bana ait" vurgusu, gölgeler, hareket süreleri. Açık ve koyu tema ayrı. |
-| `theme/_components.scss` | Uygulamaya özel bileşenler: durum rozetleri, gösterge paneli sayaçları, tablo satır vurgusu. |
+| `theme/_tokens.scss` | Tasarım token'ları (renk, gölge, köşe, boşluk, durum renkleri). Açık tema varsayılan, koyu tema `[data-bs-theme="dark"]` altında. |
+| `theme/_variables.scss` | Bootstrap/AdminLTE'nin derleme zamanı değişkenleri (vurgu rengi, yazı tipi, köşeler). |
+| `theme/_base.scss`, `theme/_nocturne.scss` | Bootstrap değişkenlerinin token'lara bağlanması ve Nocturne yardımcıları (`tag`, `seg`, `kpi-card`, `avatar`, `hr` …). |
+| `theme/bootstrap/*` | Butonlar, kartlar, formlar, tablolar, rozetler, sekmeler, uyarılar: bütün ekranlara global uygulanır. |
+| `theme/_shell.scss`, `theme/_notifications.scss` | Sidebar, üst bar, kullanıcı bloğu, bildirim zili. |
+| `theme/_components.scss` | Uygulamaya özel bileşenler (durum rozetleri, "Bana ait" işareti …). |
+| `theme/pages/*` | Sayfalara özel yerleşim (gösterge paneli, kayıt formu, kayıt detayı, yönetim ekranları). |
 | `theme/_motion.scss` | Geçiş ve animasyonlar; `prefers-reduced-motion` tercihine uyar. |
 
 `vite` container'ı çalışırken bu dosyalarda yapılan değişiklikler sayfa yenilenmeden yansır. Üretim derlemesi:
@@ -226,4 +319,3 @@ docker compose run --rm vite npm run build
 ```
 
 `vite` container'ı durdurulduğunda sayfalar asset bulamıyorsa geride `public/hot` dosyası kalmıştır; silinmesi yeterlidir.
-

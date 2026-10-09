@@ -99,9 +99,11 @@ class DemoSeeder extends Seeder
     private function seedUsers(): void
     {
         foreach (config('demo.users') as $key => $account) {
-            $this->users[$key] = User::factory()->create([
+            // Factory değil: production imajında (composer --no-dev) Faker yok.
+            $this->users[$key] = User::forceCreate([
                 'name' => $account['name'],
                 'email' => $account['email'],
+                'email_verified_at' => now(),
                 'password' => config('demo.password'),
                 'role' => UserRole::from($account['role']),
                 'is_active' => true,
@@ -201,6 +203,9 @@ class DemoSeeder extends Seeder
     }
 
     /**
+     * Versiyon taslak olarak kurulur ve en son, o anki saatle yayımlanır: yayımlanmış versiyona
+     * faz ya da adım eklenemez (K-15).
+     *
      * @param  list<array{name: string, min_minutes: int, include_gaps: bool, steps: list<array{0: string, 1: string}>}>  $phases
      */
     private function publishVersion(Procedure $procedure, int $version, bool $materialRequired, array $phases): void
@@ -208,7 +213,6 @@ class DemoSeeder extends Seeder
         $procedureVersion = $procedure->versions()->create([
             'version' => $version,
             'material_required' => $materialRequired,
-            'published_at' => CarbonImmutable::now(),
         ]);
 
         foreach ($phases as $phaseIndex => $phase) {
@@ -227,6 +231,8 @@ class DemoSeeder extends Seeder
                 ]);
             }
         }
+
+        $procedureVersion->update(['published_at' => CarbonImmutable::now()]);
     }
 
     /**

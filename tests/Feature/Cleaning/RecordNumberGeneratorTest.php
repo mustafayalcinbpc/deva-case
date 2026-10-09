@@ -67,10 +67,22 @@ class RecordNumberGeneratorTest extends TestCase
     {
         $machine = $this->makeMachine();
 
-        $this->assertSame('IST-H01-M03-T-2026-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $this->at('2026-12-31 23:59:59')));
-        $this->assertSame('IST-H01-M03-T-2026-0002', $this->numbers->recordNo($machine, CleaningType::Planned, $this->at('2026-12-31 23:59:59')));
-        $this->assertSame('IST-H01-M03-T-2027-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $this->at('2027-01-01 00:00:00')));
-        $this->assertSame('IST-H01-M03-M-2027-0002', $this->numbers->recordNo($machine, CleaningType::Unplanned, $this->at('2027-03-15')));
+        // Yıl tesisin yerel takvimine göredir (Europe/Istanbul, UTC+3).
+        $this->assertSame('IST-H01-M03-T-2026-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $this->local('2026-12-31 23:59:59')));
+        $this->assertSame('IST-H01-M03-T-2026-0002', $this->numbers->recordNo($machine, CleaningType::Planned, $this->local('2026-12-31 23:59:59')));
+        $this->assertSame('IST-H01-M03-T-2027-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $this->local('2027-01-01 00:00:00')));
+        $this->assertSame('IST-H01-M03-M-2027-0002', $this->numbers->recordNo($machine, CleaningType::Unplanned, $this->local('2027-03-15')));
+    }
+
+    public function test_year_follows_local_calendar_when_utc_is_still_last_year(): void
+    {
+        // 31.12.2026 22:30 UTC = 1 Ocak 2027 01:30 İstanbul: kayıt yeni yılın numarasını alır.
+        $machine = $this->makeMachine();
+        $facility = $machine->line->facility;
+        $at = $this->at('2026-12-31 22:30:00');
+
+        $this->assertSame('IST-H01-M03-T-2027-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $at));
+        $this->assertSame('IST-SD-2027-0001', $this->numbers->fieldRef($facility, $at));
     }
 
     public function test_field_ref_format_and_sequence(): void
@@ -106,13 +118,21 @@ class RecordNumberGeneratorTest extends TestCase
     {
         $facility = $this->makeMachine()->line->facility;
 
-        $this->assertSame('IST-SD-2026-0001', $this->numbers->fieldRef($facility, $this->at('2026-12-31 23:59:59')));
-        $this->assertSame('IST-SD-2027-0001', $this->numbers->fieldRef($facility, $this->at('2027-01-01 00:00:00')));
-        $this->assertSame('IST-SD-2026-0002', $this->numbers->fieldRef($facility, $this->at('2026-06-01')));
+        $this->assertSame('IST-SD-2026-0001', $this->numbers->fieldRef($facility, $this->local('2026-12-31 23:59:59')));
+        $this->assertSame('IST-SD-2027-0001', $this->numbers->fieldRef($facility, $this->local('2027-01-01 00:00:00')));
+        $this->assertSame('IST-SD-2026-0002', $this->numbers->fieldRef($facility, $this->local('2026-06-01')));
     }
 
     private function at(string $time): CarbonImmutable
     {
         return CarbonImmutable::parse($time);
+    }
+
+    /**
+     * Gösterim saat dilimindeki yerel zaman, UTC'ye çevrilmiş olarak (iş akışı zamanı UTC tutar).
+     */
+    private function local(string $time): CarbonImmutable
+    {
+        return CarbonImmutable::parse($time, config('app.display_timezone'))->utc();
     }
 }
