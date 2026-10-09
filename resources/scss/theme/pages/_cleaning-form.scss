@@ -1,0 +1,230 @@
+// cleaning-form sayfasının yerleşim kuralları. Renk yazılmaz; gerekirse _tokens.scss değişkenleri kullanılır.
+//
+// Kapsam: kayıt açma formu (cleanings/create) ve kayıt listesi (cleanings/index).
+// Form sahada tablette kullanılır: dokunma hedefleri en az 44px, alanlar dar ekranda alt alta.
+
+// ---------------------------------------------------------------------------------------------
+// Kayıt açma formu
+// ---------------------------------------------------------------------------------------------
+
+.cleaning-form {
+    max-width: 60rem;
+
+    .form-select,
+    .form-control:not(textarea) {
+        min-height: 2.75rem;
+    }
+
+    .form-check {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0 .625rem;
+        min-height: 2.75rem;
+        padding-inline-start: 0;
+    }
+
+    .form-check-input {
+        flex: none;
+        width: 1.375rem;
+        height: 1.375rem;
+        margin: .0625rem 0 0;
+        float: none;
+    }
+
+    .form-check-label {
+        flex: 1;
+    }
+
+    // Açıklama metni etiketin altında, kutucukla değil etiketle hizalı.
+    .form-check .form-text {
+        flex-basis: 100%;
+        margin-top: 0;
+        padding-inline-start: calc(1.375rem + .625rem);
+    }
+}
+
+.cleaning-form__intro {
+    margin-bottom: 1rem;
+}
+
+.cleaning-form__section {
+    margin-bottom: 1rem;
+}
+
+.cleaning-form__section-help {
+    margin-top: 0;
+    margin-bottom: .75rem;
+}
+
+.cleaning-form__field + .cleaning-form__field {
+    margin-top: 1rem;
+}
+
+.cleaning-form__errors-title {
+    margin-bottom: .25rem;
+}
+
+.cleaning-form__owner {
+    margin-bottom: .75rem;
+}
+
+.cleaning-form__no-machines {
+    margin: .75rem 0 0;
+}
+
+.cleaning-form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+}
+
+// Seçilen makinenin özeti
+.machine-summaries {
+    margin-top: 1rem;
+}
+
+.machine-summary--empty {
+    margin-bottom: 0;
+}
+
+.machine-summary__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: .5rem 1.5rem;
+    margin-bottom: .75rem;
+
+    dt {
+        font-weight: 600;
+    }
+
+    dd {
+        margin-bottom: 0;
+    }
+}
+
+.machine-summary__code {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.machine-summary__phases {
+    margin-bottom: 0;
+    padding-inline-start: 1.25rem;
+}
+
+.machine-summary__phase {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0 1rem;
+    padding-block: .25rem;
+}
+
+.machine-summary__phase-name {
+    font-weight: 600;
+}
+
+.machine-summary__pending {
+    margin: .75rem 0 0;
+}
+
+.machine-summary__pending-text {
+    margin-bottom: .5rem;
+}
+
+// Tür seçimi: geniş ekranda yan yana, dar ekranda alt alta.
+.type-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: .75rem 1.5rem;
+}
+
+.type-option__label {
+    font-weight: 600;
+}
+
+// Yardımcı personel: dokunması kolay sütunlar.
+.helper-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: .25rem 1.5rem;
+}
+
+// Malzeme satırları: geniş ekranda tek satır, tablette ve telefonda alanlar alt alta.
+.material-rows {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.material-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .75rem;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1.25fr) minmax(0, 1.25fr) auto;
+        align-items: start;
+    }
+}
+
+.material-row__actions {
+    display: flex;
+    align-items: flex-end;
+
+    @include media-breakpoint-up(md) {
+        // Etiket yüksekliği kadar aşağı: buton alanlarla aynı hizada.
+        padding-top: calc(1.5em + .5rem);
+    }
+}
+
+.material-row__remove {
+    min-height: 2.75rem;
+}
+
+.material-rows__add {
+    min-height: 2.75rem;
+    margin-top: 1rem;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Kayıt listesi
+// ---------------------------------------------------------------------------------------------
+
+.cleaning-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    align-items: end;
+    gap: .75rem 1rem;
+
+    .form-select {
+        min-height: 2.75rem;
+    }
+}
+
+.cleaning-filters__field--check {
+    align-self: center;
+
+    .form-text {
+        margin-top: 0;
+    }
+}
+
+.cleaning-filters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+
+    .btn {
+        min-height: 2.75rem;
+    }
+}
+
+.cleaning-list__pagination {
+    .pagination {
+        margin-bottom: 0;
+    }
+}
