@@ -115,15 +115,31 @@ Gereken tek şey Docker (Compose v2).
 docker compose up -d --build
 ```
 
-İlk açılışta `app` container'ı `.env` dosyasını `.env.example`'dan oluşturur, `composer install` çalıştırır, uygulama anahtarını üretir ve migration'ları uygular. `vite` container'ı `npm install` çalıştırıp arayüz için geliştirme sunucusunu başlatır.
+İlk açılışta `app` container'ı sırasıyla:
 
-Demo verisini yüklemek için (veritabanını sıfırlar):
+1. `.env` dosyasını `.env.example`'dan oluşturur, `composer install` çalıştırır ve uygulama anahtarını üretir.
+2. MySQL hazır olunca migration'ları uygular.
+3. **Veritabanı boşsa demo verisini yükler** (`php artisan demo:seed`).
+
+`vite` container'ı `npm install` çalıştırıp arayüz için geliştirme sunucusunu başlatır. Sonraki açılışlarda veritabanında kayıt olduğu için demo verisi yeniden yüklenmez.
+
+Demo verisi bütün süreci kapsar:
+- **Tanımlar:** tesis, iki hat, yedi makine (biri kullanımdan kaldırılmış), dört prosedür (birinin v1 ve v2 versiyonu), malzeme kataloğu, iş emirleri ve beş kullanıcı (biri pasif).
+- **Temizlik kayıtları** (17 kayıt, her durumdan):
+  - başlamamış, devam eden ve duraklatılmış kayıtlar;
+  - bugün ve geçmiş haftalarda tamamlanmış temizlikler: adım bazında farklı görevliler, duraklatma, adım sırasında görevli değişikliği, minimum süre altında gerekçeyle kapanan faz, geçersiz kılınmış malzeme, plansız müdahale;
+  - iptal edilmiş ve süresi dolmuş kayıtlar.
+- **Durum makinesinden üretim:** Bütün kayıtlar gerçek durum makinesi üzerinden üretilir ve olay zincirleri doğrulanır.
+
+Demo verisini sıfırdan yeniden yüklemek için (veritabanını sıfırlar):
 
 ```bash
 docker compose exec app php artisan migrate:fresh --seed
 ```
 
-Giriş sayfası `local` ortamda demo hesaplarını listeler; hepsinin şifresi `password`. Operatör olarak `ahmet@demo.test`, yönetici olarak `yonetici@demo.test` ile girilebilir. Demo verisindeki "başlamamış" kayıt, zamanlayıcı tarafından yaklaşık 30 dakika sonra "süresi doldu" durumuna alınır (K-06); demo öncesi yeniden yüklemek yeterlidir.
+Otomatik yüklemeyi kapatmak için `.env` dosyasında `DEMO_SEED=false` yazılır. Belirtilmezse yalnızca `local` ortamda açıktır.
+
+Giriş sayfası `local` ortamda demo hesaplarını listeler; hepsinin şifresi `password`. Operatör olarak `ahmet@demo.test`, yönetici olarak `yonetici@demo.test` ile girilebilir. Demo verisindeki "başlamamış" kayıt, zamanlayıcı tarafından yaklaşık 30 dakika sonra "süresi doldu" durumuna alınır (K-06); bu kaydı yeniden görmek için demo verisini yukarıdaki komutla yeniden yüklemek yeterlidir.
 
 | Servis | Adres |
 |---|---|

@@ -67,6 +67,10 @@ return [
 
     'timezone' => 'UTC',
 
+    // Boş veritabanına ilk açılışta demo verisi yüklensin mi (php artisan demo:seed)?
+    // Belirtilmezse yalnızca local ortamda açıktır.
+    'demo_seed' => (bool) env('DEMO_SEED', env('APP_ENV', 'production') === 'local'),
+
     // Zamanlar veritabanında UTC saklanır; arayüzde bu saat dilimiyle gösterilir.
     'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Europe/Istanbul'),
 
