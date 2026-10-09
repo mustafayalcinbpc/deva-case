@@ -9,6 +9,9 @@ if [ "$CONTAINER_ROLE" = "app" ]; then
     [ -f .env ] || cp .env.example .env
     [ -f vendor/autoload.php ] || composer install --no-interaction --prefer-dist
     grep -q '^APP_KEY=base64:' .env || php artisan key:generate --force
+    # Root olarak çalışan komutların (artisan, queue) derlediği view'ları php-fpm
+    # (www-data) güncelleyebilmeli: touch() ile zaman damgası atamak sahiplik ister.
+    chown -R www-data:www-data storage bootstrap/cache
     chmod -R a+rwX storage bootstrap/cache
     php artisan migrate --force
     php artisan demo:seed
