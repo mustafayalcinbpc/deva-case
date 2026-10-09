@@ -1,0 +1,195 @@
+// Butonlar. Bootstrap sınıfları Nocturne butonlarına eşlenir:
+//   .btn-primary                         → solid (dolu vurgu)
+//   .btn-outline-primary                 → primary-outline (vurgu çerçeve)
+//   .btn-secondary, .btn-outline-secondary, .btn-light, .btn-outline-dark → secondary (ince çerçeve)
+//   .btn-link, .btn-ghost                → ghost (vurgu yazı, çerçevesiz)
+//   .btn-success / -danger / -warning    → ok / crit / warn dolu; .btn-outline-* çerçeve
+//   .btn-icon                            → 36px kare ikon butonu
+
+@mixin nc-button(
+    $color,
+    $bg,
+    $border,
+    $hover-color,
+    $hover-bg,
+    $hover-border,
+    $active-color: $hover-color,
+    $active-bg: $hover-bg,
+    $active-border: $hover-border
+) {
+    --bs-btn-color: #{$color};
+    --bs-btn-bg: #{$bg};
+    --bs-btn-border-color: #{$border};
+    --bs-btn-hover-color: #{$hover-color};
+    --bs-btn-hover-bg: #{$hover-bg};
+    --bs-btn-hover-border-color: #{$hover-border};
+    --bs-btn-active-color: #{$active-color};
+    --bs-btn-active-bg: #{$active-bg};
+    --bs-btn-active-border-color: #{$active-border};
+    --bs-btn-disabled-color: #{$color};
+    --bs-btn-disabled-bg: #{$bg};
+    --bs-btn-disabled-border-color: #{$border};
+}
+
+.btn {
+    --bs-btn-font-weight: 500;
+    --bs-btn-border-radius: var(--nc-radius-md);
+    --bs-btn-focus-box-shadow: 0 0 0 3px var(--nc-focus-ring);
+    --bs-btn-disabled-opacity: .5;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    letter-spacing: -.005em;
+
+    > .bi {
+        line-height: 1;
+    }
+}
+
+// Dolu vurgu
+.btn-primary,
+.btn-solid {
+    @include nc-button(
+        var(--nc-on-accent), var(--nc-accent-solid), var(--nc-accent-solid),
+        var(--nc-on-accent), var(--nc-accent-solid-hover), var(--nc-accent-solid-hover)
+    );
+}
+
+// Vurgu çerçeve
+.btn-outline-primary,
+.btn-info,
+.btn-outline-info {
+    @include nc-button(
+        var(--nc-accent), transparent, var(--nc-accent),
+        var(--nc-accent), color-mix(in srgb, var(--nc-accent) 12%, transparent), var(--nc-accent),
+        var(--nc-accent), color-mix(in srgb, var(--nc-accent) 18%, transparent), var(--nc-accent)
+    );
+}
+
+// İkincil: ince çerçeve, metin rengi. Seçili (btn-check / .active) hali segment kontrol gibi.
+.btn-secondary,
+.btn-outline-secondary,
+.btn-light,
+.btn-outline-light,
+.btn-outline-dark {
+    @include nc-button(
+        var(--nc-text), transparent, var(--nc-divider),
+        var(--nc-text), color-mix(in srgb, var(--nc-text) 7%, transparent), var(--nc-divider),
+        var(--nc-accent), var(--nc-accent-wash), var(--nc-accent)
+    );
+}
+
+.btn-dark {
+    @include nc-button(
+        var(--nc-surface), var(--nc-text), var(--nc-text),
+        var(--nc-surface), var(--nc-neutral-300), var(--nc-neutral-300)
+    );
+}
+
+// Ghost: vurgu yazı, zemin yalnızca üzerine gelince
+.btn-link,
+.btn-ghost {
+    @include nc-button(
+        var(--nc-accent), transparent, transparent,
+        var(--nc-accent), var(--nc-accent-wash), transparent,
+        var(--nc-accent), color-mix(in srgb, var(--nc-accent) 16%, transparent), transparent
+    );
+
+    --bs-btn-padding-x: .5rem;
+    --bs-btn-disabled-color: var(--nc-text-subtle);
+
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: none;
+    }
+}
+
+// Durum renkleri: dolu (açık temada beyaz yazı, koyu temada koyu yazı)
+@each $name, $hue in (success: ok, danger: crit, warning: warn) {
+    .btn-#{$name} {
+        @include nc-button(
+            var(--nc-on-status), var(--nc-#{$hue}-solid), var(--nc-#{$hue}-solid),
+            var(--nc-on-status), color-mix(in srgb, var(--nc-#{$hue}-solid) 88%, var(--nc-text)), color-mix(in srgb, var(--nc-#{$hue}-solid) 88%, var(--nc-text))
+        );
+    }
+
+    .btn-outline-#{$name} {
+        @include nc-button(
+            var(--nc-#{$hue}-text), transparent, color-mix(in srgb, var(--nc-#{$hue}) 70%, transparent),
+            var(--nc-#{$hue}-text), color-mix(in srgb, var(--nc-#{$hue}) 12%, transparent), var(--nc-#{$hue}),
+            var(--nc-#{$hue}-text), color-mix(in srgb, var(--nc-#{$hue}) 18%, transparent), var(--nc-#{$hue})
+        );
+    }
+}
+
+// Boyutlar
+.btn-sm {
+    --bs-btn-border-radius: var(--nc-radius-md);
+
+    gap: 4px;
+}
+
+.btn-lg {
+    --bs-btn-border-radius: var(--nc-radius-md);
+
+    gap: 8px;
+}
+
+// Kare ikon butonu (üst bar, satır işlemleri)
+.btn-icon {
+    @include nc-button(
+        var(--nc-text), transparent, var(--nc-divider),
+        var(--nc-text), var(--nc-hover), var(--nc-divider),
+        var(--nc-text), var(--nc-press), var(--nc-divider)
+    );
+
+    --bs-btn-padding-x: 0;
+    --bs-btn-padding-y: 0;
+
+    flex: none;
+    width: 36px;
+    height: 36px;
+    font-size: 1.0625rem;
+
+    &.btn-sm {
+        width: 32px;
+        height: 32px;
+        font-size: .9375rem;
+    }
+
+    &.btn-ghost {
+        --bs-btn-border-color: transparent;
+        --bs-btn-hover-border-color: transparent;
+        --bs-btn-active-border-color: transparent;
+        --bs-btn-color: var(--nc-text-muted);
+        --bs-btn-hover-color: var(--nc-text);
+        --bs-btn-hover-bg: var(--nc-hover);
+    }
+}
+
+// AdminLTE kart araç butonu
+.btn-tool {
+    --bs-btn-color: var(--nc-text-muted);
+    --bs-btn-hover-color: var(--nc-text);
+    --bs-btn-hover-bg: var(--nc-hover);
+}
+
+// Grup içindeki ikincil butonlar segment kontrol gibi birleşir
+.btn-group > .btn-outline-secondary,
+.btn-group > .btn-secondary {
+    --bs-btn-hover-border-color: var(--nc-divider);
+}
+
+.btn-group > .btn-check:checked + .btn,
+.btn-group > .btn.active {
+    z-index: 1;
+    box-shadow: inset 0 0 0 1px var(--nc-accent);
+}
+
+.btn-close:focus {
+    box-shadow: 0 0 0 3px var(--nc-focus-ring);
+}

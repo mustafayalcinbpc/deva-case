@@ -1,74 +1,292 @@
-// Çalışma zamanı tasarım değişkenleri (CSS custom properties).
+// Çalışma zamanı tasarım değişkenleri (CSS custom properties) — Nocturne.
 //
-// Uygulamaya özel bileşenler (durum rozetleri, hareketler) yalnızca bu değişkenleri kullanır;
-// renk ya da süre değiştirmek için derleme gerekmez. Koyu tema için değerler aşağıda ayrıca verilir.
+// 1. Nocturne token'ları (--nc-*): açık tema varsayılan, koyu tema [data-bs-theme="dark"] altında.
+//    Tema <html data-bs-theme> ile seçilir (layouts/partials/theme-init, modules/theme-toggle.js).
+// 2. Türetilmiş token'lar ve Bootstrap/AdminLTE eşlemesi: her iki temada aynı ifadeler, token'lar
+//    değiştiği için sonuç da değişir. Sayfaya özel koyu tema kuralı yazmaya gerek kalmaz.
+// 3. Uygulamaya özel token'lar (--app-*): durum rozetleri, "bana ait" vurgusu, güncel adım, hareket.
+
+// ---------------------------------------------------------------------------------------------
+// 1. Nocturne
+// ---------------------------------------------------------------------------------------------
+
+// Açık ve koyu temanın Nocturne değerleri. Yazdırırken her zaman açık tema kullanılır.
+@mixin nc-light-tokens {
+    --nc-bg: #{$nc-bg};
+    --nc-surface: #{$nc-surface};
+    --nc-text: #{$nc-text};
+    --nc-divider: color-mix(in srgb, #{$nc-text} 15%, transparent);
+
+    --nc-neutral-100: #262833;
+    --nc-neutral-200: #383b48;
+    --nc-neutral-300: #4b4e5e;
+    --nc-neutral-400: #636779;
+    --nc-neutral-500: #7f8395;
+    --nc-neutral-600: #9a9eb0;
+    --nc-neutral-700: #c6c9d6;
+    --nc-neutral-800: #e4e6f0;
+    --nc-neutral-900: #f0f1f8;
+
+    --nc-accent: #{$nc-accent};
+    --nc-accent-2: #{$nc-accent-2};
+    --nc-accent-100: #2b2741;
+    --nc-accent-200: #423a6a;
+    --nc-accent-300: #5d5294;
+    --nc-accent-400: #796cbf;
+    --nc-accent-500: #8478d2;
+    --nc-accent-600: #5d5294;
+    --nc-accent-700: #cec9f6;
+    --nc-accent-800: #e6e3fc;
+    --nc-accent-900: #f0eeff;
+
+    // Dolu (solid) buton zemini ve üzerindeki yazı
+    --nc-accent-solid: var(--nc-accent);
+    --nc-accent-solid-hover: var(--nc-accent-2);
+    --nc-on-accent: #fff;
+
+    --nc-shadow-sm: 0 0 0 1px #e4e6f0;
+    --nc-shadow-md: 0 0 0 1px #d9dce9, 0 6px 18px rgb(38 40 70 / 0.1);
+    --nc-shadow-lg: 0 0 0 1px #c6c9d6, 0 16px 40px rgb(38 40 70 / 0.16);
+
+    --nc-ok: oklch(0.55 0.12 158);
+    --nc-ok-deep: oklch(0.93 0.05 158);
+    --nc-warn: oklch(0.58 0.12 82);
+    --nc-warn-deep: oklch(0.94 0.07 82);
+    --nc-crit: oklch(0.55 0.18 24);
+    --nc-crit-deep: oklch(0.93 0.05 24);
+
+    // Açık zeminde küçük yazı için ok/warn/crit biraz koyulaştırılır (AA kontrastı).
+    --nc-ok-text: color-mix(in oklab, var(--nc-ok) 80%, var(--nc-text));
+    --nc-warn-text: color-mix(in oklab, var(--nc-warn) 80%, var(--nc-text));
+    --nc-crit-text: color-mix(in oklab, var(--nc-crit) 85%, var(--nc-text));
+
+    // Dolu durum butonları (Tamamla, İptal et): açık temada beyaz yazı
+    --nc-ok-solid: var(--nc-ok);
+    --nc-warn-solid: color-mix(in oklab, var(--nc-warn) 85%, var(--nc-text));
+    --nc-crit-solid: var(--nc-crit);
+    --nc-on-status: #fff;
+
+}
+
+@mixin nc-dark-tokens {
+    --nc-bg: #{$nc-bg-dark};
+    --nc-surface: #{$nc-surface-dark};
+    --nc-text: #{$nc-text-dark};
+    --nc-divider: color-mix(in srgb, #{$nc-text-dark} 16%, transparent);
+
+    --nc-neutral-100: #f3f5fe;
+    --nc-neutral-200: #e4e7f5;
+    --nc-neutral-300: #cfd3e5;
+    --nc-neutral-400: #b2b6ca;
+    --nc-neutral-500: #9397ab;
+    --nc-neutral-600: #75798c;
+    --nc-neutral-700: #595d6c;
+    --nc-neutral-800: #3f424d;
+    --nc-neutral-900: #292b31;
+
+    --nc-accent: #{$nc-accent-dark};
+    --nc-accent-2: #{$nc-accent-2-dark};
+    --nc-accent-100: #f5f4ff;
+    --nc-accent-200: #e7e5fe;
+    --nc-accent-300: #d2cefd;
+    --nc-accent-400: #b5abfc;
+    --nc-accent-500: #968ae0;
+    --nc-accent-600: #796cbf;
+    --nc-accent-700: #5d5294;
+    --nc-accent-800: #423a6a;
+    --nc-accent-900: #2b2741;
+
+    // Koyu temada beyaz yazının okunması için dolu buton bir ton koyu (tasarımdaki #9184d9 yerine).
+    --nc-accent-solid: #7569c6;
+    --nc-accent-solid-hover: #7f73cf;
+    --nc-on-accent: #fff;
+
+    --nc-shadow-sm: 0 0 0 1px #3f424d;
+    --nc-shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgb(0 0 0 / 0.55);
+    --nc-shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgb(0 0 0 / 0.65);
+
+    --nc-ok: oklch(0.74 0.1 158);
+    --nc-ok-deep: oklch(0.35 0.055 158);
+    --nc-warn: oklch(0.8 0.1 82);
+    --nc-warn-deep: oklch(0.37 0.055 82);
+    --nc-crit: oklch(0.7 0.14 24);
+    --nc-crit-deep: oklch(0.34 0.08 24);
+
+    --nc-ok-text: var(--nc-ok);
+    --nc-warn-text: var(--nc-warn);
+    --nc-crit-text: var(--nc-crit);
+
+    // Koyu temada durum renkleri açık; üzerindeki yazı koyu
+    --nc-ok-solid: var(--nc-ok);
+    --nc-warn-solid: var(--nc-warn);
+    --nc-crit-solid: var(--nc-crit);
+    --nc-on-status: #{$nc-bg-dark};
+}
 
 :root,
 [data-bs-theme="light"] {
-    // Temizlik kaydı durumları
-    --app-status-created-bg: #e9ecef;
-    --app-status-created-fg: #495057;
-    --app-status-in-progress-bg: #cfe2ff;
-    --app-status-in-progress-fg: #084298;
-    --app-status-completed-bg: #d1e7dd;
-    --app-status-completed-fg: #0f5132;
-    --app-status-expired-bg: #fff3cd;
-    --app-status-expired-fg: #664d03;
-    --app-status-cancelled-bg: #f8d7da;
-    --app-status-cancelled-fg: #842029;
+    @include nc-light-tokens;
 
-    // Adım ve faz durumları (completed / in_progress yukarıdakileri kullanır)
-    --app-status-pending-bg: #e9ecef;
-    --app-status-pending-fg: #495057;
-    --app-status-running-bg: #cfe2ff;
-    --app-status-running-fg: #084298;
-    --app-status-paused-bg: #fff3cd;
-    --app-status-paused-fg: #664d03;
+    color-scheme: light;
+}
+
+[data-bs-theme="dark"] {
+    @include nc-dark-tokens;
+
+    color-scheme: dark;
+
+    // Bootstrap koyu temada tema renklerini değiştirmez; Nocturne vurgusu değişir.
+    --bs-primary: #{$nc-accent-dark};
+    --bs-primary-rgb: #{to-rgb($nc-accent-dark)};
+    --bs-success: #{$nc-ok-dark};
+    --bs-success-rgb: #{to-rgb($nc-ok-dark)};
+    --bs-warning: #{$nc-warn-dark};
+    --bs-warning-rgb: #{to-rgb($nc-warn-dark)};
+    --bs-danger: #{$nc-crit-dark};
+    --bs-danger-rgb: #{to-rgb($nc-crit-dark)};
+    --bs-info: #{$nc-accent-2-dark};
+    --bs-info-rgb: #{to-rgb($nc-accent-2-dark)};
+}
+
+@media print {
+    [data-bs-theme="dark"] {
+        @include nc-light-tokens;
+
+        color-scheme: light;
+
+        --bs-primary: #{$nc-accent};
+        --bs-primary-rgb: #{to-rgb($nc-accent)};
+        --bs-success-rgb: #{to-rgb($nc-ok)};
+        --bs-warning-rgb: #{to-rgb($nc-warn)};
+        --bs-danger-rgb: #{to-rgb($nc-crit)};
+        --bs-body-bg-rgb: #{to-rgb($nc-surface)};
+        --bs-body-color-rgb: #{to-rgb($nc-text)};
+        --bs-tertiary-bg-rgb: #{to-rgb($nc-bg)};
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// 2. Türetilmiş token'lar ve Bootstrap eşlemesi (her tema kapsamında yeniden hesaplanır)
+// ---------------------------------------------------------------------------------------------
+
+:root,
+[data-bs-theme] {
+    --nc-font: "Inter", system-ui, -apple-system, sans-serif;
+    --nc-radius-sm: 4px;
+    --nc-radius-md: 8px;
+    --nc-radius-lg: 14px;
+    --nc-space-1: 2.8px;
+    --nc-space-2: 5.6px;
+    --nc-space-3: 8.4px;
+    --nc-space-4: 11.2px;
+    --nc-space-6: 16.8px;
+    --nc-space-8: 22.4px;
+
+    // Yazı tonları. Tasarımdaki %55'lik soluk yazı AA kontrastı için %65'e çekildi.
+    --nc-text-muted: color-mix(in srgb, var(--nc-text) 65%, transparent);
+    --nc-text-label: color-mix(in srgb, var(--nc-text) 72%, transparent);
+    --nc-text-subtle: color-mix(in srgb, var(--nc-text) 50%, transparent);
+
+    // Etkileşim yüzeyleri
+    --nc-hover: color-mix(in srgb, var(--nc-text) 6%, transparent);
+    --nc-press: color-mix(in srgb, var(--nc-text) 10%, transparent);
+    --nc-row-divider: color-mix(in srgb, var(--nc-text) 8%, transparent);
+    --nc-row-hover: color-mix(in srgb, var(--nc-text) 4%, transparent);
+    --nc-border-strong: color-mix(in srgb, var(--nc-text) 45%, transparent);
+    --nc-accent-tint: color-mix(in srgb, var(--nc-accent) 14%, transparent);
+    --nc-accent-wash: color-mix(in srgb, var(--nc-accent) 10%, transparent);
+    --nc-accent-line: color-mix(in srgb, var(--nc-accent) 35%, transparent);
+    --nc-focus-ring: color-mix(in srgb, var(--nc-accent) 28%, transparent);
+    --nc-sidebar-link: var(--nc-accent);
+
+    // Kenarları solan çizgi — Nocturne imzası
+    --nc-fade-line: linear-gradient(to right, transparent, var(--nc-divider) 48px, var(--nc-divider) calc(100% - 48px), transparent);
+    --nc-fade-line-soft: linear-gradient(to right, transparent, var(--nc-row-divider) 48px, var(--nc-row-divider) calc(100% - 48px), transparent);
+
+    // Bootstrap (5.3 renk modları). -rgb değişkenleri derleme zamanında _variables.scss'ten gelir.
+    --bs-body-bg: var(--nc-surface);
+    --bs-body-color: var(--nc-text);
+    --bs-emphasis-color: var(--nc-text);
+    --bs-secondary-color: var(--nc-text-muted);
+    --bs-tertiary-color: var(--nc-text-subtle);
+    --bs-secondary-bg: color-mix(in srgb, var(--nc-text) 6%, var(--nc-surface));
+    --bs-tertiary-bg: var(--nc-bg);
+    --bs-border-color: var(--nc-divider);
+    --bs-border-color-translucent: var(--nc-divider);
+    --bs-heading-color: inherit;
+    --bs-link-color: var(--nc-accent);
+    --bs-link-hover-color: var(--nc-accent-2);
+    --bs-focus-ring-color: var(--nc-focus-ring);
+    --bs-box-shadow: var(--nc-shadow-md);
+    --bs-box-shadow-sm: var(--nc-shadow-sm);
+    --bs-box-shadow-lg: var(--nc-shadow-lg);
+    --bs-form-valid-color: var(--nc-ok-text);
+    --bs-form-valid-border-color: var(--nc-ok);
+    --bs-form-invalid-color: var(--nc-crit-text);
+    --bs-form-invalid-border-color: var(--nc-crit);
+    --bs-highlight-bg: var(--nc-warn-deep);
+    --bs-highlight-color: var(--nc-text);
+    --bs-code-color: var(--nc-accent);
+
+    --bs-primary-text-emphasis: var(--nc-accent-200);
+    --bs-primary-bg-subtle: var(--nc-accent-900);
+    --bs-primary-border-subtle: var(--nc-accent-700);
+    --bs-success-text-emphasis: var(--nc-ok-text);
+    --bs-success-bg-subtle: var(--nc-ok-deep);
+    --bs-warning-text-emphasis: var(--nc-warn-text);
+    --bs-warning-bg-subtle: var(--nc-warn-deep);
+    --bs-danger-text-emphasis: var(--nc-crit-text);
+    --bs-danger-bg-subtle: var(--nc-crit-deep);
+    --bs-secondary-text-emphasis: var(--nc-text);
+    --bs-secondary-bg-subtle: var(--nc-neutral-800);
+    --bs-light-bg-subtle: var(--nc-neutral-900);
+}
+
+// ---------------------------------------------------------------------------------------------
+// 3. Uygulamaya özel token'lar. Durum rengi Nocturne etiketlerinden gelir:
+//    başlamamış/bekleyen nötr, devam eden/çalışan vurgu, tamamlanan ok,
+//    duraklatılan/süresi dolan warn, iptal crit.
+// ---------------------------------------------------------------------------------------------
+
+:root,
+[data-bs-theme] {
+    --app-status-created-bg: var(--nc-neutral-800);
+    --app-status-created-fg: var(--nc-neutral-100);
+    --app-status-pending-bg: var(--nc-neutral-800);
+    --app-status-pending-fg: var(--nc-neutral-100);
+
+    --app-status-in-progress-bg: var(--nc-accent-800);
+    --app-status-in-progress-fg: var(--nc-accent-100);
+    --app-status-running-bg: var(--nc-accent-800);
+    --app-status-running-fg: var(--nc-accent-100);
+
+    --app-status-completed-bg: var(--nc-ok-deep);
+    --app-status-completed-fg: var(--nc-ok-text);
+
+    --app-status-expired-bg: var(--nc-warn-deep);
+    --app-status-expired-fg: var(--nc-warn-text);
+    --app-status-paused-bg: var(--nc-warn-deep);
+    --app-status-paused-fg: var(--nc-warn-text);
+
+    --app-status-cancelled-bg: var(--nc-crit-deep);
+    --app-status-cancelled-fg: var(--nc-crit-text);
 
     // Detay ekranında güncel adım vurgusu
-    --app-current-step-border: #0d6efd;
-    --app-current-step-bg: rgb(13 110 253 / 0.04);
+    --app-current-step-border: var(--nc-accent);
+    --app-current-step-bg: color-mix(in srgb, var(--nc-accent) 5%, transparent);
 
     // "Bana ait" işareti ve satır vurgusu
-    --app-mine-bg: #e7f1ff;
-    --app-mine-fg: #0a58ca;
-    --app-mine-row-bg: rgb(13 110 253 / 0.05);
+    --app-mine-bg: var(--nc-accent-tint);
+    --app-mine-fg: var(--nc-accent);
+    --app-mine-row-bg: color-mix(in srgb, var(--nc-accent) 6%, transparent);
 
     // Biçim
-    --app-badge-radius: 999px;
-    --app-card-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.1);
+    --app-badge-radius: calc(var(--nc-radius-md) * 0.75);
+    --app-card-shadow: var(--nc-shadow-sm);
 
     // Hareket
     --app-motion-duration: 200ms;
     --app-motion-duration-slow: 350ms;
     --app-motion-ease: cubic-bezier(0.2, 0, 0, 1);
-}
-
-[data-bs-theme="dark"] {
-    --app-status-created-bg: #343a40;
-    --app-status-created-fg: #ced4da;
-    --app-status-in-progress-bg: #031633;
-    --app-status-in-progress-fg: #6ea8fe;
-    --app-status-completed-bg: #051b11;
-    --app-status-completed-fg: #75b798;
-    --app-status-expired-bg: #332701;
-    --app-status-expired-fg: #ffda6a;
-    --app-status-cancelled-bg: #2c0b0e;
-    --app-status-cancelled-fg: #ea868f;
-
-    --app-status-pending-bg: #343a40;
-    --app-status-pending-fg: #ced4da;
-    --app-status-running-bg: #031633;
-    --app-status-running-fg: #6ea8fe;
-    --app-status-paused-bg: #332701;
-    --app-status-paused-fg: #ffda6a;
-
-    --app-current-step-border: #6ea8fe;
-    --app-current-step-bg: rgb(110 168 254 / 0.06);
-
-    --app-mine-bg: #031633;
-    --app-mine-fg: #6ea8fe;
-    --app-mine-row-bg: rgb(110 168 254 / 0.08);
-
-    --app-card-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+    --app-theme-transition: 220ms;
 }

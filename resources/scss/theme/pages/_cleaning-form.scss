@@ -8,7 +8,6 @@
 // ---------------------------------------------------------------------------------------------
 
 .cleaning-form {
-    max-width: 60rem;
 
     .form-select,
     .form-control:not(textarea) {
@@ -44,12 +43,35 @@
     }
 }
 
-.cleaning-form__intro {
-    margin-bottom: 1rem;
+.cleaning-form__section {
+    margin-bottom: 0;
 }
 
-.cleaning-form__section {
-    margin-bottom: 1rem;
+// Tasarımdaki form düzeni: geniş ekranda 1.75fr + 1fr, sağ sütun kaydırırken yerinde kalır.
+.cleaning-form__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--nc-space-6);
+    align-items: start;
+
+    @include media-breakpoint-up(xl) {
+        grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+    }
+}
+
+.cleaning-form__main,
+.cleaning-form__aside {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nc-space-6);
+    min-width: 0;
+}
+
+.cleaning-form__aside {
+    @include media-breakpoint-up(xl) {
+        position: sticky;
+        top: var(--nc-space-6);
+    }
 }
 
 .cleaning-form__section-help {
@@ -78,16 +100,32 @@
     flex-wrap: wrap;
     align-items: center;
     gap: .75rem;
-    margin-bottom: 1.5rem;
+
+    @include media-breakpoint-up(xl) {
+        .cleaning-form__submit {
+            flex: 1 1 auto;
+        }
+    }
+}
+
+// Başlıktaki "Kaydı aç" düğmesi telefonda gizli; orada formun sonundaki büyük düğme kullanılır.
+.cleaning-form__submit-top {
+    @include media-breakpoint-down(md) {
+        display: none;
+    }
 }
 
 // Seçilen makinenin özeti
 .machine-summaries {
+    padding-top: var(--nc-space-6);
     margin-top: 1rem;
+    background: var(--nc-fade-line) no-repeat top / 100% 1px;
 }
 
 .machine-summary--empty {
     margin-bottom: 0;
+    font-size: .875rem;
+    color: var(--nc-text-muted);
 }
 
 .machine-summary__facts {
@@ -97,7 +135,7 @@
     margin-bottom: .75rem;
 
     dt {
-        font-weight: 600;
+        font-weight: 400;
     }
 
     dd {
@@ -124,7 +162,12 @@
 }
 
 .machine-summary__phase-name {
-    font-weight: 600;
+    font-weight: 500;
+}
+
+.machine-summary__phase-meta {
+    color: var(--nc-text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 .machine-summary__pending {
@@ -135,15 +178,67 @@
     margin-bottom: .5rem;
 }
 
-// Tür seçimi: geniş ekranda yan yana, dar ekranda alt alta.
-.type-options {
+// Tür seçimi: segment kontrol görünümünde iki seçenek (geniş ekranda yan yana, dar ekranda alt
+// alta). Radyo düğmesi görünür kalır; seçili seçenek vurgu halkası ve vurgu yazısıyla belirir.
+.type-options__choices {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-    gap: .75rem 1.5rem;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid var(--nc-divider);
+    border-radius: var(--nc-radius-md);
+
+    @include media-breakpoint-up(sm) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cleaning-form .type-option {
+    position: relative;
+    min-height: 0;
+    padding: .75rem .875rem;
+    margin: 0;
+    cursor: pointer;
+    transition:
+        background-color var(--app-motion-duration) var(--app-motion-ease),
+        box-shadow var(--app-motion-duration) var(--app-motion-ease);
+
+    & + & {
+        border-top: 1px solid var(--nc-divider);
+
+        @include media-breakpoint-up(sm) {
+            border-top: 0;
+            border-left: 1px solid var(--nc-divider);
+        }
+    }
+
+    &:hover {
+        background-color: var(--nc-hover);
+    }
+
+    &:has(.form-check-input:checked) {
+        background-color: var(--nc-accent-wash);
+        box-shadow: inset 0 0 0 1px var(--nc-accent);
+
+        .type-option__label {
+            color: var(--nc-accent);
+        }
+    }
+
+    &:has(.form-check-input:focus-visible) {
+        outline: 2px solid var(--nc-accent);
+        outline-offset: -4px;
+    }
+
+    // Etiket bütün seçeneği kaplar: kutunun herhangi bir yerine dokunmak seçer.
+    .form-check-label::after {
+        position: absolute;
+        inset: 0;
+        content: "";
+    }
 }
 
 .type-option__label {
-    font-weight: 600;
+    font-weight: 500;
 }
 
 // Yardımcı personel: dokunması kolay sütunlar.
@@ -170,13 +265,17 @@
     }
 }
 
+.material-row .form-label {
+    display: block;
+}
+
 .material-row__actions {
     display: flex;
     align-items: flex-end;
 
     @include media-breakpoint-up(md) {
-        // Etiket yüksekliği kadar aşağı: buton alanlarla aynı hizada.
-        padding-top: calc(1.5em + .5rem);
+        // Etiket yüksekliği kadar aşağı: buton alanlarla aynı hizada (13px × 1.55 + 5px).
+        padding-top: calc(.8125rem * #{$line-height-base} + .3125rem);
     }
 }
 
@@ -193,11 +292,16 @@
 // Kayıt listesi
 // ---------------------------------------------------------------------------------------------
 
+// Filtre satırı: tasarımdaki araç çubuğu gibi tek satır; dar ekranda alt alta.
 .cleaning-filters {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
     align-items: end;
     gap: .75rem 1rem;
+
+    @include media-breakpoint-up(xl) {
+        grid-template-columns: minmax(10rem, 14rem) minmax(14rem, 22rem) auto 1fr;
+    }
 
     .form-select {
         min-height: 2.75rem;

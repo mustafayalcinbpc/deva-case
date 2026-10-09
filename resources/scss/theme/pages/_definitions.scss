@@ -1,0 +1,188 @@
+// Yönetim (tanım) ekranlarının ortak kancaları. Ekranlar düz Bootstrap ile yazıldı; buradaki
+// kurallar yalnızca aralık ve soluk satır gibi küçük ayarlardır. Renk yazılmaz, token kullanılır.
+
+// Filtre satırı: kart içinde, alt çizgi kenarları solan çizgi (bootstrap/_cards.scss)
+.definition-filters,
+.admin-filters {
+    --bs-gutter-y: .75rem;
+}
+
+.definition-filters__actions,
+.admin-filters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nc-space-2);
+}
+
+// Tesis kartları alt alta; her kartın hat tablosu kart kenarına dayalı
+.facility-card + .facility-card {
+    margin-top: var(--nc-space-2);
+}
+
+.line-table__machines {
+    font-variant-numeric: tabular-nums;
+}
+
+// Liste satır işlemleri sağda, sığmazsa alt satıra
+.machine-list__table,
+.admin-list__table,
+.line-table {
+    td.text-end {
+        white-space: nowrap;
+    }
+}
+
+.admin-list__actions,
+.machine-list__actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--nc-space-2);
+}
+
+// Pasif (kullanımdan kaldırılmış) satır soluk
+.admin-list__row--inactive > *,
+.machine-list__row--retired > * {
+    color: var(--nc-text-muted);
+}
+
+// Tanım listeleri (dl.row ya da alt alta): etiket soluk ve küçük, değer normal yazı
+.definition-list,
+.procedure-facts {
+    dt {
+        padding-top: .1rem;
+        font-size: .8125rem;
+        font-weight: 400;
+        color: var(--nc-text-muted);
+    }
+
+    dd {
+        margin-bottom: .625rem;
+    }
+}
+
+// Tanım formları: alanlar arası düzenli boşluk, işlemler altta
+.definition-form,
+.admin-form {
+    max-width: 60rem;
+}
+
+.definition-form__field + .definition-form__field {
+    margin-top: var(--nc-space-6);
+}
+
+.definition-form__locked {
+    color: var(--nc-text-muted);
+}
+
+.definition-form__actions,
+.admin-form__actions,
+.procedure-form__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nc-space-2);
+}
+
+// Makineyi kullanımdan kaldırma kartı ve prosedür versiyon notu
+.machine-retirement .card-body > form,
+.procedure-version form {
+    margin: 0;
+}
+
+.procedure-version-note {
+    font-size: .8125rem;
+    color: var(--nc-text-muted);
+}
+
+// Değişiklik günlüğü (admin.definition-changes.index ve sayfalardaki geçmiş kartları).
+// İşlem rozeti status-badge ile aynı biçim; rengi işlemin anlamına göre token'lardan gelir.
+.definition-change-action {
+    &--created,
+    &--activated,
+    &--reinstated,
+    &--published {
+        --status-bg: var(--nc-ok-deep);
+        --status-fg: var(--nc-ok-text);
+    }
+
+    &--updated {
+        --status-bg: var(--nc-accent-800);
+        --status-fg: var(--nc-accent-100);
+    }
+
+    &--retired,
+    &--deactivated {
+        --status-bg: var(--nc-neutral-800);
+        --status-fg: var(--nc-neutral-100);
+    }
+
+    &--password-reset {
+        --status-bg: var(--nc-warn-deep);
+        --status-fg: var(--nc-warn-text);
+    }
+
+    &--deleted {
+        --status-bg: var(--nc-crit-deep);
+        --status-fg: var(--nc-crit-text);
+    }
+}
+
+.definition-change__actor--system {
+    color: var(--nc-text-muted);
+    font-style: italic;
+}
+
+.definition-change__label {
+    font-variant-numeric: tabular-nums;
+}
+
+// Eski → yeni değer farkı
+.definition-change-diff {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.definition-change-diff__attribute {
+    color: var(--nc-text-muted);
+    margin-inline-end: .35rem;
+}
+
+.definition-change-diff__old {
+    color: var(--nc-crit-text);
+    text-decoration-thickness: 1px;
+}
+
+.definition-change-diff__new {
+    color: var(--nc-ok-text);
+    text-decoration: none;
+}
+
+.definition-change-diff__arrow,
+.definition-change-diff__none,
+.definition-change-diff__note {
+    color: var(--nc-text-muted);
+}
+
+// Sayfalardaki kısa geçmiş kartı
+.definition-history__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.definition-history__item + .definition-history__item {
+    margin-top: .6rem;
+    padding-top: .6rem;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.definition-history__meta {
+    color: var(--nc-text-muted);
+    font-size: .8125rem;
+}

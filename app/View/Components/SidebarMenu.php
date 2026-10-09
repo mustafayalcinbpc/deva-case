@@ -6,11 +6,13 @@ use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\Component;
 
 /**
  * config/menu.php'deki öğelerden kullanıcının rolüne uygun olanları gösterir ve
  * bulunulan sayfayı işaretler. Altında öğe kalmayan başlıklar gizlenir.
+ * Üst bardaki breadcrumb da aynı listeden üretilir (trail()).
  */
 class SidebarMenu extends Component
 {
@@ -28,6 +30,30 @@ class SidebarMenu extends Component
     }
 
     /**
+     * Bulunulan sayfanın menüdeki yeri: bölüm başlığı (varsa) ve etkin öğe.
+     *
+     * @return array{section: ?string, item: ?array<string, mixed>}
+     */
+    public function trail(): array
+    {
+        $section = null;
+
+        foreach ($this->items as $item) {
+            if (isset($item['header'])) {
+                $section = $item['header'];
+
+                continue;
+            }
+
+            if ($item['active']) {
+                return ['section' => $section, 'item' => $item];
+            }
+        }
+
+        return ['section' => null, 'item' => null];
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $config
      * @return list<array<string, mixed>>
      */
@@ -35,7 +61,8 @@ class SidebarMenu extends Component
     {
         $visible = array_values(array_filter(
             $config,
-            fn (array $item) => ! isset($item['roles']) || ($user && in_array($user->role->value, $item['roles'], true)),
+            fn (array $item) => (! isset($item['roles']) || ($user && in_array($user->role->value, $item['roles'], true)))
+                && (! isset($item['route']) || Route::has($item['route'])),
         ));
 
         $items = [];

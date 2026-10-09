@@ -2,22 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\CancelReason;
-use App\Enums\CleaningType;
 use App\Enums\PhaseStatus;
 use App\Enums\StepStatus;
 use App\Models\Cleaning;
 use App\Models\CleaningEvent;
 use App\Models\CleaningMaterial;
-use App\Models\CleaningPhase;
 use App\Models\CleaningStep;
 use App\Models\Material;
 use App\Models\User;
 use App\Models\WorkSlice;
+use App\Services\Cleaning\CleaningEventDescriber;
 use App\Services\Cleaning\CleaningEventRecorder;
 use App\Services\Cleaning\CleaningPermissions;
 use App\Services\Cleaning\WorkTime;
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -41,6 +38,7 @@ class CleaningDetailController extends Controller
     public function __construct(
         private readonly CleaningPermissions $permissions,
         private readonly CleaningEventRecorder $recorder,
+        private readonly CleaningEventDescriber $describer,
     ) {}
 
     public function show(Request $request, Cleaning $cleaning): View
@@ -67,7 +65,8 @@ class CleaningDetailController extends Controller
             'canOperate' => $canOperate,
             'workerChoices' => $canOperate ? $this->workerChoices() : new EloquentCollection,
             'canManageMaterials' => $canManageMaterials,
-            'catalog' => $canManageMaterials ? Material::query()->orderBy('code')->get() : new EloquentCollection,
+            // Kullanımdan kaldırılan malzeme eklenemez; kayıtta zaten olanlar görünmeye devam eder (K-13).
+            'catalog' => $canManageMaterials ? Material::query()->active()->orderBy('code')->get() : new EloquentCollection,
             'materialMissing' => $cleaning->procedureVersion->material_required
                 && $cleaning->materials->doesntContain(fn (CleaningMaterial $item) => $item->voided_at === null),
             'cancelReasons' => $this->permissions->allowedCancelReasons($user, $cleaning),
@@ -338,118 +337,17 @@ class CleaningDetailController extends Controller
      */
     private function history(Cleaning $cleaning, Collection $users): array
     {
-        $steps = $cleaning->steps->keyBy('id');
-        $phases = $cleaning->phases->keyBy('id');
-        $materials = $cleaning->materials->keyBy('id');
-
-        return $cleaning->events->map(function (CleaningEvent $event) use ($cleaning, $users, $steps, $phases, $materials) {
-            $payload = $event->payload ?? [];
-            $step = $steps->get($payload['step_id'] ?? null);
-            $phase = $phases->get($payload['phase_id'] ?? null);
-            $item = $materials->get($payload['cleaning_material_id'] ?? null);
-
-            [$title, $details] = $this->describe($event->type, $payload, $cleaning, $users, $step, $phase, $item);
+        // Metin denetim raporuyla ortaktır (CleaningEventDescriber).
+        return $cleaning->events->map(function (CleaningEvent $event) use ($cleaning, $users) {
+            ['title' => $title, 'details' => $details] = $this->describer->describe($event, $cleaning, $users);
 
             return [
                 'event' => $event,
                 'actor' => $event->actor_id === null ? 'Sistem' : ($users->get($event->actor_id)?->name ?? "#{$event->actor_id}"),
                 'system' => $event->actor_id === null,
                 'title' => $title,
-                'details' => array_values(array_filter($details)),
+                'details' => $details,
             ];
         })->all();
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @param  Collection<int, User>  $users
-     * @return array{0: string, 1: list<array{label: string, value?: string, seconds?: int}|null>}
-     */
-    private function describe(string $type, array $payload, Cleaning $cleaning, Collection $users, ?CleaningStep $step, ?CleaningPhase $phase, ?CleaningMaterial $item): array
-    {
-        $people = fn (string $key) => implode(', ', $this->names($users, (array) ($payload[$key] ?? [])));
-        $text = fn (string $label, mixed $value) => filled($value) ? ['label' => $label, 'value' => (string) $value] : null;
-        $duration = fn (string $label, string $key) => isset($payload[$key]) ? ['label' => $label, 'seconds' => (int) $payload[$key]] : null;
-
-        $stepName = $step
-            ? "{$step->sequence}. adım"
-            : (isset($payload['sequence']) ? "{$payload['sequence']}. adım" : 'Adım');
-        $stepTitle = $step?->procedureStep->title;
-        $phaseName = $phase
-            ? "{$phase->sequence}. faz"
-            : (isset($payload['sequence']) ? "{$payload['sequence']}. faz" : 'Faz');
-        $phaseTitle = $phase?->procedurePhase->name;
-        $materialName = $item ? "{$item->material->code} — {$item->material->name}" : null;
-
-        return match ($type) {
-            'cleaning.opened' => ['Kayıt açıldı', [
-                $text('Tür', CleaningType::tryFrom((string) ($payload['type'] ?? ''))?->label()),
-                $text('Prosedür', "{$cleaning->procedureVersion->procedure->name} (v{$cleaning->procedureVersion->version})"),
-                $text('Yardımcı personel', $people('helper_ids')),
-                $text('İş emri', ($payload['work_order_id'] ?? null) !== null ? $cleaning->workOrder?->code : null),
-            ]],
-            'cleaning.started' => ['Temizlik başladı (ilk adım başlatıldı)', [
-                $text('Saha defteri referansı', $payload['field_ref'] ?? null),
-            ]],
-            'cleaning.completed' => ['Temizlik tamamlandı', [
-                $duration('Net çalışma süresi', 'net_seconds'),
-                $duration('Brüt süre', 'gross_seconds'),
-                $duration('İnsan eforu', 'effort_seconds'),
-            ]],
-            'cleaning.cancelled' => ['Kayıt iptal edildi', [
-                $text('Gerekçe', CancelReason::tryFrom((string) ($payload['reason'] ?? ''))?->label()),
-                $text('Açıklama', $payload['note'] ?? null),
-            ]],
-            'cleaning.expired' => ['Kaydın süresi doldu', [
-                $text('Neden', isset($payload['stale_after_minutes'])
-                    ? "Açıldıktan sonra {$payload['stale_after_minutes']} dakika içinde ilk adım başlatılmadı."
-                    : 'İlk adım süresi içinde başlatılmadı.'),
-            ]],
-            'phase.started' => ["{$phaseName} başladı", [
-                $text('Faz', $phaseTitle),
-            ]],
-            'phase.completed' => ["{$phaseName} tamamlandı", [
-                $text('Faz', $phaseTitle),
-                $duration('Ölçülen süre', 'measured_seconds'),
-                $duration('Minimum süre', 'minimum_seconds'),
-                ($payload['below_minimum'] ?? false) ? $text('Sapma', 'Minimum sürenin altında') : null,
-                $text('Gerekçe', $payload['deviation_reason'] ?? null),
-            ]],
-            'step.started' => ["{$stepName} başlatıldı", [
-                $text('Adım', $stepTitle),
-                $text('Görevliler', $people('worker_ids')),
-            ]],
-            'step.paused' => ["{$stepName} duraklatıldı", [
-                $text('Adım', $stepTitle),
-            ]],
-            'step.resumed' => ["{$stepName} devam ettirildi", [
-                $text('Adım', $stepTitle),
-                $text('Görevliler', $people('worker_ids')),
-            ]],
-            'step.workers_changed' => ["{$stepName} görevlileri değişti", [
-                $text('Adım', $stepTitle),
-                $text('Eklenen', $people('added')),
-                $text('Çıkarılan', $people('removed')),
-            ]],
-            'step.completed' => ["{$stepName} tamamlandı", [
-                $text('Adım', $stepTitle),
-            ]],
-            'material.added' => ['Malzeme eklendi', [
-                $text('Malzeme', $materialName),
-                $text('Lot', $payload['lot_no'] ?? null),
-                $text('Son kullanma tarihi', isset($payload['expiry_date']) ? $this->date((string) $payload['expiry_date']) : null),
-            ]],
-            'material.voided' => ['Malzeme geçersiz kılındı', [
-                $text('Malzeme', $materialName),
-                $text('Lot', $item?->lot_no),
-                $text('Gerekçe', $payload['reason'] ?? null),
-            ]],
-            default => [$type, []],
-        };
-    }
-
-    private function date(string $value): string
-    {
-        return rescue(fn () => CarbonImmutable::parse($value)->format('d.m.Y'), $value, report: false);
     }
 }

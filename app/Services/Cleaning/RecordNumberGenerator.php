@@ -23,7 +23,7 @@ final class RecordNumberGenerator
     {
         $machine->loadMissing('line.facility');
 
-        $year = $at->year;
+        $year = $this->localYear($at);
         $sequence = $this->next("cleaning:{$machine->id}:{$year}");
 
         return sprintf(
@@ -42,10 +42,19 @@ final class RecordNumberGenerator
      */
     public function fieldRef(Facility $facility, CarbonInterface $at): string
     {
-        $year = $at->year;
+        $year = $this->localYear($at);
         $sequence = $this->next("field-ref:{$facility->id}:{$year}");
 
         return sprintf('%s-SD-%d-%04d', $facility->code, $year, $sequence);
+    }
+
+    /**
+     * Yıl, tesisin yerel takvimine göre (gösterim saat dilimi) belirlenir; zaman UTC saklansa da
+     * 1 Ocak 00:00–03:00 arasında açılan kayıt yeni yılın numarasını alır.
+     */
+    private function localYear(CarbonInterface $at): int
+    {
+        return $at->copy()->setTimezone(config('app.display_timezone'))->year;
     }
 
     private function next(string $key): int

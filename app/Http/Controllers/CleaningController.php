@@ -8,7 +8,6 @@ use App\Http\Requests\StoreCleaningRequest;
 use App\Models\Cleaning;
 use App\Models\Machine;
 use App\Models\Material;
-use App\Models\Procedure;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\Cleaning\CleaningWorkflow;
@@ -19,7 +18,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as BaseCollection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Kayıt listesi ve kayıt açma (R-14–R-20). Liste herkese açıktır (K-11). Form yalnızca
@@ -75,7 +73,8 @@ class CleaningController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'workOrders' => $this->workOrderOptions(),
-            'materials' => Material::query()->orderBy('code')->get(['id', 'code', 'name']),
+            // Kullanımdan kaldırılan malzeme yeni kayıtta seçilemez (K-13).
+            'materials' => Material::query()->active()->orderBy('code')->get(['id', 'code', 'name']),
         ]);
     }
 
@@ -143,22 +142,13 @@ class CleaningController extends Controller
         $machines = $this->machinesQuery()
             ->where('machines.is_active', true)
             ->whereNotNull('machines.procedure_id')
-            ->with('procedure')
+            // Geçerli versiyon eager load ile gelir; sorgu sayısı makine ya da prosedür sayısıyla artmaz.
+            ->with(['procedure.currentPublishedVersion.phases' => fn ($query) => $query->withCount('steps')])
             ->get();
-
-        // Geçerli versiyon prosedür başına bir kez okunur (makine sayısıyla artmaz).
-        $versions = new Collection($machines->pluck('procedure')->unique('id')
-            ->map(fn (Procedure $procedure) => $procedure->currentVersion())
-            ->filter()
-            ->values()
-            ->all());
-        $versions->load(['phases' => fn ($query) => $query->withCount('steps')]);
-        $versions = $versions->keyBy('procedure_id');
 
         // K-05: kayıt açmak makineyi kilitlemez, ama aynı makinede başlamamış kayıt varsa uyarılır.
         $pending = Cleaning::query()
-            ->where('status', CleaningStatus::Created)
-            ->whereIn('machine_id', $machines->modelKeys())
+            ->pendingOn($machines)
             ->with('owner:id,name')
             ->orderBy('created_at')
             ->orderBy('id')
@@ -166,9 +156,9 @@ class CleaningController extends Controller
             ->groupBy('machine_id');
 
         return $machines
-            ->filter(fn (Machine $machine) => $versions->has($machine->procedure_id))
+            ->filter(fn (Machine $machine) => $machine->procedure?->currentPublishedVersion !== null)
             ->each(fn (Machine $machine) => $machine
-                ->setRelation('currentVersion', $versions->get($machine->procedure_id))
+                ->setRelation('currentVersion', $machine->procedure->currentPublishedVersion)
                 ->setRelation('pendingCleanings', $pending->get($machine->id, new Collection)))
             ->values();
     }
@@ -193,22 +183,15 @@ class CleaningController extends Controller
     private function workOrderOptions(): BaseCollection
     {
         return WorkOrder::query()
-            ->leftJoin('machines', 'machines.id', '=', 'work_orders.machine_id')
-            ->leftJoin('lines', 'lines.id', '=', DB::raw('coalesce(work_orders.line_id, machines.line_id)'))
-            ->leftJoin('facilities', 'facilities.id', '=', 'lines.facility_id')
-            ->select('work_orders.*', 'machines.code as machine_code', 'lines.code as line_code', 'facilities.code as facility_code')
-            ->orderBy('work_orders.code')
+            ->with(['machine.line.facility', 'line.facility'])
+            ->orderBy('code')
             ->get()
-            ->map(function (WorkOrder $workOrder) {
-                $location = collect([$workOrder->facility_code, $workOrder->line_code, $workOrder->machine_code])->filter()->implode(' / ');
-
-                return [
-                    'id' => $workOrder->id,
-                    'label' => collect([$workOrder->code, $workOrder->description])->filter()->implode(' — ')
-                        .' ('.($location === '' ? 'bütün makineler' : $location).')',
-                    'machine_id' => $workOrder->machine_id,
-                    'line_id' => $workOrder->line_id,
-                ];
-            });
+            ->map(fn (WorkOrder $workOrder) => [
+                'id' => $workOrder->id,
+                'label' => collect([$workOrder->code, $workOrder->description])->filter()->implode(' — ')
+                    .' ('.($workOrder->locationCodes() ?? 'bütün makineler').')',
+                'machine_id' => $workOrder->machine_id,
+                'line_id' => $workOrder->line_id,
+            ]);
     }
 }

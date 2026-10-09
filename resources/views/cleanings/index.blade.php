@@ -3,20 +3,25 @@
 @section('title', 'Temizlik Kayıtları')
 @section('page-title', 'Temizlik Kayıtları')
 
+@if ($cleanings->total() > 0)
+    @section('page-subtitle')
+        {{ $cleanings->total() }} kayıt{{ $isFiltered ? ' (filtrelenmiş)' : '' }} · en yeni önce
+    @endsection
+@endif
+
+@section('page-actions')
+    <a href="{{ route('cleanings.create') }}" class="btn btn-primary cleaning-list__create">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Yeni kayıt
+    </a>
+@endsection
+
 {{--
     Bütün temizlik kayıtları, en yeni önce. Herkes her kaydı görür (K-11); "Benim kayıtlarım"
     filtresi kaydın sahibi ya da herhangi bir adımında görevli olunan kayıtları gösterir.
 --}}
 @section('content')
     <section class="card cleaning-list" aria-labelledby="cleaning-list-title">
-        <div class="card-header">
-            <h2 class="card-title" id="cleaning-list-title">Kayıtlar</h2>
-            <div class="card-tools">
-                <a href="{{ route('cleanings.create') }}" class="btn btn-primary cleaning-list__create">
-                    <i class="bi bi-plus-circle" aria-hidden="true"></i> Yeni kayıt
-                </a>
-            </div>
-        </div>
+        <h2 class="visually-hidden" id="cleaning-list-title">Kayıtlar</h2>
 
         <div class="card-body border-bottom cleaning-list__filters">
             <form method="GET" action="{{ route('cleanings.index') }}" class="cleaning-filters" role="search" aria-label="Kayıtları filtrele">
@@ -55,7 +60,7 @@
                 </div>
 
                 <div class="cleaning-filters__actions">
-                    <button type="submit" class="btn btn-secondary">
+                    <button type="submit" class="btn btn-secondary cleaning-filters__submit">
                         <i class="bi bi-funnel" aria-hidden="true"></i> Filtrele
                     </button>
                     @if ($isFiltered)

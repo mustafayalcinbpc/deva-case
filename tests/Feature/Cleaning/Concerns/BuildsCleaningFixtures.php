@@ -12,6 +12,7 @@ use App\Models\Material;
 use App\Models\Procedure;
 use App\Models\ProcedureVersion;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 
 trait BuildsCleaningFixtures
@@ -38,16 +39,19 @@ trait BuildsCleaningFixtures
     }
 
     /**
-     * Prosedürün bir sonraki versiyonunu yayımlar.
+     * Prosedürün bir sonraki versiyonunu yayımlar. Versiyon taslak olarak kurulur ve en son
+     * yayımlanır: yayımlanmış versiyona faz ya da adım eklenemez (K-15). `$publishedAt`
+     * verilmezse hemen yayımlanır; ileri bir tarih o tarihe kadar yeni kayıtlara uygulanmaz.
+     * `step_attributes` adım sırasına (1..N) göre adımın alanlarını verir, ör.
+     * `[1 => ['media_path' => 'procedures/sokme.jpg', 'description' => '...']]`.
      *
-     * @param  list<array{steps?: int, min_seconds?: int, include_gaps?: bool}>  $phases
+     * @param  list<array{steps?: int, min_seconds?: int, include_gaps?: bool, step_attributes?: array<int, array<string, mixed>>}>  $phases
      */
-    protected function publishVersion(Procedure $procedure, array $phases, bool $materialRequired = false): ProcedureVersion
+    protected function publishVersion(Procedure $procedure, array $phases, bool $materialRequired = false, ?CarbonInterface $publishedAt = null): ProcedureVersion
     {
         $version = $procedure->versions()->create([
             'version' => ($procedure->versions()->max('version') ?? 0) + 1,
             'material_required' => $materialRequired,
-            'published_at' => now(),
         ]);
 
         foreach (array_values($phases) as $index => $phase) {
@@ -62,9 +66,12 @@ trait BuildsCleaningFixtures
                 $procedurePhase->steps()->create([
                     'sequence' => $step,
                     'title' => 'Faz '.($index + 1)." adım {$step}",
+                    ...($phase['step_attributes'][$step] ?? []),
                 ]);
             }
         }
+
+        $version->update(['published_at' => $publishedAt ?? now()]);
 
         return $version;
     }

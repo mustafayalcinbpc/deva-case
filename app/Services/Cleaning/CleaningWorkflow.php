@@ -8,6 +8,10 @@ use App\Enums\CleaningType;
 use App\Enums\PhaseStatus;
 use App\Enums\SliceEndReason;
 use App\Enums\StepStatus;
+use App\Events\CleaningCancelled;
+use App\Events\CleaningCompleted;
+use App\Events\CleaningExpired;
+use App\Events\PhaseCompletedBelowMinimum;
 use App\Exceptions\CleaningRuleViolation;
 use App\Models\Cleaning;
 use App\Models\CleaningMaterial;
@@ -34,6 +38,8 @@ use Illuminate\Support\Facades\DB;
  *   girer. Zaman kilitten sonra bir kez okunur (R-24, R-47); bir kaydın zamanları kilit
  *   sırasıyla artar.
  * - Makine ve personel kilidinin tek kaynağı veritabanındaki unique index'lerdir (R-35).
+ * - Domain olayları (App\Events) transaction commit edilince yayımlanır
+ *   (ShouldDispatchAfterCommit); geri alınan işlem hiçbir olay bırakmaz.
  * - Birden fazla ihlal varsa ilki döner:
  *   record_closed → inactive_user → not_allowed → durum geçişi / step_completed →
  *   step_out_of_order → no_workers → material_required → machine_busy → worker_busy
@@ -69,8 +75,8 @@ final class CleaningWorkflow
         ?string $notes = null,
     ): Cleaning {
         return $this->transaction(function () use ($actor, $machine, $type, $helperIds, $materials, $workOrder, $notes) {
+            $machine = $this->lockMachine($machine);
             $now = $this->serverTime();
-            $machine->refresh(); // güncel hali: kullanımdan kaldırılmış olabilir (K-16)
 
             $this->assertActive($actor);
 
@@ -374,6 +380,8 @@ final class CleaningWorkflow
                 'reason' => $reason->value,
                 'note' => $note,
             ]);
+
+            CleaningCancelled::dispatch($cleaning->id, $cleaning->owner_id, $actor->id, $reason, $note);
         }, $cleaning);
     }
 
@@ -411,6 +419,8 @@ final class CleaningWorkflow
 
                 // actor = null: işlemi sistem yaptı.
                 $this->events->record($cleaning, 'cleaning.expired', null, $now, ['stale_after_minutes' => $minutes]);
+
+                CleaningExpired::dispatch($cleaning->id, $cleaning->owner_id, $minutes);
 
                 return 1;
             });
@@ -503,6 +513,10 @@ final class CleaningWorkflow
             'below_minimum' => $belowMinimum,
             'deviation_reason' => $deviationReason,
         ]);
+
+        if ($belowMinimum) {
+            PhaseCompletedBelowMinimum::dispatch($cleaning->id, $phase->id, $actor->id, $measured, $minimum);
+        }
     }
 
     private function completeCleaning(Cleaning $cleaning, User $actor, CarbonImmutable $now): void
@@ -516,6 +530,8 @@ final class CleaningWorkflow
             'gross_seconds' => $cleaning->grossSeconds(),
             'effort_seconds' => $cleaning->effortSeconds(),
         ]);
+
+        CleaningCompleted::dispatch($cleaning->id, $cleaning->owner_id, $actor->id);
     }
 
     /**
@@ -631,6 +647,20 @@ final class CleaningWorkflow
     private function lockCleaning(int $cleaningId): Cleaning
     {
         return Cleaning::query()->lockForUpdate()->findOrFail($cleaningId);
+    }
+
+    /**
+     * K-16: makinenin satırını kilitleyip güncel halini okur. Kullanımdan kaldırma
+     * (MachineRetirement) aynı satırı kilitleyip açık kayıt arar; ikisi sıraya girer, kaldırılmakta
+     * olan makinede kayıt açılamaz. Kilitli okuma her zaman son commit edilmiş hali döndürür;
+     * çağıranın modeli de bu hale getirilir.
+     */
+    private function lockMachine(Machine $machine): Machine
+    {
+        $locked = Machine::query()->lockForUpdate()->findOrFail($machine->id);
+        $machine->setRawAttributes($locked->getAttributes(), sync: true)->setRelations([]);
+
+        return $locked;
     }
 
     private function assertOpen(Cleaning $cleaning): void

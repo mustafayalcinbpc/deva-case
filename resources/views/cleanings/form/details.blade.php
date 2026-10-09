@@ -5,6 +5,7 @@
 <section class="card cleaning-form__section" aria-labelledby="cleaning-form-details">
     <div class="card-header">
         <h2 class="card-title" id="cleaning-form-details">İş emri ve açıklama</h2>
+        <span class="card-meta">İsteğe bağlı</span>
     </div>
 
     <div class="card-body">

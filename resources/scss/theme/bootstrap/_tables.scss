@@ -1,0 +1,129 @@
+// Tablolar: küçük, büyük harfli, aralıklı başlıklar; hücre kenarlığı yerine satır altında
+// kenarları solan çizgi; üzerine gelince hafif zemin.
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--nc-text);
+    --bs-table-border-color: var(--nc-row-divider);
+    --bs-table-hover-bg: var(--nc-row-hover);
+    --bs-table-hover-color: var(--nc-text);
+    --bs-table-striped-bg: color-mix(in srgb, var(--nc-text) 3%, transparent);
+    --bs-table-striped-color: var(--nc-text);
+    --bs-table-active-bg: var(--nc-accent-wash);
+    --bs-table-active-color: var(--nc-text);
+
+    font-size: .875rem;
+
+    > :not(caption) > * > * {
+        padding: var(--nc-space-3) var(--nc-space-2);
+        border-bottom-width: 0;
+    }
+
+    > thead > tr {
+        background: var(--nc-fade-line) no-repeat bottom / 100% 1px;
+    }
+
+    > tbody > tr {
+        background: var(--nc-fade-line-soft) no-repeat bottom / 100% 1px;
+    }
+
+    > tfoot > tr {
+        background: var(--nc-fade-line) no-repeat top / 100% 1px;
+    }
+
+    > thead th,
+    > thead td {
+        font-size: .6875rem;
+        font-weight: 500;
+        color: color-mix(in srgb, var(--nc-text) 62%, transparent);
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        white-space: nowrap;
+        vertical-align: bottom;
+    }
+
+    > tbody > tr > th {
+        font-weight: 500;
+    }
+
+    // Kart içinde kenara dayalı tablo: ilk ve son sütun kart iç boşluğu kadar içeride.
+    // (AdminLTE'nin .card-body.p-0 kuralı 1.5rem verir; seçici aynı ağırlıkta yazıldı.)
+    .card-body.p-0 &,
+    .card > .table-responsive > &,
+    .card > & {
+        > thead > tr,
+        > tbody > tr,
+        > tfoot > tr {
+            > th,
+            > td {
+                &:first-child {
+                    padding-left: var(--nc-space-6);
+                }
+
+                &:last-child {
+                    padding-right: var(--nc-space-6);
+                }
+            }
+        }
+    }
+
+    .card-header + .card-body.p-0 & > thead > tr > * {
+        padding-top: var(--nc-space-1);
+    }
+}
+
+.table-sm > :not(caption) > * > * {
+    padding: var(--nc-space-1) var(--nc-space-2);
+}
+
+// Çerçeveli tablo isteyen ekranlar için ayırıcı renginde ızgara
+.table-bordered {
+    > :not(caption) > * {
+        border-color: var(--nc-divider);
+    }
+
+    > :not(caption) > * > * {
+        border-color: var(--nc-divider);
+        border-bottom-width: var(--bs-border-width);
+    }
+
+    > thead > tr,
+    > tbody > tr,
+    > tfoot > tr {
+        background: none;
+    }
+}
+
+.table-borderless > :not(caption) > * {
+    background: none;
+}
+
+// Renkli satır sınıfları (table-success vb.) Nocturne tonlarına
+@each $name, $hue in (success: ok, warning: warn, danger: crit) {
+    .table-#{$name} {
+        --bs-table-bg: color-mix(in srgb, var(--nc-#{$hue}) 10%, transparent);
+        --bs-table-color: var(--nc-text);
+        --bs-table-border-color: var(--nc-row-divider);
+        --bs-table-hover-bg: color-mix(in srgb, var(--nc-#{$hue}) 14%, transparent);
+        --bs-table-hover-color: var(--nc-text);
+    }
+}
+
+.table-primary,
+.table-info {
+    --bs-table-bg: var(--nc-accent-wash);
+    --bs-table-color: var(--nc-text);
+    --bs-table-border-color: var(--nc-row-divider);
+}
+
+.table-light,
+.table-secondary {
+    --bs-table-bg: var(--nc-hover);
+    --bs-table-color: var(--nc-text);
+    --bs-table-border-color: var(--nc-row-divider);
+}
+
+caption {
+    font-size: .8125rem;
+    color: var(--nc-text-muted);
+}

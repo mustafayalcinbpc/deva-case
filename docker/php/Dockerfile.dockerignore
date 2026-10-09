@@ -1,0 +1,35 @@
+# docker/php/Dockerfile'ın derleme bağlamı (BuildKit bu dosyayı kökteki .dockerignore yerine kullanır).
+# Production imajına girmemesi gerekenler: yerel bağımlılıklar, ortam dosyaları, geliştirme
+# çıktıları (public/hot, Vite sunucusunu gösterir), önbellekler, testler ve dokümanlar.
+.git
+.github
+.idea
+.vscode
+.claude
+.codex
+.cursor
+.DS_Store
+**/.DS_Store
+
+node_modules
+vendor
+
+.env
+.env.*
+!.env.example
+
+storage
+bootstrap/cache
+public/build
+public/hot
+public/storage
+public/fonts-manifest.dev.json
+
+tests
+docs
+*.docx
+Huzurevi*
+*.log
+.phpunit.result.cache
+.phpunit.cache
+compose*.yaml

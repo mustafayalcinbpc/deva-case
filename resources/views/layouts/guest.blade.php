@@ -4,17 +4,22 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title') · {{ config('app.name') }}</title>
+    @include('layouts.partials.theme-init')
     @fonts
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
 </head>
-<body class="login-page bg-body-secondary">
-<div class="login-box">
+<body class="login-page">
+<div class="login-page__theme">
+    @include('layouts.partials.theme-toggle', ['class' => 'btn btn-icon'])
+</div>
+
+<main class="login-box">
     <div class="login-logo">
-        <span class="app-brand">{{ config('app.name') }}</span>
+        @include('layouts.partials.brand', ['link' => false])
     </div>
 
     @include('layouts.partials.flash')
     @yield('content')
-</div>
+</main>
 </body>
 </html>

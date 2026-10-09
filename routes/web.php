@@ -35,3 +35,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/cancel', [CleaningCancellationController::class, 'store'])->name('cancel');
     });
 });
+
+// Yönetim, raporlar ve bildirimler: her bölüm kendi dosyasında (docs/plan-yonetim-rapor-tasarim.md).
+Route::middleware(['auth', 'can:manage-definitions'])->prefix('admin')->name('admin.')->group(function () {
+    require __DIR__.'/web/admin-locations.php';
+    require __DIR__.'/web/admin-procedures.php';
+    require __DIR__.'/web/admin-catalog.php';
+    require __DIR__.'/web/admin-audit.php';
+});
+
+Route::middleware(['auth', 'can:view-reports'])->prefix('reports')->name('reports.')->group(function () {
+    require __DIR__.'/web/reports.php';
+});
+
+Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
+    require __DIR__.'/web/notifications.php';
+});

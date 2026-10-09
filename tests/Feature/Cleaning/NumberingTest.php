@@ -161,13 +161,14 @@ class NumberingTest extends TestCase
 
     public function test_field_reference_year_is_the_year_of_the_first_step_start(): void
     {
-        // K-17: numara açılışta (2026), saha referansı ilk adımda (2027) üretilir.
+        // K-17: numara açılışta (2026), saha referansı ilk adımda (2027) üretilir. Yıl yerel
+        // takvime göredir: 20:50 / 21:05 UTC = 23:50 / 00:05 İstanbul.
         $machine = $this->makeMachine();
         $ahmet = $this->operator();
 
-        $this->at('23:50:00', '2026-12-31');
+        $this->at('20:50:00', '2026-12-31');
         $cleaning = $this->openCleaning($ahmet, $machine);
-        $this->at('00:05:00', '2027-01-01');
+        $this->at('21:05:00', '2026-12-31');
         $this->workflow()->startStep($ahmet, $this->stepOf($cleaning, 1));
 
         $cleaning = $cleaning->fresh();

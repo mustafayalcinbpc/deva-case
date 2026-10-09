@@ -12,6 +12,7 @@
 <section class="card cleaning-form__section" aria-labelledby="cleaning-form-materials">
     <div class="card-header">
         <h2 class="card-title" id="cleaning-form-materials">Malzemeler</h2>
+        <span class="card-meta">Temizlik sürerken de eklenebilir</span>
     </div>
 
     <div class="card-body">

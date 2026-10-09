@@ -8,12 +8,22 @@ export default defineConfig({
             input: ['resources/scss/app.scss', 'resources/js/app.js'],
             refresh: true,
             fonts: [
-                bunny('Source Sans 3', {
-                    weights: [300, 400, 600, 700],
+                // Nocturne yazı tipi. latin-ext: Türkçe ş, ğ, İ karakterleri.
+                bunny('Inter', {
+                    weights: [400, 500, 600],
+                    subsets: ['latin', 'latin-ext'],
+                    // Metrik uyumlu yedek yazı tipi isteğe bağlı "fontaine" paketini ister; kullanılmıyor.
+                    optimizedFallbacks: false,
                 }),
             ],
         }),
     ],
+    build: {
+        rolldownOptions: {
+            // Sass derlemesinin süresi hakkındaki bilgi notu; derleme sonucunu etkilemez.
+            checks: { pluginTimings: false },
+        },
+    },
     css: {
         preprocessorOptions: {
             scss: {

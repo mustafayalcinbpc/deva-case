@@ -103,9 +103,16 @@ class Cleaning extends Model
     /**
      * K-05: kayıt açılırken kullanıcıyı uyarmak için aynı makinedeki başlamamış kayıtlar.
      */
-    public function scopePendingOn(Builder $query, Machine $machine): void
+    /**
+     * @param  Machine|iterable<Machine|int>  $machines
+     */
+    public function scopePendingOn(Builder $query, Machine|iterable $machines): void
     {
-        $query->where('machine_id', $machine->id)->where('status', CleaningStatus::Created);
+        $ids = $machines instanceof Machine
+            ? [$machines->id]
+            : collect($machines)->map(fn ($machine) => $machine instanceof Machine ? $machine->id : (int) $machine)->all();
+
+        $query->whereIn('machine_id', $ids)->where('status', CleaningStatus::Created);
     }
 
     public function isOwnedBy(User $user): bool

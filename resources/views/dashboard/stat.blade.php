@@ -1,11 +1,17 @@
-{{-- Özet sayacı (AdminLTE info-box). Görünüm tema katmanında: .dashboard-stat, .dashboard-stat--{modifier}. --}}
-<div class="col-12 col-sm-6 col-xl-3">
-    <div class="info-box dashboard-stat dashboard-stat--{{ $modifier }}">
-        <span class="info-box-icon" aria-hidden="true"><i class="bi {{ $icon }}"></i></span>
-        <div class="info-box-content">
-            <span class="info-box-text">{{ $label }}</span>
-            <span class="info-box-number">{{ $value }}</span>
-            <span class="dashboard-stat__hint small text-body-secondary">{{ $hint }}</span>
+{{--
+    Özet sayacı: Nocturne KPI kartı (kicker, büyük sayı, birim, alt bilgi). Sağ üstteki simge
+    ilgili durumun rengini taşır: .dashboard-stat--{modifier} (theme/pages/_dashboard.scss).
+--}}
+<div class="col-6 col-xl-3">
+    <div class="card kpi-card dashboard-stat dashboard-stat--{{ $modifier }}">
+        <div class="kpi-card__head">
+            <p class="card-kicker">{{ $label }}</p>
+            <span class="dashboard-stat__icon" aria-hidden="true"><i class="bi {{ $icon }}"></i></span>
         </div>
+        <p class="kpi-card__value">
+            <span class="kpi-num info-box-number">{{ $value }}</span>
+            <span class="kpi-card__unit">{{ $unit }}</span>
+        </p>
+        <p class="kpi-card__meta dashboard-stat__hint">{{ $hint }}</p>
     </div>
 </div>

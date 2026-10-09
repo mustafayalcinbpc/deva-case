@@ -6,6 +6,7 @@
 <section class="card cleaning-form__section" aria-labelledby="cleaning-form-machine">
     <div class="card-header">
         <h2 class="card-title" id="cleaning-form-machine">Makine</h2>
+        <span class="card-meta">Zorunlu · prosedür makineden gelir</span>
     </div>
 
     <div class="card-body">

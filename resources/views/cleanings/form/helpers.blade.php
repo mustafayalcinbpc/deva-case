@@ -8,11 +8,13 @@
 <section class="card cleaning-form__section" aria-labelledby="cleaning-form-helpers">
     <div class="card-header">
         <h2 class="card-title" id="cleaning-form-helpers">Personel</h2>
+        <span class="card-meta">Yardımcılar isteğe bağlı</span>
     </div>
 
     <div class="card-body">
         <p class="cleaning-form__owner">
-            Sorumlu: <strong>{{ auth()->user()->name }}</strong> (siz). Her adıma görevli olarak eklenirsiniz.
+            Sorumlu: <strong>{{ auth()->user()->name }}</strong> (siz). Her adıma görevli olarak eklenirsiniz;
+            kaydın sorumluluğu sonradan başkasına devredilemez.
         </p>
 
         <fieldset aria-describedby="helper_ids-help @if ($helperError) helper_ids-error @endif">
