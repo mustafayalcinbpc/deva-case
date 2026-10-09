@@ -1,0 +1,13 @@
+// Uygulamanın stil giriş noktası. Görünümü değiştirmek için yalnızca theme/ altındaki
+// dosyalar düzenlenir; sıra önemlidir.
+
+// 1. Derleme zamanı değişkenleri (Bootstrap/AdminLTE varsayılanlarından önce gelmeli).
+@import "theme/variables";
+
+// 2. AdminLTE (Bootstrap'i de içerir).
+@import "admin-lte/src/scss/adminlte";
+
+// 3. Çalışma zamanı tasarım değişkenleri ve uygulamaya özel katman.
+@import "theme/tokens";
+@import "theme/components";
+@import "theme/motion";

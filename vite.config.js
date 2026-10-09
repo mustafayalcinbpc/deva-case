@@ -1,24 +1,40 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: ['resources/scss/app.scss', 'resources/js/app.js'],
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                bunny('Source Sans 3', {
+                    weights: [300, 400, 600, 700],
                 }),
             ],
         }),
-        tailwindcss(),
     ],
+    css: {
+        preprocessorOptions: {
+            scss: {
+                // AdminLTE ve Bootstrap kaynakları "bootstrap/scss/..." yoluyla birbirini yükler.
+                loadPaths: ['node_modules'],
+                // Bootstrap 5.3 kaynakları yeni Sass sürümlerinde uyarı üretir; bizim kodumuzla ilgili değildir.
+                quietDeps: true,
+                silenceDeprecations: ['import', 'global-builtin', 'color-functions', 'if-function'],
+            },
+        },
+    },
     server: {
+        // Docker içindeki vite servisi için: dışarıdan erişilebilir, tarayıcı localhost:5173'e bağlanır.
+        host: '0.0.0.0',
+        port: 5173,
+        strictPort: true,
+        hmr: {
+            host: 'localhost',
+        },
         watch: {
-            ignored: ['**/storage/framework/views/**'],
+            ignored: ['**/storage/framework/views/**', '**/vendor/**'],
         },
     },
 });

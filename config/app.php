@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Zamanlar veritabanında UTC saklanır; arayüzde bu saat dilimiyle gösterilir.
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Europe/Istanbul'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

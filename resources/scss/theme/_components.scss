@@ -1,0 +1,102 @@
+// Uygulamaya özel bileşenler. Renkler _tokens.scss'teki değişkenlerden gelir.
+
+// <x-status-badge :status="..." /> — temizlik, faz ve adım durumları
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .35em;
+    padding: .25em .7em;
+    border-radius: var(--app-badge-radius);
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    background-color: var(--status-bg);
+    color: var(--status-fg);
+
+    @each $status in created, in-progress, completed, expired, cancelled, pending, running, paused {
+        &--#{$status} {
+            --status-bg: var(--app-status-#{$status}-bg);
+            --status-fg: var(--app-status-#{$status}-fg);
+        }
+    }
+}
+
+.card {
+    box-shadow: var(--app-card-shadow);
+}
+
+// "Bana ait" işareti (gösterge paneli, açık kayıtlar)
+.mine-badge {
+    display: inline-block;
+    margin-inline-start: .35rem;
+    padding: .1em .55em;
+    border-radius: var(--app-badge-radius);
+    font-size: .75rem;
+    font-weight: 600;
+    background-color: var(--app-mine-bg);
+    color: var(--app-mine-fg);
+}
+
+.record-no {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.empty-state {
+    color: var(--bs-secondary-color);
+}
+
+// Gösterge paneli sayaçları: ikon rengi ilgili durumun renklerinden gelir.
+.dashboard-stat {
+    .info-box-icon {
+        background-color: var(--stat-bg);
+        color: var(--stat-fg);
+    }
+
+    &--created {
+        --stat-bg: var(--app-status-created-bg);
+        --stat-fg: var(--app-status-created-fg);
+    }
+
+    &--in-progress {
+        --stat-bg: var(--app-status-in-progress-bg);
+        --stat-fg: var(--app-status-in-progress-fg);
+    }
+
+    &--completed-today {
+        --stat-bg: var(--app-status-completed-bg);
+        --stat-fg: var(--app-status-completed-fg);
+    }
+
+    &--below-minimum {
+        --stat-bg: var(--app-status-expired-bg);
+        --stat-fg: var(--app-status-expired-fg);
+    }
+}
+
+.open-cleanings__row--mine > * {
+    --bs-table-bg-state: var(--app-mine-row-bg);
+}
+
+// Giriş sayfasındaki demo hesapları (yalnızca local ortam)
+.demo-accounts {
+    font-size: .875rem;
+}
+
+.demo-accounts__title {
+    margin-bottom: .5rem;
+    font-weight: 600;
+}
+
+.demo-accounts__item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.demo-accounts__role,
+.demo-accounts__item--inactive {
+    color: var(--bs-secondary-color);
+}
+

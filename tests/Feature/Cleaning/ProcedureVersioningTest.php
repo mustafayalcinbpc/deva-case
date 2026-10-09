@@ -48,6 +48,23 @@ class ProcedureVersioningTest extends TestCase
         );
     }
 
+    public function test_version_with_a_future_publication_date_is_not_used_yet(): void
+    {
+        // K-15: yayın tarihi gelmemiş versiyon yeni kayıtlara uygulanmaz.
+        $machine = $this->makeMachine([['steps' => 2]]);
+        $ahmet = $this->operator('Ahmet');
+        $v1 = $machine->procedure->currentVersion();
+        $v2 = $this->publishVersion($machine->procedure, [['steps' => 3]]);
+        $v2->update(['published_at' => now()->addDay()]);
+
+        $before = $this->openCleaning($ahmet, $machine);
+        $this->assertSame($v1->id, $before->procedure_version_id);
+
+        $this->travel(1)->days();
+        $after = $this->openCleaning($this->operator('Mehmet'), $machine);
+        $this->assertSame($v2->id, $after->procedure_version_id);
+    }
+
     public function test_minimum_duration_of_the_records_own_version_applies(): void
     {
         // R-11, K-15: minimum süre v1'de yok, v2'de 20 dk; v1 ile açılan kayıt gerekçesiz kapanır.

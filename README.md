@@ -115,11 +115,20 @@ Gereken tek şey Docker (Compose v2).
 docker compose up -d --build
 ```
 
-İlk açılışta `app` container'ı `.env` dosyasını `.env.example`'dan oluşturur, `composer install` çalıştırır, uygulama anahtarını üretir ve migration'ları uygular.
+İlk açılışta `app` container'ı `.env` dosyasını `.env.example`'dan oluşturur, `composer install` çalıştırır, uygulama anahtarını üretir ve migration'ları uygular. `vite` container'ı `npm install` çalıştırıp arayüz için geliştirme sunucusunu başlatır.
+
+Demo verisini yüklemek için (veritabanını sıfırlar):
+
+```bash
+docker compose exec app php artisan migrate:fresh --seed
+```
+
+Giriş sayfası `local` ortamda demo hesaplarını listeler; hepsinin şifresi `password`. Operatör olarak `ahmet@demo.test`, yönetici olarak `yonetici@demo.test` ile girilebilir. Demo verisindeki "başlamamış" kayıt, zamanlayıcı tarafından yaklaşık 30 dakika sonra "süresi doldu" durumuna alınır (K-06); demo öncesi yeniden yüklemek yeterlidir.
 
 | Servis | Adres |
 |---|---|
 | Uygulama (nginx) | http://localhost:8080 |
+| Vite geliştirme sunucusu | http://localhost:5173 (sayfa bunu kendisi kullanır) |
 | RabbitMQ yönetim paneli | http://localhost:15672 (`temizlik` / `secret`) |
 | MySQL | `localhost:33060` (`temizlik` / `secret`) |
 
@@ -170,4 +179,23 @@ Faz minimum süresi, fazın ayarına göre net ya da brüt süreyle kontrol edil
 - Bir kez dolan alanlar (sahip, başlangıç/bitiş zamanları, ölçülen süreler) model seviyesinde değiştirilemez, kayıtlar silinemez.
 - Zamanlar her zaman sunucudan alınır.
 - Her işlem `cleaning_events` tablosuna yazılır. Bu tablo MySQL trigger'larıyla UPDATE/DELETE'e kapalıdır. Her olay bir önceki olayın SHA-256 hash'ini içerir; `CleaningEventRecorder::verify()` zinciri baştan hesaplayarak sonradan yapılan değişikliği tespit eder.
+
+## Arayüz ve Tema
+
+Arayüz AdminLTE 4 (Bootstrap 5.3) üzerine kuruludur ve Vite + Sass ile derlenir. Görünüm (renkler, yazı tipi, köşeler, hareketler) tamamen `resources/scss/theme/` altından yönetilir. View'larda satır içi stil yoktur; yeniden tasarım yalnızca bu dosyalara dokunur.
+
+| Dosya | Ne için |
+|---|---|
+| `theme/_variables.scss` | Derleme zamanı değişkenleri: ana palet, yazı tipi, köşe yuvarlaklığı, sidebar genişliği, AdminLTE geçiş süresi. Butonlar, formlar, kartlar bunlardan türer. |
+| `theme/_tokens.scss` | Çalışma zamanı CSS değişkenleri (`--app-*`): durum renkleri, "Bana ait" vurgusu, gölgeler, hareket süreleri. Açık ve koyu tema ayrı. |
+| `theme/_components.scss` | Uygulamaya özel bileşenler: durum rozetleri, gösterge paneli sayaçları, tablo satır vurgusu. |
+| `theme/_motion.scss` | Geçiş ve animasyonlar; `prefers-reduced-motion` tercihine uyar. |
+
+`vite` container'ı çalışırken bu dosyalarda yapılan değişiklikler sayfa yenilenmeden yansır. Üretim derlemesi:
+
+```bash
+docker compose run --rm vite npm run build
+```
+
+`vite` container'ı durdurulduğunda sayfalar asset bulamıyorsa geride `public/hot` dosyası kalmıştır; silinmesi yeterlidir.
 
