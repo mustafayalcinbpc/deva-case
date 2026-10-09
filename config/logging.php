@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -133,6 +134,19 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        // Olay zinciri kontrol noktaları (php artisan audit:checkpoint): her satır bir JSON kaydı.
+        // Bu dosya sunucu dışına taşınmalıdır (log toplayıcı, değiştirilemez depolama); dışarıdaki
+        // kopya, veritabanında geçmişi yeniden yazan birini görünür kılar (R-46). Doğrulama:
+        // php artisan audit:verify --log-path=<kopya>. Satıra başka bir şey eklenmez.
+        'audit' => [
+            'driver' => 'single',
+            'path' => env('AUDIT_LOG_PATH', storage_path('logs/audit-checkpoints.log')),
+            'level' => 'info',
+            'formatter' => LineFormatter::class,
+            'formatter_with' => ['format' => "%message%\n"],
+            'replace_placeholders' => false,
         ],
 
     ],

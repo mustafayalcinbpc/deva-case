@@ -1,0 +1,169 @@
+# Production kurulumu: kod, vendor (--no-dev) ve derlenmiş asset'ler imajların içindedir; bind
+# mount ve Vite sunucusu yoktur. Geliştirme kurulumu compose.yaml'dadır.
+#
+#   cp docker/production.env.example .env.production   # APP_KEY, DB_PASSWORD, RABBITMQ_PASSWORD
+#   docker compose -f compose.prod.yaml --env-file .env.production up -d --build
+#
+# APP_KEY bir kez üretilir ve .env.production'da (ya da ortam değişkeninde) saklanır:
+#   echo "base64:$(openssl rand -base64 32)"
+# --env-file verilmezse Compose, değişkenleri kabuktan ve kökteki geliştirme .env dosyasından okur.
+#
+# Açılışta app container'ı config/route/event/view önbelleklerini üretir, migration'ları uygular ve
+# .env.production'da DEMO_SEED=true ise boş veritabanına demo verisini yükler (varsayılan: kapalı;
+# geliştirme .env'i bu değeri taşımaz). queue ve scheduler,
+# app hazır olunca başlar. Olay zinciri kontrol noktalarının günlüğü storage volume'ündedir
+# (storage/logs/audit-checkpoints.log); sunucu dışına taşınmalıdır.
+name: deva-temizlik-prod
+
+x-app-environment: &app-environment
+  APP_NAME: ${APP_NAME:-Dijital Temizlik Takip}
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY:?APP_KEY gerekli; nasıl üretileceği compose.prod.yaml başında}
+  APP_LOCALE: ${APP_LOCALE:-tr}
+  APP_FALLBACK_LOCALE: ${APP_FALLBACK_LOCALE:-en}
+  LOG_CHANNEL: stack
+  LOG_STACK: ${LOG_STACK:-daily}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_DATABASE: ${DB_DATABASE:-temizlik}
+  DB_USERNAME: ${DB_USERNAME:-temizlik}
+  DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD gerekli}
+  SESSION_DRIVER: redis
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: rabbitmq
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: ${RABBITMQ_USER:-temizlik}
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD gerekli}
+  RABBITMQ_VHOST: /
+  RABBITMQ_QUEUE: default
+
+x-app: &app
+  image: deva-temizlik-prod-php
+  restart: unless-stopped
+  # Diğer uygulama ayarları (APP_URL, DEMO_SEED, MAIL_*, SESSION_SECURE_COOKIE...) yalnızca bu
+  # dosyadan gelir; yukarıdaki environment değerlerini ezemez.
+  env_file:
+    - path: .env.production
+      required: false
+  volumes:
+    - storage:/var/www/html/storage
+  depends_on:
+    mysql:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  app:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: prod
+    environment:
+      <<: *app-environment
+      CONTAINER_ROLE: app
+    command: php-fpm
+    # php-fpm, migration'lar bittikten sonra dinlemeye başlar.
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 300s
+
+  queue:
+    <<: *app
+    pull_policy: never
+    environment:
+      <<: *app-environment
+      CONTAINER_ROLE: worker
+    command: php artisan queue:work --tries=3
+    depends_on:
+      app:
+        condition: service_healthy
+
+  scheduler:
+    <<: *app
+    pull_policy: never
+    environment:
+      <<: *app-environment
+      CONTAINER_ROLE: worker
+    command: php artisan schedule:work
+    depends_on:
+      app:
+        condition: service_healthy
+
+  nginx:
+    image: deva-temizlik-prod-web
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: web
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      # public/storage bağlantısı (adım medyası) için.
+      - storage:/var/www/html/storage:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    # Olay ve kontrol noktası tablolarını koruyan trigger'lar SUPER yetkisi olmadan oluşturulabilsin.
+    command: --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: ${DB_DATABASE:-temizlik}
+      MYSQL_USER: ${DB_USERNAME:-temizlik}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD gerekli}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # Kurulum sırasındaki geçici sunucu TCP'yi dinlemez; sağlıklı = asıl sunucu açık.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-alpine
+    restart: unless-stopped
+    # Kuyruk verisi düğüm adına (rabbit@<hostname>) bağlıdır.
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-temizlik}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD gerekli}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+volumes:
+  mysql-data:
+  storage:
+  rabbitmq-data:
