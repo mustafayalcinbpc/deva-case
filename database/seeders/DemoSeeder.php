@@ -544,6 +544,13 @@ class DemoSeeder extends Seeder
     {
         ['ahmet' => $ahmet, 'mehmet' => $mehmet, 'ayse' => $ayse] = $this->users;
 
+        // Bugün sabah tamamlanmış kayıt ("Bugün tamamlanan" sayacı). Çalıştırma saati gece 04:00'ten
+        // önceyse bu kayıt bir önceki güne düşer.
+        $this->travelTo($this->now->subMinutes(240));
+        $done = $this->open($ayse, 'H01-M01', materials: ['DET-01', 'DUR-03'], workOrder: 'IE-2026-1043');
+        $this->wait(3);
+        $this->runSteps($ayse, $done, [1 => 3, 2 => 6, 3 => 16, 4 => 4, 5 => 11, 6 => 6, 7 => 4]);
+
         // Duraklatılmış adımı olan kayıt: makine kilitli kalır (K-05), Mehmet serbesttir (K-07).
         $this->travelTo($this->now->subMinutes(150));
         $paused = $this->open($mehmet, 'H02-M02', workOrder: 'IE-2026-1050');

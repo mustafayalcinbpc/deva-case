@@ -5,6 +5,8 @@ x-php: &php
     context: .
     dockerfile: docker/php/Dockerfile
   image: deva-temizlik-php
+  # Açılış betiği imaja gömülü kopyadan değil projeden çalışır; değişiklikleri yeniden derleme gerektirmez.
+  entrypoint: ["sh", "/var/www/html/docker/php/entrypoint.sh"]
   volumes:
     - ./:/var/www/html
   depends_on:
@@ -20,6 +22,7 @@ services:
     <<: *php
     environment:
       CONTAINER_ROLE: app
+    command: php-fpm
 
   queue:
     <<: *php

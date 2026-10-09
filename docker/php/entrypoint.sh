@@ -11,6 +11,7 @@ if [ "$CONTAINER_ROLE" = "app" ]; then
     grep -q '^APP_KEY=base64:' .env || php artisan key:generate --force
     chmod -R a+rwX storage bootstrap/cache
     php artisan migrate --force
+    php artisan demo:seed
     [ -L public/storage ] || php artisan storage:link
 else
     # queue ve scheduler, app container'ı kurulumu bitirene kadar bekler.
