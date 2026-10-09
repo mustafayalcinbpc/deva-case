@@ -49,6 +49,7 @@ final class CleaningWorkflow
     public function __construct(
         private readonly RecordNumberGenerator $numbers,
         private readonly CleaningEventRecorder $events,
+        private readonly CleaningPermissions $permissions,
     ) {}
 
     /**
@@ -656,46 +657,25 @@ final class CleaningWorkflow
         }
     }
 
-    /**
-     * R-44, K-10, K-11: adımı yalnızca kaydın sahibi ya da o adımın aktif görevlisi yürütür.
-     * Görmek çalıştırmak değildir; yönetici rolü burada ayrıcalık vermez.
-     */
+    // Yetki kuralları CleaningPermissions'ta; ekranlar da aynı sınıfı kullanır.
+
     private function assertCanOperateStep(User $actor, Cleaning $cleaning, CleaningStep $step, string $action): void
     {
-        if (! $cleaning->isOwnedBy($actor) && ! $step->isAssigned($actor)) {
+        if (! $this->permissions->canOperateStep($actor, $cleaning, $step)) {
             throw CleaningRuleViolation::notAllowed($action);
         }
     }
 
-    /**
-     * Malzemeyi kaydın sahibi ya da kaydın herhangi bir adımının aktif görevlisi yönetir.
-     */
     private function assertCanHandleMaterials(User $actor, Cleaning $cleaning, string $action): void
     {
-        if ($cleaning->isOwnedBy($actor)) {
-            return;
-        }
-
-        $isAssignee = $cleaning->steps()
-            ->whereHas('activeAssignees', fn ($query) => $query->where('user_id', $actor->id))
-            ->exists();
-
-        if (! $isAssignee) {
+        if (! $this->permissions->canManageMaterials($actor, $cleaning)) {
             throw CleaningRuleViolation::notAllowed($action);
         }
     }
 
-    /**
-     * K-08, K-09: başlamamış kaydı sahibi ("hatalı kayıt" gerekçesiyle) ya da yönetici,
-     * başlamış kaydı yalnızca yönetici iptal eder.
-     */
     private function assertCanCancel(User $actor, Cleaning $cleaning, CancelReason $reason): void
     {
-        $ownerMayCancel = $cleaning->status === CleaningStatus::Created
-            && $cleaning->isOwnedBy($actor)
-            && $reason === CancelReason::InvalidRecord;
-
-        if (! $actor->isManager() && ! $ownerMayCancel) {
+        if (! in_array($reason, $this->permissions->allowedCancelReasons($actor, $cleaning), true)) {
             throw CleaningRuleViolation::notAllowed('kaydı iptal etme');
         }
     }

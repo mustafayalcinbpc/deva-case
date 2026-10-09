@@ -100,3 +100,31 @@
     color: var(--bs-secondary-color);
 }
 
+
+// Kayıt detayı: güncel adım ve "Şimdi" kartı
+.checklist-step--current {
+    background-color: var(--app-current-step-bg);
+}
+
+.now-card {
+    border-inline-start: 4px solid var(--app-current-step-border);
+}
+
+// Olay geçmişinin bütünlük durumu
+.event-history__integrity--verified {
+    color: var(--app-status-completed-fg);
+}
+
+.event-history__integrity--broken {
+    color: var(--app-status-cancelled-fg);
+    font-weight: 600;
+}
+
+// Geçersiz kılınmış malzeme ve başlamamış kayıt uyarısı
+.materials-list__item--voided {
+    color: var(--bs-secondary-color);
+}
+
+.machine-summary__pending {
+    color: var(--app-status-expired-fg);
+}

@@ -1,0 +1,561 @@
+// cleaning-detail sayfasının yerleşim kuralları. Renk yazılmaz; gerekirse _tokens.scss değişkenleri kullanılır.
+//
+// Telefonda tek sütun: Şimdi, kontrol listesi, özet, malzemeler, iptal, olay geçmişi.
+// Geniş ekranda (xl) sol sütunda Şimdi ve kontrol listesi, sağ sütunda özet, malzemeler ve iptal.
+
+.cleaning-detail {
+    --cleaning-detail-gap: 1rem;
+    --cleaning-detail-touch: 3.5rem;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--cleaning-detail-gap);
+
+    .card {
+        margin-bottom: 0;
+    }
+
+    dl {
+        margin-bottom: 0;
+    }
+
+    dd {
+        margin-bottom: 0;
+    }
+}
+
+// Sayfa başlığının altındaki kısa bilgi satırı
+.cleaning-detail__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1rem;
+}
+
+.cleaning-detail__back {
+    margin-inline-start: auto;
+    white-space: nowrap;
+}
+
+// Bölümler arası atlama bağlantıları; dar ekranda yatay kayar
+.cleaning-detail__nav .nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: .25rem;
+    white-space: nowrap;
+    scrollbar-width: thin;
+}
+
+.cleaning-detail__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--cleaning-detail-gap);
+    align-items: start;
+
+    @include media-breakpoint-up(xl) {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    }
+}
+
+.cleaning-detail__main,
+.cleaning-detail__aside {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cleaning-detail-gap);
+    min-width: 0;
+}
+
+// Bağlantıyla gelinen bölüm sabit başlığın altında kalmasın
+.cleaning-detail [id] {
+    scroll-margin-top: 4.5rem;
+}
+
+// Tanım listeleri: etiket üstte, değer altta; yan yana sığdığı kadar sütun
+%detail-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: .75rem 1.25rem;
+
+    dt {
+        font-size: .8125rem;
+        font-weight: 600;
+    }
+}
+
+// ---------------------------------------------------------------------------------------
+// Şimdi kartı
+// ---------------------------------------------------------------------------------------
+
+.now-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.now-card__kicker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .75rem;
+    margin-bottom: 0;
+}
+
+.now-card__state {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: .8125rem;
+}
+
+.now-card__heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1rem;
+}
+
+.now-card__title {
+    margin-bottom: 0;
+    font-size: 1.5rem;
+    line-height: 1.25;
+
+    @include media-breakpoint-up(md) {
+        font-size: 1.75rem;
+    }
+}
+
+.now-card__sequence {
+    font-variant-numeric: tabular-nums;
+}
+
+.now-card__description,
+.now-card__notice,
+.now-card__closed,
+.now-card__hint {
+    margin-bottom: 0;
+}
+
+.now-card__facts {
+    @extend %detail-facts;
+
+    dd {
+        font-size: 1.125rem;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.now-card__alert {
+    margin-bottom: 0;
+}
+
+// Büyük, dokunmaya uygun aksiyon butonları: telefonda alt alta, geniş ekranda yan yana
+.now-card__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .75rem;
+
+    @include media-breakpoint-up(sm) {
+        grid-auto-columns: minmax(0, 1fr);
+        grid-auto-flow: column;
+        grid-template-columns: none;
+    }
+}
+
+.now-card__form {
+    margin: 0;
+}
+
+.now-card__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    width: 100%;
+    min-height: var(--cleaning-detail-touch);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+// Açılır form bölümleri (görevliler, gerekçe, malzeme, iptal, geçersiz kılma)
+.deviation-field,
+.workers-form,
+.material-form,
+.cancel-form,
+.materials-list__void,
+.checklist-step__media {
+    > summary {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        min-height: 2.75rem;
+        cursor: pointer;
+        font-weight: 600;
+    }
+}
+
+.deviation-field__body,
+.workers-form__form,
+.material-form__form,
+.cancel-form__form,
+.materials-list__void-form {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding-top: .5rem;
+}
+
+.deviation-field__alert {
+    margin-bottom: .25rem;
+}
+
+.deviation-field__numbers {
+    display: block;
+    margin-top: .25rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.workers-form__fieldset {
+    min-width: 0;
+}
+
+.workers-form__choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: .25rem 1rem;
+}
+
+// Dokunmatik ekranda onay kutusu satırı parmakla seçilebilsin
+.workers-form__choice {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 2.75rem;
+    margin-bottom: 0;
+
+    .form-check-input {
+        width: 1.35em;
+        height: 1.35em;
+        margin-top: 0;
+    }
+}
+
+.workers-form__submit,
+.material-form__submit,
+.cancel-form__submit,
+.materials-list__void-submit {
+    align-self: flex-start;
+    min-height: 2.75rem;
+}
+
+// Adım fotoğrafı / videosu
+.step-media {
+    margin: 0;
+}
+
+.step-media__image,
+.step-media__video {
+    display: block;
+    max-width: 100%;
+    max-height: 60vh;
+    height: auto;
+    border-radius: var(--bs-border-radius);
+}
+
+// ---------------------------------------------------------------------------------------
+// Kontrol listesi
+// ---------------------------------------------------------------------------------------
+
+.checklist__phases,
+.checklist-phase__steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.checklist__phases {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.checklist-phase {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.checklist-phase__header,
+.checklist-step__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .75rem;
+}
+
+.checklist-phase__title {
+    margin-bottom: 0;
+    font-size: 1.125rem;
+}
+
+.checklist-phase__facts,
+.checklist-step__facts {
+    @extend %detail-facts;
+}
+
+.checklist-phase__deviation {
+    margin-bottom: 0;
+}
+
+.checklist-phase__steps {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.checklist-step {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: .75rem 1rem;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+// Güncel adım: kalın çerçeve. Renk tema katmanından gelir (--app-current-step-border).
+.checklist-step--current {
+    border-width: 2px;
+    border-color: var(--app-current-step-border);
+}
+
+.checklist-step__sequence {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.checklist-step__title {
+    flex: 1 1 12rem;
+    margin-bottom: 0;
+    font-size: 1rem;
+}
+
+.checklist-step__current {
+    flex-basis: 100%;
+    font-size: .875rem;
+
+    @include media-breakpoint-up(md) {
+        flex-basis: auto;
+    }
+}
+
+.checklist-step__description {
+    margin-bottom: 0;
+}
+
+// ---------------------------------------------------------------------------------------
+// Özet
+// ---------------------------------------------------------------------------------------
+
+.cleaning-summary .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cleaning-summary__list {
+    @extend %detail-facts;
+}
+
+.cleaning-summary__item--wide {
+    grid-column: 1 / -1;
+}
+
+.cleaning-summary__notes {
+    white-space: pre-line;
+}
+
+.cleaning-summary__subtitle {
+    margin-bottom: .5rem;
+    font-size: 1rem;
+}
+
+.cleaning-summary__times {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.cleaning-summary__value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.cleaning-summary__hint {
+    font-size: .8125rem;
+}
+
+.cleaning-summary__version {
+    white-space: nowrap;
+}
+
+// ---------------------------------------------------------------------------------------
+// Malzemeler
+// ---------------------------------------------------------------------------------------
+
+.materials-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+
+    > :last-child {
+        margin-bottom: 0;
+    }
+}
+
+.materials-card__requirement,
+.materials-card__missing,
+.materials-card__error {
+    margin-bottom: 0;
+}
+
+.materials-list {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.materials-list__item {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: .75rem;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+.materials-list__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .25rem .5rem;
+}
+
+.materials-list__code {
+    font-weight: 600;
+}
+
+.materials-list__item--voided .materials-list__code,
+.materials-list__item--voided .materials-list__name {
+    text-decoration: line-through;
+}
+
+.materials-list__state {
+    font-size: .8125rem;
+    font-weight: 600;
+}
+
+.materials-list__facts {
+    @extend %detail-facts;
+
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+}
+
+.materials-list__fact--wide {
+    grid-column: 1 / -1;
+}
+
+.material-form__field {
+    display: flex;
+    flex-direction: column;
+}
+
+// ---------------------------------------------------------------------------------------
+// Olay geçmişi
+// ---------------------------------------------------------------------------------------
+
+.event-history .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.event-history__integrity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .25rem .5rem;
+    margin-bottom: 0;
+}
+
+.event-history__list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.event-history__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .25rem 1rem;
+    padding: .75rem 0;
+    border-bottom: var(--bs-border-width) solid var(--bs-border-color);
+
+    &:last-child {
+        border-bottom: 0;
+    }
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: 16rem minmax(0, 1fr);
+
+        > :not(.event-history__meta) {
+            grid-column: 2;
+        }
+    }
+}
+
+.event-history__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .75rem;
+    font-size: .875rem;
+    font-variant-numeric: tabular-nums;
+
+    @include media-breakpoint-up(md) {
+        grid-row: span 2;
+        flex-direction: column;
+        gap: 0;
+    }
+}
+
+.event-history__actor {
+    font-weight: 600;
+}
+
+.event-history__title {
+    margin-bottom: 0;
+    font-weight: 600;
+}
+
+.event-history__details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1.25rem;
+    font-size: .875rem;
+
+    .event-history__detail {
+        display: flex;
+        gap: .35rem;
+    }
+
+    dt {
+        font-weight: 600;
+
+        &::after {
+            content: ":";
+        }
+    }
+}

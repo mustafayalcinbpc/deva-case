@@ -180,6 +180,18 @@ Faz minimum süresi, fazın ayarına göre net ya da brüt süreyle kontrol edil
 - Zamanlar her zaman sunucudan alınır.
 - Her işlem `cleaning_events` tablosuna yazılır. Bu tablo MySQL trigger'larıyla UPDATE/DELETE'e kapalıdır. Her olay bir önceki olayın SHA-256 hash'ini içerir; `CleaningEventRecorder::verify()` zinciri baştan hesaplayarak sonradan yapılan değişikliği tespit eder.
 
+## Ekranlar
+
+- **Gösterge paneli:** başlamamış, devam eden, bugün tamamlanan kayıtlar ve minimum süre altında kalan fazlar; açık kayıtlar tablosu. Kullanıcının sorumlu ya da görevli olduğu kayıtlar "Bana ait" olarak işaretlenir.
+- **Temizlik kayıtları:** bütün kayıtlar; duruma, makineye ve "bana ait" olmaya göre filtrelenir.
+- **Yeni kayıt:** yalnızca kullanımda olan ve geçerli prosedürü bulunan makineler seçilebilir. Seçilen makinenin prosedürü (fazlar, minimum süreler, malzeme zorunluluğu) ve makinede başlamamış kayıt varsa uyarı gösterilir.
+- **Kayıt detayı (sahadaki ekran):**
+  - En üstteki **Şimdi** kartında güncel adım, büyük aksiyon butonları (başlat, duraklat, devam et, tamamla) ve canlı sayan çalışma süresi bulunur. Butonlar yalnızca kaydın sorumlusuna ve adımın görevlilerine görünür.
+  - Fazı minimum süresinin altında kapatırken gerekçe alanı açılır.
+  - Kontrol listesi, malzemeler (ekleme, gerekçeyle geçersiz kılma), iptal formu ve olay geçmişi ile bütünlük doğrulaması bu sayfadadır.
+
+Bütün aksiyonlar `CleaningWorkflow` üzerinden çalışır. Kural ihlalinde kullanıcı aynı sayfaya mesajla döner; ekranlar kural tekrarlamaz, yalnızca hangi butonun gösterileceğine `CleaningPermissions` ile karar verir.
+
 ## Arayüz ve Tema
 
 Arayüz AdminLTE 4 (Bootstrap 5.3) üzerine kuruludur ve Vite + Sass ile derlenir. Görünüm (renkler, yazı tipi, köşeler, hareketler) tamamen `resources/scss/theme/` altından yönetilir. View'larda satır içi stil yoktur; yeniden tasarım yalnızca bu dosyalara dokunur.
