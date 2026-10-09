@@ -1,0 +1,54 @@
+// Rozetler Nocturne etiketi (tag) gibi görünür. Renk sınıfları:
+//   .badge / .text-bg-primary / .bg-primary / .text-bg-info → tag-accent
+//   .text-bg-secondary / -light / -dark / .bg-secondary ... → tag-neutral
+//   .text-bg-success → tag-ok, .text-bg-warning → tag-warn, .text-bg-danger → tag-crit
+// Bootstrap'in renk yardımcıları !important kullandığı için eşleme de !important'tır.
+
+.badge {
+    --bs-badge-font-size: .6875rem;
+    --bs-badge-font-weight: 500;
+    --bs-badge-padding-x: 10px;
+    --bs-badge-padding-y: 3px;
+    --bs-badge-border-radius: calc(var(--nc-radius-md) * .75);
+    --bs-badge-color: var(--nc-accent-100);
+
+    letter-spacing: .02em;
+    background-color: var(--nc-accent-800);
+
+    &:empty {
+        display: none;
+    }
+}
+
+.badge.text-bg-primary,
+.badge.bg-primary,
+.badge.text-bg-info,
+.badge.bg-info {
+    color: var(--nc-accent-100) !important;
+    background-color: var(--nc-accent-800) !important;
+}
+
+.badge.text-bg-secondary,
+.badge.bg-secondary,
+.badge.text-bg-light,
+.badge.bg-light,
+.badge.text-bg-dark,
+.badge.bg-dark,
+.badge.bg-body-secondary,
+.badge.bg-body-tertiary {
+    color: var(--nc-neutral-100) !important;
+    background-color: var(--nc-neutral-800) !important;
+}
+
+@each $name, $hue in (success: ok, warning: warn, danger: crit) {
+    .badge.text-bg-#{$name},
+    .badge.bg-#{$name} {
+        color: var(--nc-#{$hue}-text) !important;
+        background-color: var(--nc-#{$hue}-deep) !important;
+    }
+}
+
+// Satır içi sayaç (ör. sekme ya da başlık yanındaki adet)
+.badge.rounded-pill {
+    --bs-badge-padding-x: 7px;
+}

@@ -6,11 +6,27 @@
 
 .btn,
 .nav-link,
+.page-link,
 .status-badge {
     transition:
         background-color var(--app-motion-duration) var(--app-motion-ease),
+        border-color var(--app-motion-duration) var(--app-motion-ease),
         color var(--app-motion-duration) var(--app-motion-ease),
         box-shadow var(--app-motion-duration) var(--app-motion-ease);
+}
+
+// Tema değişirken kısa ve yumuşak renk geçişi. Sınıf modules/theme-toggle.js tarafından
+// yalnızca değişim anında eklenir; hareket azaltma tercihinde hiç eklenmez.
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+    transition:
+        background-color var(--app-theme-transition) ease,
+        border-color var(--app-theme-transition) ease,
+        color var(--app-theme-transition) ease,
+        fill var(--app-theme-transition) ease,
+        box-shadow var(--app-theme-transition) ease !important;
 }
 
 @keyframes app-fade-in {
@@ -33,5 +49,10 @@
         animation-duration: 1ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 1ms !important;
+    }
+
+    .theme-transition,
+    .theme-transition * {
+        transition: none !important;
     }
 }

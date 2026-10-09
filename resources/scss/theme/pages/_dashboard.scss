@@ -1,0 +1,62 @@
+// Gösterge paneli yerleşimi. Renk yazılmaz; durum renkleri --app-status-* token'larından gelir.
+
+.dashboard-stats {
+    --bs-gutter-x: var(--nc-space-6);
+    --bs-gutter-y: var(--nc-space-6);
+
+    margin-bottom: var(--nc-space-8);
+
+    .card {
+        margin-bottom: 0;
+    }
+}
+
+// Sayaç kartının sağ üstündeki küçük durum simgesi
+.dashboard-stat__icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    font-size: .9375rem;
+    color: var(--stat-fg);
+    background-color: var(--stat-bg);
+    border-radius: var(--nc-radius-md);
+}
+
+.dashboard-stat {
+    &--created {
+        --stat-bg: var(--app-status-created-bg);
+        --stat-fg: var(--app-status-created-fg);
+    }
+
+    &--in-progress {
+        --stat-bg: var(--app-status-in-progress-bg);
+        --stat-fg: var(--app-status-in-progress-fg);
+    }
+
+    &--completed-today {
+        --stat-bg: var(--app-status-completed-bg);
+        --stat-fg: var(--app-status-completed-fg);
+    }
+
+    &--below-minimum {
+        --stat-bg: var(--app-status-expired-bg);
+        --stat-fg: var(--app-status-expired-fg);
+    }
+}
+
+// Açık kayıtlar kartı: başlıkta adet etiketi ve "Tümünü gör"
+.open-cleanings__all {
+    margin-inline-start: auto;
+    font-size: .8125rem;
+}
+
+.current-step {
+    min-width: 12rem;
+}
+
+.current-step__title {
+    margin-inline-end: .35rem;
+}

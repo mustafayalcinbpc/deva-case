@@ -1,0 +1,205 @@
+// Form alanları: yüzey zemini, ince ayırıcı çerçeve, üzerine gelince koyulaşan çerçeve,
+// odakta vurgu çerçevesi ve halkası. Etiketler 13px ve soluk.
+
+.form-label,
+.col-form-label,
+legend.form-label {
+    font-size: .8125rem;
+    font-weight: 400;
+    color: var(--nc-text-label);
+}
+
+legend.form-label {
+    float: none;
+    width: auto;
+    margin-bottom: .3125rem;
+}
+
+.form-text {
+    font-size: .8125rem;
+    color: var(--nc-text-muted);
+}
+
+// İsteğe bağlı işareti "(isteğe bağlı)"
+.optional-mark {
+    color: var(--nc-text-subtle);
+}
+
+.form-control,
+.form-select {
+    color: var(--nc-text);
+    caret-color: var(--nc-accent);
+    background-color: var(--nc-surface);
+    border-color: var(--nc-divider);
+    transition:
+        border-color var(--app-motion-duration) var(--app-motion-ease),
+        box-shadow var(--app-motion-duration) var(--app-motion-ease);
+
+    &:hover:not(:focus, :disabled, [readonly], .is-invalid, .is-valid) {
+        border-color: var(--nc-border-strong);
+    }
+
+    &:focus {
+        color: var(--nc-text);
+        background-color: var(--nc-surface);
+        border-color: var(--nc-accent);
+        box-shadow: 0 0 0 3px var(--nc-focus-ring);
+    }
+
+    &:disabled,
+    &[readonly] {
+        color: var(--nc-text-muted);
+        background-color: var(--bs-secondary-bg);
+    }
+
+    &.is-invalid {
+        border-color: var(--nc-crit);
+
+        &:focus {
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--nc-crit) 22%, transparent);
+        }
+    }
+
+    &.is-valid {
+        border-color: var(--nc-ok);
+
+        &:focus {
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--nc-ok) 22%, transparent);
+        }
+    }
+}
+
+.form-control::placeholder {
+    color: var(--nc-text-subtle);
+    opacity: 1;
+}
+
+.form-control-plaintext {
+    color: var(--nc-text);
+}
+
+textarea.form-control {
+    min-height: 5.625rem;
+}
+
+.form-select {
+    padding-right: 2rem;
+    background-position: right .5rem center;
+}
+
+.form-select option,
+.form-select optgroup {
+    color: var(--nc-text);
+    background-color: var(--nc-surface);
+}
+
+// Onay kutusu, radyo, anahtar
+.form-check-input {
+    background-color: var(--nc-surface);
+    border-color: color-mix(in srgb, var(--nc-text) 32%, transparent);
+
+    &:hover:not(:disabled) {
+        border-color: var(--nc-border-strong);
+    }
+
+    &:focus {
+        border-color: var(--nc-accent);
+        box-shadow: 0 0 0 3px var(--nc-focus-ring);
+    }
+
+    &:checked,
+    &[type="checkbox"]:indeterminate {
+        background-color: var(--nc-accent);
+        border-color: var(--nc-accent);
+    }
+
+    &.is-invalid {
+        border-color: var(--nc-crit);
+    }
+
+    &.is-invalid ~ .form-check-label {
+        color: var(--nc-crit-text);
+    }
+}
+
+.form-check-label {
+    color: var(--nc-text);
+}
+
+.form-range {
+    &::-webkit-slider-thumb {
+        background-color: var(--nc-accent);
+    }
+
+    &::-moz-range-thumb {
+        background-color: var(--nc-accent);
+    }
+}
+
+// Giriş grubu: ek kutu yüzey renginde, ikon soluk
+.input-group-text {
+    font-size: .875rem;
+    color: var(--nc-text-muted);
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--nc-divider);
+}
+
+.input-group:focus-within .input-group-text {
+    border-color: var(--nc-accent);
+}
+
+.invalid-feedback {
+    font-size: .8125rem;
+    color: var(--nc-crit-text);
+}
+
+.valid-feedback {
+    font-size: .8125rem;
+    color: var(--nc-ok-text);
+}
+
+// Alan grupları (fieldset) çerçevesiz: AdminLTE'nin çerçeveli fieldset'i Bootstrap'e döndürülür.
+fieldset {
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+
+    legend {
+        padding: 0;
+        font-size: inherit;
+        font-weight: inherit;
+    }
+}
+
+// Açılır form bölümleri (<details>): özet satırı ghost buton gibi
+details > summary {
+    color: var(--nc-accent);
+    border-radius: var(--nc-radius-md);
+    list-style: none;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &::before {
+        display: inline-block;
+        flex: none;
+        width: .5rem;
+        height: .5rem;
+        margin-inline: .125rem .25rem;
+        content: "";
+        border-right: 1.5px solid currentcolor;
+        border-bottom: 1.5px solid currentcolor;
+        transition: transform var(--app-motion-duration) var(--app-motion-ease);
+        transform: rotate(-45deg);
+    }
+
+    &:hover {
+        color: var(--nc-accent-2);
+    }
+}
+
+details[open] > summary::before {
+    transform: translateY(-2px) rotate(45deg);
+}

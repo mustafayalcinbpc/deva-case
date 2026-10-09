@@ -1,28 +1,239 @@
-// Derleme zamanı tasarım değişkenleri.
+// Derleme zamanı tasarım değişkenleri — Nocturne.
 //
-// Buradaki değerler Bootstrap ve AdminLTE derlenmeden önce okunur; butonlar, formlar,
-// kartlar, sidebar gibi bütün hazır bileşenler bunlardan türetilir. Şimdilik AdminLTE
-// varsayılanlarıdır; yeni tasarımda ilk değiştirilecek yer burasıdır.
-// Tam liste: node_modules/bootstrap/scss/_variables.scss ve
+// Buradaki değerler Bootstrap ve AdminLTE derlenmeden önce okunur; butonlar, formlar, kartlar,
+// sidebar gibi bütün hazır bileşenler bunlardan türetilir. Renkler _tokens.scss'teki çalışma
+// zamanı token'larının onaltılık karşılıklarıdır: Bootstrap bazı değerleri (ör. --bs-*-rgb,
+// açık/koyu varyantlar) Sass fonksiyonlarıyla hesapladığı için burada da gerekir.
+// Tam liste: node_modules/bootstrap/scss/_variables.scss, _variables-dark.scss ve
 //            node_modules/admin-lte/src/scss/_variables.scss
 
-// Palet
-$primary:   #0d6efd;
-$secondary: #6c757d;
-$success:   #198754;
-$info:      #0dcaf0;
-$warning:   #ffc107;
-$danger:    #dc3545;
+// ---------------------------------------------------------------------------------------------
+// Nocturne paleti (açık / koyu). oklch değerleri sRGB'ye çevrildi.
+// ---------------------------------------------------------------------------------------------
+$nc-bg:            #f2f2f8;
+$nc-surface:       #fdfdff;
+$nc-text:          #262833;
+$nc-accent:        #6f61c9;
+$nc-accent-2:      #7e74c9;
+$nc-ok:            #1a8656;
+$nc-ok-deep:       #cdf3db;
+$nc-warn:          #9d7200;
+$nc-warn-deep:     #ffe7b6;
+$nc-crit:          #c5353a;
+$nc-crit-deep:     #ffdcd8;
+$nc-neutral-500:   #7f8395;
+$nc-neutral-800:   #e4e6f0;
+$nc-neutral-900:   #f0f1f8;
+
+$nc-bg-dark:        #161826;
+$nc-surface-dark:   #232532;
+$nc-text-dark:      #e9e9ed;
+$nc-accent-dark:    #9184d9;
+$nc-accent-2-dark:  #a7a1db;
+$nc-ok-dark:        #71be93;
+$nc-ok-deep-dark:   #1f432f;
+$nc-warn-dark:      #deb870;
+$nc-warn-deep-dark: #4e3d1b;
+$nc-crit-dark:      #e97873;
+$nc-crit-deep-dark: #5a2523;
+$nc-neutral-500-dark: #9397ab;
+
+// ---------------------------------------------------------------------------------------------
+// Bootstrap
+// ---------------------------------------------------------------------------------------------
+
+// Tema renkleri
+$primary:   $nc-accent;
+$secondary: $nc-neutral-500;
+$success:   $nc-ok;
+$info:      $nc-accent-2;
+$warning:   $nc-warn;
+$danger:    $nc-crit;
+$light:     $nc-neutral-900;
+$dark:      $nc-text;
+
+// Gövde ve yüzeyler. AdminLTE düzeninde sayfa zemini "tertiary", kart/üst bar yüzeyi "body".
+$body-color:           $nc-text;
+$body-bg:              $nc-surface;
+$body-secondary-color: rgba($nc-text, .65);
+$body-secondary-bg:    #ececf3;
+$body-tertiary-color:  rgba($nc-text, .5);
+$body-tertiary-bg:     $nc-bg;
+$body-emphasis-color:  $nc-text;
+$border-color:         #dddde0;
+$border-color-translucent: rgba($nc-text, .15);
+
+$body-color-dark:           $nc-text-dark;
+$body-bg-dark:              $nc-surface-dark;
+$body-secondary-color-dark: rgba($nc-text-dark, .65);
+$body-secondary-bg-dark:    #2c2e3b;
+$body-tertiary-color-dark:  rgba($nc-text-dark, .5);
+$body-tertiary-bg-dark:     $nc-bg-dark;
+$body-emphasis-color-dark:  #f3f5fe;
+$border-color-dark:         #434450;
+$border-color-translucent-dark: rgba($nc-text-dark, .16);
+$headings-color-dark:       inherit;
+
+// Vurgu renginin açık zemin tonları (alert, badge vb. "subtle" sınıfları)
+$primary-text-emphasis:   #423a6a;
+$primary-bg-subtle:       #f0eeff;
+$primary-border-subtle:   #cec9f6;
+$success-bg-subtle:       $nc-ok-deep;
+$warning-bg-subtle:       $nc-warn-deep;
+$danger-bg-subtle:        $nc-crit-deep;
+$primary-text-emphasis-dark: #d2cefd;
+$primary-bg-subtle-dark:     #2b2741;
+$primary-border-subtle-dark: #5d5294;
+$success-bg-subtle-dark:     $nc-ok-deep-dark;
+$warning-bg-subtle-dark:     $nc-warn-deep-dark;
+$danger-bg-subtle-dark:      $nc-crit-deep-dark;
+$success-text-emphasis-dark: $nc-ok-dark;
+$warning-text-emphasis-dark: $nc-warn-dark;
+$danger-text-emphasis-dark:  $nc-crit-dark;
+
+// Bağlantılar
+$link-color:            $nc-accent;
+$link-hover-color:      $nc-accent-2;
+$link-decoration:       none;
+$link-hover-decoration: underline;
+$link-color-dark:       $nc-accent-dark;
+$link-hover-color-dark: $nc-accent-2-dark;
+
+// Form doğrulama renkleri
+$form-valid-color:        $nc-ok;
+$form-valid-border-color: $nc-ok;
+$form-invalid-color:        $nc-crit;
+$form-invalid-border-color: $nc-crit;
+$form-valid-color-dark:        $nc-ok-dark;
+$form-valid-border-color-dark: $nc-ok-dark;
+$form-invalid-color-dark:        $nc-crit-dark;
+$form-invalid-border-color-dark: $nc-crit-dark;
 
 // Yazı tipi (vite.config.js'teki bunny() ile yüklenir)
-$font-family-sans-serif: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-family-sans-serif: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$font-size-base:       .9375rem; // 15px
+$font-size-sm:         .8125rem; // 13px
+$font-size-lg:         1.0625rem;
+$line-height-base:     1.55;
+$headings-font-weight: 500;
+$headings-line-height: 1.15;
+$h1-font-size: 1.625rem; // 26px, sayfa başlığı
+$h2-font-size: 1.25rem;
+$h3-font-size: 1.125rem;
+$h4-font-size: 1rem;
+$h5-font-size: .9375rem;
+$h6-font-size: .875rem;
 
-// Köşeler
-$border-radius:    .375rem;
-$border-radius-sm: .25rem;
-$border-radius-lg: .5rem;
+// Köşeler: 4 / 8 / 14
+$border-radius:      .5rem;
+$border-radius-sm:   .25rem;
+$border-radius-lg:   .875rem;
+$border-radius-xl:   .875rem;
+$border-radius-xxl:  1rem;
 
-// AdminLTE yerleşimi ve hareket
-$lte-sidebar-width:     250px;
-$lte-transition-speed:  .3s;
-$lte-transition-fn:     ease-in-out;
+// Gölgeler çalışma zamanında token'dan gelir (_tokens.scss); Bootstrap'in iç gölgeleri kapalı.
+$enable-shadows: false;
+$box-shadow:     0 0 0 1px #d9dce9, 0 6px 18px rgba(38, 40, 70, .1);
+$box-shadow-sm:  0 0 0 1px $nc-neutral-800;
+$box-shadow-lg:  0 0 0 1px #c6c9d6, 0 16px 40px rgba(38, 40, 70, .16);
+
+// Odak halkası
+$focus-ring-width:   3px;
+$focus-ring-opacity: .22;
+
+// Buton ve form alanları: 14px, aynı yükseklik
+$input-btn-font-size:    .875rem;
+$input-btn-padding-y:    .375rem;
+$input-btn-padding-x:    .75rem;
+$input-btn-line-height:  1.5;
+$input-btn-font-size-lg: 1rem;
+$input-btn-padding-y-lg: .625rem;
+$input-btn-padding-x-lg: 1.125rem;
+$input-btn-font-size-sm: .8125rem;
+$input-padding-x:        .625rem;
+$btn-font-weight:        500;
+$form-label-font-size:   .8125rem;
+$form-label-margin-bottom: .3125rem;
+$form-text-font-size:    .8125rem;
+$form-select-indicator-color:      $nc-neutral-500;
+$form-select-indicator-color-dark: $nc-neutral-500-dark;
+$form-select-indicator:      url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='#{$form-select-indicator-color}' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6' d='M6 9l6 6 6-6'/></svg>");
+$form-select-indicator-dark: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='#{$form-select-indicator-color-dark}' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6' d='M6 9l6 6 6-6'/></svg>");
+$form-select-bg-size: 16px 16px;
+
+// Kart: çerçeve yerine halka gölge (_components.scss)
+$card-border-width: 0;
+$card-spacer-y:     1.05rem; // 16.8px
+$card-spacer-x:     1.05rem;
+$card-cap-padding-y: .9rem;
+$card-cap-bg:       transparent;
+$card-title-spacer-y: 0;
+
+// Tablo: hücre kenarlığı yok, satır ayırıcı _components.scss'te (kenarları solan çizgi)
+$table-cell-padding-y:  .525rem; // 8.4px
+$table-cell-padding-x:  .35rem;  // 5.6px
+$table-th-font-weight:  500;
+$table-bg:              transparent;
+$table-color:           var(--bs-body-color);
+
+// Rozet = Nocturne etiketi (tag)
+$badge-font-size:     .6875rem; // 11px
+$badge-font-weight:   500;
+$badge-padding-y:     .1875rem;
+$badge-padding-x:     .625rem;
+$badge-border-radius: .375rem;
+
+// Açılır menü
+$dropdown-padding-x:      .3125rem;
+$dropdown-padding-y:      .3125rem;
+$dropdown-font-size:      .875rem;
+$dropdown-border-width:   0;
+$dropdown-item-padding-y: .375rem;
+$dropdown-item-padding-x: .625rem;
+
+// Sayfalama
+$pagination-font-size: .875rem;
+$pagination-padding-y: .3125rem;
+$pagination-padding-x: .625rem;
+
+// Uyarılar
+$alert-padding-y: .75rem;
+$alert-padding-x: 1rem;
+
+// ---------------------------------------------------------------------------------------------
+// AdminLTE yerleşimi, sidebar ve hareket
+// ---------------------------------------------------------------------------------------------
+$lte-sidebar-width:    248px;
+$lte-sidebar-padding-x: .7rem;
+$lte-sidebar-padding-y: .25rem;
+$lte-transition-speed: .3s;
+$lte-transition-fn:    ease-in-out;
+$lte-card-shadow:      none;
+$lte-content-padding-x: .625rem;
+
+// Sidebar renkleri token'lardan; koyu temada token'lar değiştiği için aynı değerler kullanılır.
+$lte-sidebar-color:               var(--nc-sidebar-link);
+$lte-sidebar-hover-color:         var(--nc-text);
+$lte-sidebar-hover-bg:            var(--nc-hover);
+$lte-sidebar-active-color:        var(--nc-accent);
+$lte-sidebar-menu-active-bg:      var(--nc-accent-tint);
+$lte-sidebar-menu-active-color:   var(--nc-accent);
+$lte-sidebar-submenu-color:       var(--nc-sidebar-link);
+$lte-sidebar-submenu-hover-color: var(--nc-text);
+$lte-sidebar-submenu-hover-bg:    var(--nc-hover);
+$lte-sidebar-submenu-active-color: var(--nc-accent);
+$lte-sidebar-submenu-active-bg:   var(--nc-accent-tint);
+$lte-sidebar-header-color:        var(--nc-text-subtle);
+
+$lte-sidebar-color-dark:               var(--nc-sidebar-link);
+$lte-sidebar-hover-color-dark:         var(--nc-text);
+$lte-sidebar-hover-bg-dark:            var(--nc-hover);
+$lte-sidebar-active-color-dark:        var(--nc-accent);
+$lte-sidebar-menu-active-bg-dark:      var(--nc-accent-tint);
+$lte-sidebar-menu-active-color-dark:   var(--nc-accent);
+$lte-sidebar-submenu-color-dark:       var(--nc-sidebar-link);
+$lte-sidebar-submenu-hover-color-dark: var(--nc-text);
+$lte-sidebar-submenu-hover-bg-dark:    var(--nc-hover);
+$lte-sidebar-submenu-active-color-dark: var(--nc-accent);
+$lte-sidebar-submenu-active-bg-dark:   var(--nc-accent-tint);
+$lte-sidebar-header-color-dark:        var(--nc-text-subtle);

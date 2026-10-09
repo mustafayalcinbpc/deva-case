@@ -1,0 +1,159 @@
+// Bildirim zili (components/notification-bell) ve bildirim listesi (notifications/index).
+// Zil üst bardaki ikon butonu; okunmamış bildirim varsa sağ üstte küçük kırmızı nokta (_shell.scss).
+
+.notification-bell {
+    position: relative;
+}
+
+.notification-bell__toggle {
+    position: relative;
+}
+
+.notification-bell__menu {
+    width: min(22rem, calc(100vw - 1.5rem));
+    max-width: none;
+    padding-bottom: var(--nc-space-2);
+
+    // Navbar içindeki açılır menüler Popper kullanmaz; dar ekranda menü taşmasın diye
+    // görünüm alanının iki kenarına sabitlenir.
+    @include media-breakpoint-down(sm) {
+        .app-header &.show {
+            position: fixed;
+            top: 3.5rem;
+            right: .75rem;
+            left: .75rem;
+            width: auto;
+        }
+    }
+}
+
+.notification-bell__header {
+    padding-inline: .625rem;
+    text-align: left;
+}
+
+.notification-bell__empty {
+    padding: .5rem .625rem;
+    font-size: .8125rem;
+    color: var(--nc-text-muted);
+}
+
+.notification-bell__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.notification-bell__read-all {
+    margin: 0;
+}
+
+.notification-bell__all,
+.notification-bell__read-all .dropdown-item {
+    font-size: .8125rem;
+    color: var(--nc-accent);
+
+    &:hover,
+    &:focus {
+        color: var(--nc-accent);
+        background-color: var(--nc-accent-wash);
+    }
+}
+
+// Tek bildirim (zilde dropdown-item, listede list-group-item)
+.notification-item {
+    --notification-hue: var(--nc-accent);
+
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    white-space: normal;
+    text-decoration: none;
+
+    &--warning {
+        --notification-hue: var(--nc-warn-text);
+    }
+
+    &--danger {
+        --notification-hue: var(--nc-crit-text);
+    }
+
+    &:hover {
+        text-decoration: none;
+    }
+}
+
+.notification-item__icon {
+    flex: none;
+    margin-top: 1px;
+    font-size: 1rem;
+    line-height: 1.25;
+    color: var(--notification-hue);
+}
+
+.notification-item__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.notification-item__title {
+    font-size: .875rem;
+    line-height: 1.35;
+    color: var(--nc-text);
+}
+
+.notification-item__message {
+    font-size: .75rem;
+    line-height: 1.4;
+    color: var(--nc-text-muted);
+}
+
+.notification-item__time {
+    font-size: .6875rem;
+    color: var(--nc-text-subtle);
+}
+
+// Okunmamış: başlık kalın ve solda vurgu noktası
+.notification-item--unread {
+    position: relative;
+
+    .notification-item__title {
+        font-weight: 500;
+    }
+
+    &::after {
+        flex: none;
+        align-self: center;
+        width: 6px;
+        height: 6px;
+        content: "";
+        background-color: var(--nc-accent);
+        border-radius: 50%;
+    }
+}
+
+.dropdown-item.notification-item {
+    padding-block: .5rem;
+}
+
+// Bildirim listesi sayfası
+.notification-list {
+    .card-header {
+        padding-bottom: 0;
+    }
+
+    .notification-list__filters {
+        flex: 1 1 auto;
+    }
+
+    .list-group-item.notification-item {
+        padding: var(--nc-space-4) var(--nc-space-6);
+    }
+}
+
+.notification-list__read-all {
+    margin: 0;
+}

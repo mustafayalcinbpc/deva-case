@@ -1,0 +1,250 @@
+// Nocturne'ün kendi yapı taşları. Bootstrap bileşenleri bootstrap/ altında bunlara benzetilir;
+// buradaki sınıflar yeni ekranlarda doğrudan da kullanılabilir.
+//
+//   .tag .tag-accent | .tag-neutral | .tag-outline | .tag-ok | .tag-warn | .tag-crit
+//   .seg > .seg-opt(.on)           segment kontrol (radyo için: .seg > input.btn-check + label.seg-opt)
+//   .card-kicker, .card-meta       kart üst satırı ve alt bilgi satırı
+//   .kpi-card, .kpi-num            gösterge kartı ve büyük sayı
+//   .avatar(.avatar--sm|--lg)      baş harfler
+//   .btn-icon, .btn-ghost, .btn-solid
+//   .elev-sm | .elev-md | .elev-lg halka gölgeler
+
+// ---------------------------------------------------------------------------------------------
+// Etiket (tag)
+// ---------------------------------------------------------------------------------------------
+
+%nc-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .3em;
+    padding: 3px 10px;
+    font-size: .6875rem;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: .02em;
+    white-space: nowrap;
+    vertical-align: middle;
+    border: 1px solid transparent;
+    border-radius: calc(var(--nc-radius-md) * .75);
+}
+
+.tag {
+    @extend %nc-tag;
+
+    color: var(--nc-accent-100);
+    background-color: var(--nc-accent-800);
+}
+
+.tag-accent {
+    color: var(--nc-accent-100);
+    background-color: var(--nc-accent-800);
+}
+
+.tag-neutral {
+    color: var(--nc-neutral-100);
+    background-color: var(--nc-neutral-800);
+}
+
+.tag-outline {
+    color: var(--nc-accent);
+    background-color: transparent;
+    border-color: var(--nc-accent);
+}
+
+.tag-ok {
+    color: var(--nc-ok-text);
+    background-color: var(--nc-ok-deep);
+}
+
+.tag-warn {
+    color: var(--nc-warn-text);
+    background-color: var(--nc-warn-deep);
+}
+
+.tag-crit {
+    color: var(--nc-crit-text);
+    background-color: var(--nc-crit-deep);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Segment kontrol
+// ---------------------------------------------------------------------------------------------
+
+.seg {
+    display: inline-flex;
+    max-width: 100%;
+    overflow: hidden;
+    background-color: var(--nc-surface);
+    border: 1px solid var(--nc-divider);
+    border-radius: var(--nc-radius-md);
+
+    &--block {
+        display: flex;
+        width: 100%;
+
+        > .seg-opt {
+            flex: 1 1 0;
+            justify-content: center;
+        }
+    }
+}
+
+.seg-opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 2.125rem;
+    padding: 7px 12px;
+    margin: 0;
+    font-size: .8125rem;
+    color: var(--nc-text);
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+
+    & + &,
+    .btn-check + & ~ & {
+        border-left: 1px solid var(--nc-divider);
+    }
+
+    &:hover {
+        color: var(--nc-text);
+        text-decoration: none;
+        background-color: var(--nc-hover);
+    }
+
+    &.on,
+    &.active,
+    &[aria-current],
+    &[aria-pressed="true"],
+    .btn-check:checked + & {
+        color: var(--nc-accent);
+        box-shadow: inset 0 0 0 1px var(--nc-accent);
+    }
+
+    .btn-check:focus-visible + & {
+        outline: 2px solid var(--nc-accent);
+        outline-offset: -3px;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Kart parçaları ve yükselti
+// ---------------------------------------------------------------------------------------------
+
+.card-kicker {
+    margin: 0;
+    font-size: .625rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--nc-accent);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+}
+
+.card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: .75rem;
+    color: var(--nc-text-muted);
+}
+
+.elev-sm {
+    box-shadow: var(--nc-shadow-sm) !important;
+}
+
+.elev-md {
+    box-shadow: var(--nc-shadow-md) !important;
+}
+
+.elev-lg {
+    box-shadow: var(--nc-shadow-lg) !important;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Gösterge kartı (KPI)
+// ---------------------------------------------------------------------------------------------
+
+.kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--nc-space-2);
+    height: 100%;
+    padding: var(--nc-space-6);
+}
+
+.kpi-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.kpi-card__value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 8px;
+    margin: 0;
+}
+
+.kpi-num {
+    font-size: 1.875rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -.02em;
+}
+
+.kpi-card__unit {
+    font-size: .8125rem;
+    color: var(--nc-text-muted);
+}
+
+.kpi-card__meta {
+    margin: 0;
+    font-size: .75rem;
+    color: var(--nc-text-muted);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Baş harf avatarı
+// ---------------------------------------------------------------------------------------------
+
+.avatar {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--nc-accent-100);
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    background-color: var(--nc-accent-800);
+    border-radius: 50%;
+
+    &--sm {
+        width: 28px;
+        height: 28px;
+        font-size: .6875rem;
+    }
+
+    &--lg {
+        width: 76px;
+        height: 76px;
+        font-size: 1.625rem;
+    }
+
+    &--neutral {
+        color: var(--nc-neutral-100);
+        background-color: var(--nc-neutral-800);
+    }
+}

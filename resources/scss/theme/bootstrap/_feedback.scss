@@ -1,0 +1,236 @@
+// Uyarılar, açılır menüler, modal, popover, toast, liste grubu, ilerleme çubuğu, akordeon.
+
+// ---------------------------------------------------------------------------------------------
+// Uyarılar: tonun %10'u zemin, %35'i çerçeve, yazı hafif tonlu metin rengi
+// (tasarımdaki "seçim çubuğu" gibi).
+// ---------------------------------------------------------------------------------------------
+
+@mixin nc-alert($hue, $hue-text) {
+    --bs-alert-bg: color-mix(in srgb, #{$hue} 10%, var(--nc-surface));
+    --bs-alert-border-color: color-mix(in srgb, #{$hue} 35%, transparent);
+    --bs-alert-color: color-mix(in srgb, #{$hue-text} 22%, var(--nc-text));
+    --bs-alert-link-color: #{$hue-text};
+
+    strong,
+    .alert-heading,
+    > .bi:first-child {
+        color: #{$hue-text};
+    }
+}
+
+.alert {
+    --bs-alert-border-radius: var(--nc-radius-md);
+    --bs-alert-padding-x: var(--nc-space-6);
+    --bs-alert-padding-y: var(--nc-space-4);
+
+    font-size: .875rem;
+
+    @include nc-alert(var(--nc-accent), var(--nc-accent));
+}
+
+.alert-primary,
+.alert-info {
+    @include nc-alert(var(--nc-accent), var(--nc-accent));
+}
+
+.alert-success {
+    @include nc-alert(var(--nc-ok), var(--nc-ok-text));
+}
+
+.alert-warning {
+    @include nc-alert(var(--nc-warn), var(--nc-warn-text));
+}
+
+.alert-danger {
+    @include nc-alert(var(--nc-crit), var(--nc-crit-text));
+}
+
+.alert-secondary,
+.alert-light,
+.alert-dark {
+    @include nc-alert(var(--nc-text), var(--nc-text));
+}
+
+.alert-link {
+    font-weight: 500;
+}
+
+.alert-heading {
+    font-size: .9375rem;
+    font-weight: 500;
+}
+
+.alert > :last-child {
+    margin-bottom: 0;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Açılır menü: yüzey, orta yükselti, 8px köşe; öğeler 4px köşeli
+// ---------------------------------------------------------------------------------------------
+
+.dropdown-menu {
+    --bs-dropdown-bg: var(--nc-surface);
+    --bs-dropdown-color: var(--nc-text);
+    --bs-dropdown-border-width: 0;
+    --bs-dropdown-border-radius: var(--nc-radius-md);
+    --bs-dropdown-box-shadow: var(--nc-shadow-md);
+    --bs-dropdown-font-size: .875rem;
+    --bs-dropdown-link-color: var(--nc-text);
+    --bs-dropdown-link-hover-color: var(--nc-text);
+    --bs-dropdown-link-hover-bg: var(--nc-hover);
+    --bs-dropdown-link-active-color: var(--nc-accent);
+    --bs-dropdown-link-active-bg: var(--nc-accent-tint);
+    --bs-dropdown-link-disabled-color: var(--nc-text-subtle);
+    --bs-dropdown-header-color: var(--nc-text-subtle);
+    --bs-dropdown-divider-bg: var(--nc-divider);
+    --bs-dropdown-padding-x: var(--nc-space-2);
+    --bs-dropdown-padding-y: var(--nc-space-2);
+    --bs-dropdown-item-padding-x: .625rem;
+    --bs-dropdown-item-padding-y: .4375rem;
+    --bs-dropdown-item-border-radius: var(--nc-radius-sm);
+
+    box-shadow: var(--bs-dropdown-box-shadow);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--bs-dropdown-item-border-radius);
+}
+
+.dropdown-header {
+    padding-block: .375rem .25rem;
+    font-size: .625rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+}
+
+.dropdown-divider {
+    height: 1px;
+    margin-inline: calc(var(--bs-dropdown-padding-x) * -1);
+    background: var(--nc-fade-line);
+    border-top: 0;
+    opacity: 1;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Modal, popover, tooltip, toast, offcanvas
+// ---------------------------------------------------------------------------------------------
+
+.modal {
+    --bs-modal-bg: var(--nc-surface);
+    --bs-modal-color: var(--nc-text);
+    --bs-modal-border-width: 0;
+    --bs-modal-border-radius: var(--nc-radius-lg);
+    --bs-modal-inner-border-radius: var(--nc-radius-lg);
+    --bs-modal-box-shadow: var(--nc-shadow-lg);
+    --bs-modal-header-border-width: 0;
+    --bs-modal-footer-border-width: 0;
+    --bs-modal-padding: var(--nc-space-6);
+    --bs-modal-header-padding: var(--nc-space-6) var(--nc-space-6) var(--nc-space-2);
+}
+
+.modal-content {
+    box-shadow: var(--bs-modal-box-shadow);
+}
+
+.modal-title {
+    font-size: 1.0625rem;
+    font-weight: 500;
+}
+
+.modal-backdrop {
+    --bs-backdrop-bg: #161826;
+    --bs-backdrop-opacity: .45;
+}
+
+.popover {
+    --bs-popover-bg: var(--nc-surface);
+    --bs-popover-border-width: 0;
+    --bs-popover-border-radius: var(--nc-radius-md);
+    --bs-popover-box-shadow: var(--nc-shadow-md);
+    --bs-popover-header-bg: transparent;
+
+    box-shadow: var(--bs-popover-box-shadow);
+}
+
+.tooltip {
+    --bs-tooltip-bg: var(--nc-text);
+    --bs-tooltip-color: var(--nc-surface);
+    --bs-tooltip-border-radius: var(--nc-radius-sm);
+    --bs-tooltip-font-size: .75rem;
+}
+
+.toast {
+    --bs-toast-bg: var(--nc-surface);
+    --bs-toast-color: var(--nc-text);
+    --bs-toast-border-width: 0;
+    --bs-toast-border-radius: var(--nc-radius-md);
+    --bs-toast-box-shadow: var(--nc-shadow-md);
+    --bs-toast-header-bg: transparent;
+    --bs-toast-header-color: var(--nc-text);
+    --bs-toast-header-border-color: var(--nc-divider);
+}
+
+.offcanvas {
+    --bs-offcanvas-bg: var(--nc-surface);
+    --bs-offcanvas-color: var(--nc-text);
+    --bs-offcanvas-border-color: var(--nc-divider);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Liste grubu, ilerleme, akordeon
+// ---------------------------------------------------------------------------------------------
+
+.list-group {
+    --bs-list-group-color: var(--nc-text);
+    --bs-list-group-bg: transparent;
+    --bs-list-group-border-color: var(--nc-row-divider);
+    --bs-list-group-border-radius: var(--nc-radius-md);
+    --bs-list-group-action-color: var(--nc-text);
+    --bs-list-group-action-hover-color: var(--nc-text);
+    --bs-list-group-action-hover-bg: var(--nc-row-hover);
+    --bs-list-group-action-active-color: var(--nc-text);
+    --bs-list-group-action-active-bg: var(--nc-hover);
+    --bs-list-group-active-color: var(--nc-accent);
+    --bs-list-group-active-bg: var(--nc-accent-tint);
+    --bs-list-group-active-border-color: var(--nc-row-divider);
+    --bs-list-group-disabled-color: var(--nc-text-subtle);
+}
+
+.list-group-flush > .list-group-item {
+    border-width: 0;
+    background: var(--nc-fade-line-soft) no-repeat bottom / 100% 1px;
+
+    &:last-child {
+        background: none;
+    }
+}
+
+.progress,
+.progress-stacked {
+    --bs-progress-height: 6px;
+    --bs-progress-bg: var(--nc-hover);
+    --bs-progress-border-radius: 999px;
+    --bs-progress-bar-bg: var(--nc-accent);
+}
+
+.accordion {
+    --bs-accordion-color: var(--nc-text);
+    --bs-accordion-bg: var(--nc-surface);
+    --bs-accordion-border-color: var(--nc-divider);
+    --bs-accordion-border-radius: var(--nc-radius-md);
+    --bs-accordion-inner-border-radius: var(--nc-radius-md);
+    --bs-accordion-btn-color: var(--nc-text);
+    --bs-accordion-btn-bg: transparent;
+    --bs-accordion-btn-focus-box-shadow: 0 0 0 3px var(--nc-focus-ring);
+    --bs-accordion-active-color: var(--nc-accent);
+    --bs-accordion-active-bg: var(--nc-accent-wash);
+}
+
+// Kapatma düğmesi koyu temada açık renk
+[data-bs-theme="dark"] .btn-close {
+    filter: var(--bs-btn-close-white-filter);
+}

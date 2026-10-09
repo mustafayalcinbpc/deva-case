@@ -24,6 +24,16 @@ class LayoutComponentsTest extends TestCase
             ->assertSee('Duraklatıldı');
     }
 
+    public function test_status_badge_modifiers_cover_definition_states(): void
+    {
+        // Tanım ekranları durum rozetini doğrudan sınıfla yazar; tema bu değiştiricileri tanır.
+        $css = file_get_contents(resource_path('scss/theme/_components.scss'));
+
+        foreach (['active', 'live', 'draft', 'retired', 'inactive', 'superseded', 'scheduled'] as $modifier) {
+            $this->assertMatchesRegularExpression("/&--{$modifier}\\b/", $css, "status-badge--{$modifier} tanımlı olmalı.");
+        }
+    }
+
     public function test_datetime_is_shown_in_display_timezone(): void
     {
         $utc = CarbonImmutable::parse('2026-10-09 05:15:00', 'UTC');
@@ -60,6 +70,22 @@ class LayoutComponentsTest extends TestCase
         $this->blade('<x-sidebar-menu />')
             ->assertSee('Yönetim')
             ->assertSee('Tanımlar');
+    }
+
+    public function test_items_whose_route_is_not_defined_are_hidden(): void
+    {
+        config(['menu' => [
+            ['label' => 'Gösterge Paneli', 'icon' => 'bi-speedometer2', 'route' => 'dashboard'],
+            ['header' => 'Raporlar'],
+            ['label' => 'Henüz yok', 'icon' => 'bi-gear', 'route' => 'reports.not-yet-defined'],
+        ]]);
+
+        $this->actingAs(User::factory()->manager()->create());
+
+        $this->blade('<x-sidebar-menu />')
+            ->assertSee('Gösterge Paneli')
+            ->assertDontSee('Henüz yok')
+            ->assertDontSee('Raporlar');
     }
 
     public function test_header_without_visible_items_is_hidden(): void

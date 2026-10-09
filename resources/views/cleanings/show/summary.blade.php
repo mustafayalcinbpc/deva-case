@@ -91,13 +91,8 @@
             </div>
             <div class="cleaning-summary__item cleaning-summary__item--wide">
                 <dt>Açıklama</dt>
-                <dd class="cleaning-summary__notes">
-                    @if (filled($cleaning->notes))
-                        {{ $cleaning->notes }}
-                    @else
-                        <span class="cleaning-summary__empty">—</span>
-                    @endif
-                </dd>
+                {{-- Tek satırda: açıklama satır sonlarını korur (white-space: pre-line). --}}
+                <dd class="cleaning-summary__notes">@if (filled($cleaning->notes)){{ $cleaning->notes }}@else<span class="cleaning-summary__empty">—</span>@endif</dd>
             </div>
             <div class="cleaning-summary__item">
                 <dt>Açılış</dt>

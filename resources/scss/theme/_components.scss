@@ -1,18 +1,23 @@
 // Uygulamaya özel bileşenler. Renkler _tokens.scss'teki değişkenlerden gelir.
 
-// <x-status-badge :status="..." /> — temizlik, faz ve adım durumları
+// <x-status-badge :status="..." /> — Nocturne etiketi. Temizlik, faz ve adım durumları ile
+// tanım ekranlarının durumları (makine/malzeme: active, retired; kullanıcı: active, inactive;
+// prosedür versiyonu: draft nötr, scheduled vurgu çerçeve, live ok, superseded soluk).
 .status-badge {
     display: inline-flex;
     align-items: center;
     gap: .35em;
-    padding: .25em .7em;
-    border-radius: var(--app-badge-radius);
-    font-size: .8125rem;
-    font-weight: 600;
-    line-height: 1.2;
+    padding: 3px 10px;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: .02em;
     white-space: nowrap;
-    background-color: var(--status-bg);
+    vertical-align: middle;
     color: var(--status-fg);
+    background-color: var(--status-bg);
+    border: 1px solid var(--status-border, transparent);
+    border-radius: var(--app-badge-radius);
 
     @each $status in created, in-progress, completed, expired, cancelled, pending, running, paused {
         &--#{$status} {
@@ -20,59 +25,67 @@
             --status-fg: var(--app-status-#{$status}-fg);
         }
     }
-}
 
-.card {
-    box-shadow: var(--app-card-shadow);
+    // Kullanımda / yayında: ok
+    &--active,
+    &--live {
+        --status-bg: var(--nc-ok-deep);
+        --status-fg: var(--nc-ok-text);
+    }
+
+    // Taslak: nötr
+    &--draft {
+        --status-bg: var(--nc-neutral-800);
+        --status-fg: var(--nc-neutral-100);
+    }
+
+    // Kullanımdan kaldırılmış, pasif, eski versiyon: soluk nötr
+    &--retired,
+    &--inactive,
+    &--superseded {
+        --status-bg: color-mix(in srgb, var(--nc-neutral-800) 60%, transparent);
+        --status-fg: var(--nc-text-muted);
+    }
+
+    // İleri tarihte yayımlanacak: vurgu çerçeve
+    &--scheduled {
+        --status-bg: transparent;
+        --status-fg: var(--nc-accent);
+        --status-border: var(--nc-accent);
+    }
 }
 
 // "Bana ait" işareti (gösterge paneli, açık kayıtlar)
 .mine-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     margin-inline-start: .35rem;
-    padding: .1em .55em;
-    border-radius: var(--app-badge-radius);
-    font-size: .75rem;
-    font-weight: 600;
-    background-color: var(--app-mine-bg);
+    padding: 1px 8px;
+    font-size: .6875rem;
+    font-weight: 500;
+    letter-spacing: .02em;
+    white-space: nowrap;
+    vertical-align: middle;
     color: var(--app-mine-fg);
+    background-color: var(--app-mine-bg);
+    border-radius: var(--app-badge-radius);
 }
 
 .record-no {
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+
+a.record-no {
+    color: var(--nc-accent);
 }
 
 .empty-state {
-    color: var(--bs-secondary-color);
+    color: var(--nc-text-muted);
 }
 
-// Gösterge paneli sayaçları: ikon rengi ilgili durumun renklerinden gelir.
-.dashboard-stat {
-    .info-box-icon {
-        background-color: var(--stat-bg);
-        color: var(--stat-fg);
-    }
-
-    &--created {
-        --stat-bg: var(--app-status-created-bg);
-        --stat-fg: var(--app-status-created-fg);
-    }
-
-    &--in-progress {
-        --stat-bg: var(--app-status-in-progress-bg);
-        --stat-fg: var(--app-status-in-progress-fg);
-    }
-
-    &--completed-today {
-        --stat-bg: var(--app-status-completed-bg);
-        --stat-fg: var(--app-status-completed-fg);
-    }
-
-    &--below-minimum {
-        --stat-bg: var(--app-status-expired-bg);
-        --stat-fg: var(--app-status-expired-fg);
-    }
+// Konum kodu (IST / H01 / M02) ve tablo içindeki soluk ikincil bilgi
+.location {
+    font-variant-numeric: tabular-nums;
 }
 
 .open-cleanings__row--mine > * {
@@ -81,50 +94,95 @@
 
 // Giriş sayfasındaki demo hesapları (yalnızca local ortam)
 .demo-accounts {
-    font-size: .875rem;
+    padding: var(--nc-space-6) var(--nc-space-8) var(--nc-space-8);
+    font-size: .8125rem;
+    background: var(--nc-fade-line) no-repeat top / 100% 1px;
+    border-top: 0;
 }
 
 .demo-accounts__title {
     margin-bottom: .5rem;
-    font-weight: 600;
+    font-size: .625rem;
+    font-weight: 500;
+    color: var(--nc-accent);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+
+    code {
+        font-family: inherit;
+        font-size: .6875rem;
+        letter-spacing: .1em;
+    }
+}
+
+.demo-accounts__list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .demo-accounts__item {
     display: flex;
     justify-content: space-between;
     gap: 1rem;
+    padding-block: 2px;
+
+    code {
+        font-family: inherit;
+        font-size: inherit;
+        color: var(--nc-text);
+    }
 }
 
 .demo-accounts__role,
-.demo-accounts__item--inactive {
-    color: var(--bs-secondary-color);
+.demo-accounts__item--inactive,
+.demo-accounts__item--inactive code {
+    color: var(--nc-text-muted);
 }
 
-
-// Kayıt detayı: güncel adım ve "Şimdi" kartı
+// Kayıt detayı: güncel adım ve "Şimdi" kartı (orta yükselti, solda vurgu çizgisi)
 .checklist-step--current {
     background-color: var(--app-current-step-bg);
 }
 
 .now-card {
-    border-inline-start: 4px solid var(--app-current-step-border);
+    box-shadow: inset 3px 0 0 var(--app-current-step-border), var(--nc-shadow-md);
+}
+
+.now-card--closed,
+.now-card--none {
+    box-shadow: var(--app-card-shadow);
 }
 
 // Olay geçmişinin bütünlük durumu
 .event-history__integrity--verified {
-    color: var(--app-status-completed-fg);
+    color: var(--nc-ok-text);
 }
 
 .event-history__integrity--broken {
-    color: var(--app-status-cancelled-fg);
-    font-weight: 600;
+    font-weight: 500;
 }
 
 // Geçersiz kılınmış malzeme ve başlamamış kayıt uyarısı
 .materials-list__item--voided {
-    color: var(--bs-secondary-color);
+    color: var(--nc-text-muted);
 }
 
-.machine-summary__pending {
-    color: var(--app-status-expired-fg);
+.materials-list__state {
+    color: var(--nc-crit-text);
+}
+
+// Dar bilgi satırları için ortak tanım listesi görünümü: etiket küçük ve soluk
+.cleaning-summary__list,
+.cleaning-summary__times,
+.now-card__facts,
+.checklist-phase__facts,
+.checklist-step__facts,
+.materials-list__facts,
+.machine-summary__facts {
+    dt {
+        font-size: .75rem;
+        font-weight: 400;
+        color: var(--nc-text-muted);
+    }
 }

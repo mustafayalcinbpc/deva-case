@@ -7,11 +7,31 @@
 // 2. AdminLTE (Bootstrap'i de içerir).
 @import "admin-lte/src/scss/adminlte";
 
-// 3. Çalışma zamanı tasarım değişkenleri ve uygulamaya özel katman.
+// 3. Çalışma zamanı tasarım değişkenleri: Nocturne token'ları, açık/koyu tema, Bootstrap eşlemesi.
 @import "theme/tokens";
+
+// 4. Temel öğeler ve Nocturne yapı taşları (tag, segment, KPI, avatar...).
+@import "theme/base";
+@import "theme/nocturne";
+
+// 5. Bootstrap/AdminLTE bileşenlerinin Nocturne görünümü. Yeni ekranlar düz Bootstrap
+//    işaretlemesiyle yazılır; görünüm buradan gelir.
+@import "theme/bootstrap/buttons";
+@import "theme/bootstrap/cards";
+@import "theme/bootstrap/forms";
+@import "theme/bootstrap/tables";
+@import "theme/bootstrap/badges";
+@import "theme/bootstrap/navs";
+@import "theme/bootstrap/feedback";
+
+// 6. Kabuk (sidebar, üst bar, sayfa başlığı, giriş) ve uygulamaya özel bileşenler.
+@import "theme/shell";
+@import "theme/notifications";
 @import "theme/components";
 @import "theme/motion";
 
-// 4. Sayfalara özel yerleşim kuralları (renk içermez).
+// 7. Sayfalara özel yerleşim kuralları.
+@import "theme/pages/dashboard";
 @import "theme/pages/cleaning-form";
 @import "theme/pages/cleaning-detail";
+@import "theme/pages/definitions";

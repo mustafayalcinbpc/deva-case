@@ -5,6 +5,8 @@
 <section class="card open-cleanings" aria-labelledby="open-cleanings-title">
     <div class="card-header">
         <h2 class="card-title" id="open-cleanings-title">Açık kayıtlar</h2>
+        <span class="tag tag-neutral open-cleanings__count" title="Açık kayıt sayısı">{{ $rows->count() }}</span>
+        <a href="{{ route('cleanings.index') }}" class="open-cleanings__all">Tümünü gör</a>
     </div>
 
     @if ($rows->isEmpty())

@@ -1,0 +1,159 @@
+// Kartlar: çerçeve yerine halka gölge (elev-sm), 8px köşe, başlık ile gövde arasında çizgi yok.
+// Kart başlığı .card-title (17px), yanında .card-tools (sağa yaslı) ya da .card-meta olabilir.
+
+.card {
+    --bs-card-bg: var(--nc-surface);
+    --bs-card-color: var(--nc-text);
+    --bs-card-border-width: 0;
+    --bs-card-border-radius: var(--nc-radius-md);
+    --bs-card-inner-border-radius: var(--nc-radius-md);
+    --bs-card-cap-bg: transparent;
+    --bs-card-cap-color: var(--nc-text);
+    --bs-card-spacer-x: var(--nc-space-6);
+    --bs-card-spacer-y: var(--nc-space-6);
+    --bs-card-cap-padding-x: var(--nc-space-6);
+    --bs-card-cap-padding-y: var(--nc-space-6);
+
+    margin-bottom: var(--nc-space-6);
+    box-shadow: var(--app-card-shadow);
+}
+
+.card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--nc-space-2) var(--nc-space-4);
+    padding-bottom: var(--nc-space-3);
+    border-bottom: 0;
+
+    // AdminLTE float düzenini esnek kutuya çevir
+    &::after {
+        display: none;
+    }
+
+    > .card-title {
+        float: none;
+    }
+}
+
+.card-title {
+    margin: 0;
+    font-size: 1.0625rem; // 17px
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -.015em;
+}
+
+.card-header > .card-meta,
+.card-header > .card-subtitle {
+    font-size: .75rem;
+    font-weight: 400;
+    color: var(--nc-text-muted);
+}
+
+.card-tools,
+.card-header > .card-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nc-space-2);
+    align-items: center;
+    float: none;
+    margin: 0 0 0 auto;
+}
+
+// Başlıktan sonra gelen gövde: başlık ile içerik arası tasarımdaki gibi ~11px
+.card-header + .card-body {
+    padding-top: var(--nc-space-2);
+}
+
+.card-footer {
+    padding: var(--nc-space-4) var(--nc-space-6);
+    background-color: transparent;
+    border-top: 1px solid var(--nc-divider);
+}
+
+// Gövdeyi bölen çizgi (ör. filtre alanı) kenarları solan çizgiyle
+.card-body.border-bottom,
+.card > .border-bottom {
+    border-bottom: 0 !important;
+    background: var(--nc-fade-line) no-repeat bottom / 100% 1px;
+}
+
+// Renkli AdminLTE kartları: başlık zemini yerine sol vurgu çizgisi
+.card-outline {
+    border-top: 0 !important;
+    box-shadow: inset 0 3px 0 var(--lte-card-variant-bg, var(--nc-accent)), var(--app-card-shadow);
+}
+
+// AdminLTE sayaç kutusu (info-box) Nocturne KPI kartı gibi görünür
+.info-box {
+    align-items: flex-start;
+    gap: var(--nc-space-4);
+    min-height: 0;
+    padding: var(--nc-space-6);
+    margin-bottom: var(--nc-space-6);
+    color: var(--nc-text);
+    background-color: var(--nc-surface);
+    border-radius: var(--nc-radius-md);
+    box-shadow: var(--app-card-shadow);
+
+    .info-box-icon {
+        flex: none;
+        width: 36px;
+        height: 36px;
+        font-size: 1.0625rem;
+        color: var(--nc-accent);
+        background-color: var(--nc-accent-wash);
+        border-radius: var(--nc-radius-md);
+    }
+
+    .info-box-content {
+        gap: 4px;
+        padding: 0;
+        line-height: 1.35;
+    }
+
+    .info-box-text {
+        font-size: .625rem;
+        font-weight: 500;
+        color: var(--nc-accent);
+        text-transform: uppercase;
+        letter-spacing: .1em;
+    }
+
+    .info-box-number {
+        margin-top: 2px;
+        font-size: 1.875rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.05;
+        letter-spacing: -.02em;
+    }
+
+    .progress-description {
+        font-size: .75rem;
+        color: var(--nc-text-muted);
+    }
+}
+
+// AdminLTE small-box: düz yüzey kartı
+.small-box {
+    color: var(--nc-text) !important;
+    background-color: var(--nc-surface) !important;
+    border-radius: var(--nc-radius-md);
+    box-shadow: var(--app-card-shadow);
+
+    .small-box-footer {
+        color: var(--nc-accent) !important;
+        background: transparent;
+        border-top: 1px solid var(--nc-divider);
+    }
+}
+
+// AdminLTE callout
+.callout {
+    background-color: var(--nc-surface);
+    border-left-width: 3px;
+    border-radius: var(--nc-radius-md);
+    box-shadow: var(--app-card-shadow);
+}
