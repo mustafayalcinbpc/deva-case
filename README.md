@@ -97,7 +97,7 @@ Laravel + AdminLTE
      Queue Worker
 ```
 
-Redis; cache, kilitleme ve eşzamanlı işlemlerin kontrolünde, RabbitMQ ise asenkron işlemlerin yönetiminde kullanılabilecek şekilde konumlandırılmıştır.
+Redis cache ve oturumlar için, RabbitMQ kuyruk (Laravel Queue) için kullanılır. Eşzamanlılık garantisi (aynı makinede iki temizlik, aynı kişinin iki adımda çalışması) Redis'te değil MySQL'deki unique index'lerdedir; ayrıntı aşağıda **Durum Yönetimi** bölümünde.
 
 ## Çözüm Yaklaşımı
 
@@ -106,3 +106,68 @@ Redis; cache, kilitleme ve eşzamanlı işlemlerin kontrolünde, RabbitMQ ise as
 Süreç; **iş kuralları, yetkilendirme, gerçek zamanlı işlem takibi, süre/efor ölçümü, versiyonlama ve değiştirilemez işlem geçmişi** perspektifinden ele alınmıştır.
 
 UI tarafında ise saha personelinin mümkün olduğunca az işlemle, hangi adımı ne zaman ve nasıl gerçekleştirmesi gerektiğini net şekilde görebilmesi hedeflenmiştir.
+
+## Kurulum
+
+Gereken tek şey Docker (Compose v2).
+
+```bash
+docker compose up -d --build
+```
+
+İlk açılışta `app` container'ı `.env` dosyasını `.env.example`'dan oluşturur, `composer install` çalıştırır, uygulama anahtarını üretir ve migration'ları uygular.
+
+| Servis | Adres |
+|---|---|
+| Uygulama (nginx) | http://localhost:8080 |
+| RabbitMQ yönetim paneli | http://localhost:15672 (`temizlik` / `secret`) |
+| MySQL | `localhost:33060` (`temizlik` / `secret`) |
+
+`queue` container'ı kuyruğu işler, `scheduler` container'ı zamanlanmış görevleri çalıştırır (ör. her dakika süresi dolan kayıtları kapatan `cleanings:expire-stale`).
+
+## Testler
+
+```bash
+docker compose exec app php artisan test
+```
+
+Testler ayrı bir veritabanında (`temizlik_test`) çalışır. Kurallar MySQL'deki generated column, unique index ve trigger'lara dayandığı için testler SQLite'ta değil MySQL'de çalışır.
+
+## Durum Yönetimi
+
+İş kuralları ve verilen kararlar `docs/is-gereksinimleri.md` dosyasındadır (gereksinimler `R-xx`, kararlar `K-xx`). Kodda bu numaralara referans verilir.
+
+Temizlik kaydı, faz ve adımın durumları ayrı tutulur. İzin verilen geçişler enum'larda tanımlıdır (`app/Enums`); durum yalnızca bu tablodaki geçişlerle değişir.
+
+```
+Temizlik:  BAŞLAMADI ──ilk adım başlar──▶ DEVAM EDİYOR ──son faz tamamlanır──▶ TAMAMLANDI
+              ├─ 30 dk adım başlamadı (sistem) ─▶ SÜRESİ DOLDU
+              └─ sahibi / yönetici ─▶ İPTAL ◀─ yönetici ─┘
+
+Faz:       BEKLİYOR ─▶ DEVAM EDİYOR ─▶ TAMAMLANDI
+Adım:      BEKLİYOR ─▶ ÇALIŞIYOR ⇄ DURAKLATILDI
+                          └─▶ TAMAMLANDI
+```
+
+Bütün geçişler tek bir servisten geçer: `app/Services/Cleaning/CleaningWorkflow.php`. Her işlem tek bir transaction'dır. İşlem kaydın satırını kilitleyerek başlar, kuralları sabit bir sırayla kontrol eder, durumu değiştirir ve olayı kaydeder. Kural ihlalinde `CleaningRuleViolation` fırlatılır ve hiçbir değişiklik kalıcı olmaz.
+
+**Kayıt açmak işe başlamak değildir.** Süre ve makine kilidi ilk adım başlatılınca başlar. Hiç başlatılmayan kayıt 30 dakika sonra sistem tarafından "süresi doldu" durumuna alınır. Başlamış iş hiçbir zaman otomatik kapanmaz.
+
+**Süre ve efor.** Bir adımın kesintisiz çalışılan her bölümü bir *çalışma dilimi*dir. Duraklatma ya da görevli değişikliği dilimi kapatır.
+- Net süre = dilim sürelerinin toplamı
+- Brüt süre = ilk dilim başlangıcı → son dilim bitişi
+- Efor = Σ (dilim süresi × dilimdeki kişi sayısı)
+
+Faz minimum süresi, fazın ayarına göre net ya da brüt süreyle kontrol edilir. Minimumun altında kalan faz ancak gerekçe yazılarak kapanır ve sapma olarak işaretlenir.
+
+**Eşzamanlılık veritabanında garanti edilir**, yalnızca ekranda değil:
+- Kayıt devam ederken makine id'sini alan bir generated column üzerindeki unique index, aynı makinede ikinci bir temizliğin başlamasını engeller.
+- Açık çalışma dilimindeki kişi id'si üzerindeki unique index, bir kişinin aynı anda iki adımda çalışmasını engeller.
+
+İki kişi aynı anda denese bile biri başarılı olur, diğeri "makine meşgul" ya da "personel meşgul" hatası alır.
+
+**Değiştirilemezlik.**
+- Bir kez dolan alanlar (sahip, başlangıç/bitiş zamanları, ölçülen süreler) model seviyesinde değiştirilemez, kayıtlar silinemez.
+- Zamanlar her zaman sunucudan alınır.
+- Her işlem `cleaning_events` tablosuna yazılır. Bu tablo MySQL trigger'larıyla UPDATE/DELETE'e kapalıdır. Her olay bir önceki olayın SHA-256 hash'ini içerir; `CleaningEventRecorder::verify()` zinciri baştan hesaplayarak sonradan yapılan değişikliği tespit eder.
+

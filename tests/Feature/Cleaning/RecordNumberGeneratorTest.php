@@ -1,0 +1,118 @@
+<?php
+
+namespace Tests\Feature\Cleaning;
+
+use App\Enums\CleaningType;
+use App\Models\Facility;
+use App\Services\Cleaning\RecordNumberGenerator;
+use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Feature\Cleaning\Concerns\BuildsCleaningFixtures;
+use Tests\TestCase;
+
+class RecordNumberGeneratorTest extends TestCase
+{
+    use BuildsCleaningFixtures, RefreshDatabase;
+
+    private RecordNumberGenerator $numbers;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->numbers = app(RecordNumberGenerator::class);
+    }
+
+    public function test_record_number_describes_where_the_cleaning_is_done(): void
+    {
+        $machine = $this->makeMachine();
+
+        $this->assertSame('IST-H01-M03-T-2026-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $this->at('2026-10-09')));
+    }
+
+    public function test_record_number_sequence_increments_and_is_stored_in_the_counter(): void
+    {
+        $machine = $this->makeMachine();
+        $at = $this->at('2026-10-09');
+
+        $this->assertSame('IST-H01-M03-T-2026-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $at));
+        $this->assertSame('IST-H01-M03-T-2026-0002', $this->numbers->recordNo($machine, CleaningType::Planned, $at));
+        $this->assertSame('IST-H01-M03-T-2026-0003', $this->numbers->recordNo($machine, CleaningType::Planned, $at));
+
+        $this->assertDatabaseHas('sequence_counters', ['key' => "cleaning:{$machine->id}:2026", 'value' => 3]);
+    }
+
+    public function test_planned_and_unplanned_share_the_machine_sequence(): void
+    {
+        $machine = $this->makeMachine();
+        $at = $this->at('2026-10-09');
+
+        $this->assertSame('IST-H01-M03-T-2026-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $at));
+        $this->assertSame('IST-H01-M03-M-2026-0002', $this->numbers->recordNo($machine, CleaningType::Unplanned, $at));
+        $this->assertSame('IST-H01-M03-T-2026-0003', $this->numbers->recordNo($machine, CleaningType::Planned, $at));
+    }
+
+    public function test_each_machine_has_its_own_sequence(): void
+    {
+        $m03 = $this->makeMachine(code: 'M03');
+        $m04 = $this->makeMachine(code: 'M04');
+        $at = $this->at('2026-10-09');
+
+        $this->assertSame('IST-H01-M03-T-2026-0001', $this->numbers->recordNo($m03, CleaningType::Planned, $at));
+        $this->assertSame('IST-H01-M03-T-2026-0002', $this->numbers->recordNo($m03, CleaningType::Planned, $at));
+        $this->assertSame('IST-H01-M04-M-2026-0001', $this->numbers->recordNo($m04, CleaningType::Unplanned, $at));
+    }
+
+    public function test_record_number_sequence_restarts_every_year(): void
+    {
+        $machine = $this->makeMachine();
+
+        $this->assertSame('IST-H01-M03-T-2026-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $this->at('2026-12-31 23:59:59')));
+        $this->assertSame('IST-H01-M03-T-2026-0002', $this->numbers->recordNo($machine, CleaningType::Planned, $this->at('2026-12-31 23:59:59')));
+        $this->assertSame('IST-H01-M03-T-2027-0001', $this->numbers->recordNo($machine, CleaningType::Planned, $this->at('2027-01-01 00:00:00')));
+        $this->assertSame('IST-H01-M03-M-2027-0002', $this->numbers->recordNo($machine, CleaningType::Unplanned, $this->at('2027-03-15')));
+    }
+
+    public function test_field_ref_format_and_sequence(): void
+    {
+        $facility = $this->makeMachine()->line->facility;
+        $at = $this->at('2026-10-09');
+
+        $this->assertSame('IST-SD-2026-0001', $this->numbers->fieldRef($facility, $at));
+        $this->assertSame('IST-SD-2026-0002', $this->numbers->fieldRef($facility, $at));
+
+        $this->assertDatabaseHas('sequence_counters', ['key' => "field-ref:{$facility->id}:2026", 'value' => 2]);
+    }
+
+    public function test_field_ref_sequence_is_per_facility_and_shared_by_its_machines(): void
+    {
+        $m03 = $this->makeMachine(code: 'M03');
+        $m04 = $this->makeMachine(code: 'M04');
+        $ist = $m03->line->facility;
+        $ank = Facility::create(['code' => 'ANK', 'name' => 'Ankara Tesisi']);
+        $at = $this->at('2026-10-09');
+
+        // Kayıt numarası sayaçları saha defteri sırasını etkilemez.
+        $this->numbers->recordNo($m03, CleaningType::Planned, $at);
+        $this->numbers->recordNo($m04, CleaningType::Planned, $at);
+
+        $this->assertSame('IST-SD-2026-0001', $this->numbers->fieldRef($m03->line->facility, $at));
+        $this->assertSame('IST-SD-2026-0002', $this->numbers->fieldRef($m04->line->facility, $at));
+        $this->assertSame('ANK-SD-2026-0001', $this->numbers->fieldRef($ank, $at));
+        $this->assertSame('IST-SD-2026-0003', $this->numbers->fieldRef($ist, $at));
+    }
+
+    public function test_field_ref_sequence_restarts_every_year(): void
+    {
+        $facility = $this->makeMachine()->line->facility;
+
+        $this->assertSame('IST-SD-2026-0001', $this->numbers->fieldRef($facility, $this->at('2026-12-31 23:59:59')));
+        $this->assertSame('IST-SD-2027-0001', $this->numbers->fieldRef($facility, $this->at('2027-01-01 00:00:00')));
+        $this->assertSame('IST-SD-2026-0002', $this->numbers->fieldRef($facility, $this->at('2026-06-01')));
+    }
+
+    private function at(string $time): CarbonImmutable
+    {
+        return CarbonImmutable::parse($time);
+    }
+}

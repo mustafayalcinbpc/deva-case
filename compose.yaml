@@ -1,0 +1,88 @@
+name: deva-temizlik
+
+x-php: &php
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+  image: deva-temizlik-php
+  volumes:
+    - ./:/var/www/html
+  depends_on:
+    mysql:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  app:
+    <<: *php
+    environment:
+      CONTAINER_ROLE: app
+
+  queue:
+    <<: *php
+    environment:
+      CONTAINER_ROLE: worker
+    command: php artisan queue:work --tries=3
+
+  scheduler:
+    <<: *php
+    environment:
+      CONTAINER_ROLE: worker
+    command: php artisan schedule:work
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8.4
+    # Olay tablosunu koruyan trigger'ların SUPER yetkisi olmadan oluşturulabilmesi için.
+    command: --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: temizlik
+      MYSQL_USER: temizlik
+      MYSQL_PASSWORD: secret
+    ports:
+      - "${FORWARD_DB_PORT:-33060}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: temizlik
+      RABBITMQ_DEFAULT_PASS: secret
+    ports:
+      - "${FORWARD_RABBITMQ_UI_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+volumes:
+  mysql-data:
