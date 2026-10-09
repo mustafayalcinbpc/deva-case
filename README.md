@@ -1,5 +1,53 @@
 # Dijital Temizlik Takip Sistemi
 
+## Hızlı Başlangıç
+
+Gereken tek şey Docker (Compose v2). Başka kurulum gerekmez; PHP, Composer, Node, MySQL, Redis ve RabbitMQ container'larda çalışır.
+
+```bash
+git clone https://github.com/mustafayalcinbpc/deva-case.git
+cd deva-case
+docker compose up -d --build
+```
+
+İlk açılış birkaç dakika sürer. `app` container'ı şunları kendisi yapar:
+- `.env` dosyasını oluşturur;
+- bağımlılıkları kurar;
+- veritabanı tablolarını oluşturur;
+- boş veritabanına demo verisini yükler.
+
+Hazır olduğunu görmek için:
+
+```bash
+docker compose logs -f app      # "ready to handle connections" satırı görününce hazırdır
+docker compose logs -f vite     # arayüz asset'leri: "VITE ... ready" satırı görününce hazırdır
+```
+
+Ardından **http://localhost:8080** adresi açılır. Demo hesaplarının hepsinin şifresi `1234`; giriş sayfasında da listelenirler:
+
+| Hesap | Rol |
+|---|---|
+| `operator1@demo.test` | Operatör (Ahmet Yılmaz) |
+| `operator2@demo.test`, `operator3@demo.test` | Operatör |
+| `yonetici1@demo.test` | Yönetici (yönetim ekranları ve raporlar) |
+| `operator4@demo.test` | Pasif personel (giriş yapamaz) |
+
+Sık kullanılan komutlar:
+
+```bash
+docker compose exec app php artisan test                  # testler (ayrı test veritabanında)
+docker compose exec app php artisan migrate:fresh --seed  # demo verisini sıfırdan yükle (veriyi siler)
+docker compose down                                       # durdur (veri korunur; -v ile veri de silinir)
+```
+
+| Servis | Adres |
+|---|---|
+| Uygulama | http://localhost:8080 |
+| RabbitMQ yönetim paneli | http://localhost:15672 (`temizlik` / `secret`) |
+| MySQL | `localhost:33060` (`temizlik` / `secret`) |
+
+Portlar başka bir uygulamayla çakışırsa `APP_PORT`, `FORWARD_DB_PORT` ve `FORWARD_RABBITMQ_UI_PORT` ortam değişkenleriyle değiştirilebilir (ör. `APP_PORT=8090 docker compose up -d`). Vite geliştirme sunucusu 5173 portunu kullanır; bu port boş olmalıdır. Ayrıntılar aşağıdaki **Kurulum** bölümünde, production kurulumu **Production** bölümündedir.
+
 ## Proje Hakkında
 
 Bu proje, üretim ortamındaki makine temizlik süreçlerinin kağıt formlardan dijital ortama taşınması amacıyla geliştirilmiş bir demo uygulamasıdır.
