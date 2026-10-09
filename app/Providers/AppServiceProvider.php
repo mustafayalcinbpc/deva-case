@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // R-42, R-43: tanımları yalnızca yönetici yönetir, raporları yalnızca yönetici görür.
+        Gate::define('manage-definitions', fn (User $user): bool => $user->isManager());
+        Gate::define('view-reports', fn (User $user): bool => $user->isManager());
     }
 }
