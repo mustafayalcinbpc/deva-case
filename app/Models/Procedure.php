@@ -15,10 +15,11 @@ class Procedure extends Model
     }
 
     /**
-     * Yeni kayıtlara uygulanacak versiyon: en son yayımlanmış olan (K-15).
+     * Yeni kayıtlara uygulanacak versiyon: yayın tarihi gelmiş en son versiyon (K-15).
+     * İleri tarihli yayımlanan versiyon, o tarihe kadar yeni kayıtlara uygulanmaz.
      */
     public function currentVersion(): ?ProcedureVersion
     {
-        return $this->versions()->whereNotNull('published_at')->orderByDesc('version')->first();
+        return $this->versions()->where('published_at', '<=', now())->orderByDesc('version')->first();
     }
 }
