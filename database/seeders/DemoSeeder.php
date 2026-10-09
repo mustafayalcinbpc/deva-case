@@ -36,8 +36,6 @@ use Illuminate\Database\Seeder;
  */
 class DemoSeeder extends Seeder
 {
-    private const PASSWORD = 'password';
-
     private CleaningWorkflow $workflow;
 
     /** Çalıştırma anı (tam saniye, UTC). */
@@ -46,7 +44,7 @@ class DemoSeeder extends Seeder
     /** Bugünün başlangıcı, gösterim saat diliminde (geçmiş günlerin saatleri buna göre). */
     private CarbonImmutable $today;
 
-    /** @var array<string, User> e-postanın @ öncesi => kullanıcı */
+    /** @var array<string, User> config/demo.php'deki anahtar (ahmet, yonetici...) => kullanıcı */
     private array $users = [];
 
     /** @var array<string, Line> */
@@ -94,23 +92,18 @@ class DemoSeeder extends Seeder
         $this->seedWorkOrders();
     }
 
+    /**
+     * config/demo.php'deki hesaplar. Hepsi aktif oluşturulur; pasif olacak personel geçmişte
+     * kayıt açtıktan sonra pasife alınır (seedHistory).
+     */
     private function seedUsers(): void
     {
-        $users = [
-            ['ahmet@demo.test', 'Ahmet Yılmaz', UserRole::Operator],
-            ['mehmet@demo.test', 'Mehmet Kaya', UserRole::Operator],
-            ['ayse@demo.test', 'Ayşe Demir', UserRole::Operator],
-            ['yonetici@demo.test', 'Zeynep Arslan', UserRole::Manager],
-            // Geçmişte kayıt açmış, sonra ayrılmış personel; ayrılınca pasif yapılır (aşağıda).
-            ['eski@demo.test', 'Eski Personel', UserRole::Operator],
-        ];
-
-        foreach ($users as [$email, $name, $role]) {
-            $this->users[strstr($email, '@', true)] = User::factory()->create([
-                'name' => $name,
-                'email' => $email,
-                'password' => self::PASSWORD,
-                'role' => $role,
+        foreach (config('demo.users') as $key => $account) {
+            $this->users[$key] = User::factory()->create([
+                'name' => $account['name'],
+                'email' => $account['email'],
+                'password' => config('demo.password'),
+                'role' => UserRole::from($account['role']),
                 'is_active' => true,
             ]);
         }

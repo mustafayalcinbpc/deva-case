@@ -139,7 +139,7 @@ docker compose exec app php artisan migrate:fresh --seed
 
 Otomatik yüklemeyi kapatmak için `.env` dosyasında `DEMO_SEED=false` yazılır. Belirtilmezse yalnızca `local` ortamda açıktır.
 
-Giriş sayfası `local` ortamda demo hesaplarını listeler; hepsinin şifresi `password`. Operatör olarak `ahmet@demo.test`, yönetici olarak `yonetici@demo.test` ile girilebilir. Demo verisindeki "başlamamış" kayıt, zamanlayıcı tarafından yaklaşık 30 dakika sonra "süresi doldu" durumuna alınır (K-06); bu kaydı yeniden görmek için demo verisini yukarıdaki komutla yeniden yüklemek yeterlidir.
+Giriş sayfası `local` ortamda demo hesaplarını listeler (`config/demo.php`); hepsinin şifresi `1234`. Adresler unvana göre numaralıdır: operatörler `operator1@demo.test` … `operator4@demo.test` (`operator4` pasif personel), yönetici `yonetici1@demo.test`. Demo verisindeki "başlamamış" kayıt, zamanlayıcı tarafından yaklaşık 30 dakika sonra "süresi doldu" durumuna alınır (K-06); bu kaydı yeniden görmek için demo verisini yukarıdaki komutla yeniden yüklemek yeterlidir.
 
 | Servis | Adres |
 |---|---|

@@ -53,11 +53,11 @@ class DemoSeederTest extends TestCase
     private function assertDemoUsersMatchThePlan(): void
     {
         $expected = [
-            'ahmet@demo.test' => ['Ahmet Yılmaz', UserRole::Operator, true],
-            'mehmet@demo.test' => ['Mehmet Kaya', UserRole::Operator, true],
-            'ayse@demo.test' => ['Ayşe Demir', UserRole::Operator, true],
-            'yonetici@demo.test' => ['Zeynep Arslan', UserRole::Manager, true],
-            'eski@demo.test' => ['Eski Personel', UserRole::Operator, false],
+            'operator1@demo.test' => ['Ahmet Yılmaz', UserRole::Operator, true],
+            'operator2@demo.test' => ['Mehmet Kaya', UserRole::Operator, true],
+            'operator3@demo.test' => ['Ayşe Demir', UserRole::Operator, true],
+            'operator4@demo.test' => ['Eski Personel', UserRole::Operator, false],
+            'yonetici1@demo.test' => ['Zeynep Arslan', UserRole::Manager, true],
         ];
 
         $this->assertSame(count($expected), User::count());
@@ -68,7 +68,7 @@ class DemoSeederTest extends TestCase
             $this->assertSame($name, $user->name, $email);
             $this->assertSame($role, $user->role, $email);
             $this->assertSame($active, $user->is_active, $email);
-            $this->assertTrue(Hash::check('password', $user->password), "{$email} şifresi 'password' değil.");
+            $this->assertTrue(Hash::check('1234', $user->password), "{$email} şifresi '1234' değil.");
         }
     }
 

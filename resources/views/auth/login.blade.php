@@ -69,7 +69,7 @@
 
         @if ($demoAccounts)
             <div class="card-footer demo-accounts">
-                <p class="demo-accounts__title">Demo hesapları · şifre <code>password</code></p>
+                <p class="demo-accounts__title">Demo hesapları · şifre <code>{{ $demoPassword }}</code></p>
                 <ul class="demo-accounts__list list-unstyled mb-0">
                     @foreach ($demoAccounts as $account)
                         <li @class(['demo-accounts__item', 'demo-accounts__item--inactive' => ! $account['active']])>
