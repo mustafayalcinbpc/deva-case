@@ -53,15 +53,15 @@ Kayıt açma, adım ekranları, tanım yönetimi ve raporlar sonraki adımdır.
 
 **Zaman ve süre gösterimi:** Zamanlar veritabanında UTC saklanır. `<x-datetime :value="$carbon" />` zamanı `config('app.display_timezone')` (varsayılan Europe/Istanbul) ile `d.m.Y H:i` biçiminde gösterir, değer yoksa `—` gösterir. `<x-duration :seconds="$int" />` süreyi `45 sn`, `12 dk 30 sn`, `1 sa 05 dk` biçiminde gösterir.
 
-**Demo kullanıcıları** (1B oluşturur, 1A giriş sayfasında yalnızca `local` ortamda gösterir). Hepsinin şifresi `password`:
+**Demo kullanıcıları** (1B oluşturur, 1A giriş sayfasında yalnızca `local` ortamda gösterir). Sonradan unvana göre numaralandırıldı ve tek kaynak olarak `config/demo.php`'ye taşındı. Hepsinin şifresi `1234`:
 
 | E-posta | Ad | Rol |
 |---|---|---|
-| `ahmet@demo.test` | Ahmet Yılmaz | operatör |
-| `mehmet@demo.test` | Mehmet Kaya | operatör |
-| `ayse@demo.test` | Ayşe Demir | operatör |
-| `yonetici@demo.test` | Zeynep Arslan | yönetici |
-| `eski@demo.test` | Eski Personel | operatör, pasif (`is_active = false`) |
+| `operator1@demo.test` | Ahmet Yılmaz | operatör |
+| `operator2@demo.test` | Mehmet Kaya | operatör |
+| `operator3@demo.test` | Ayşe Demir | operatör |
+| `operator4@demo.test` | Eski Personel | operatör, pasif (`is_active = false`) |
+| `yonetici1@demo.test` | Zeynep Arslan | yönetici |
 
 **Gösterge paneli yer tutucusu:** Faz 0'da `DashboardController@index` ve `resources/views/dashboard.blade.php` basit birer yer tutucu olarak vardır; 1C bunları gerçek panelle değiştirir.
 

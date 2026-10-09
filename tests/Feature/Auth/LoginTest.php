@@ -228,19 +228,19 @@ class LoginTest extends TestCase
         $this->get(route('login'))
             ->assertOk()
             ->assertDontSee('Demo hesapları')
-            ->assertDontSee('yonetici@demo.test');
+            ->assertDontSee('yonetici1@demo.test');
 
         $this->app['env'] = 'local';
 
         $this->get(route('login'))
             ->assertOk()
             ->assertSee('Demo hesapları')
-            ->assertSee('ahmet@demo.test')
-            ->assertSee('mehmet@demo.test')
-            ->assertSee('ayse@demo.test')
-            ->assertSee('yonetici@demo.test')
+            ->assertSee('operator1@demo.test')
+            ->assertSee('operator2@demo.test')
+            ->assertSee('operator3@demo.test')
+            ->assertSee('yonetici1@demo.test')
             ->assertSee('Yönetici')
-            ->assertSee('<code>password</code>', false)
-            ->assertSeeInOrder(['eski@demo.test', 'pasif']);
+            ->assertSee('<code>1234</code>', false)
+            ->assertSeeInOrder(['operator4@demo.test', 'pasif']);
     }
 }
