@@ -25,6 +25,10 @@
     --app-status-paused-bg: #fff3cd;
     --app-status-paused-fg: #664d03;
 
+    // Detay ekranında güncel adım vurgusu
+    --app-current-step-border: #0d6efd;
+    --app-current-step-bg: rgb(13 110 253 / 0.04);
+
     // "Bana ait" işareti ve satır vurgusu
     --app-mine-bg: #e7f1ff;
     --app-mine-fg: #0a58ca;
@@ -58,6 +62,9 @@
     --app-status-running-fg: #6ea8fe;
     --app-status-paused-bg: #332701;
     --app-status-paused-fg: #ffda6a;
+
+    --app-current-step-border: #6ea8fe;
+    --app-current-step-bg: rgb(110 168 254 / 0.06);
 
     --app-mine-bg: #031633;
     --app-mine-fg: #6ea8fe;

@@ -51,7 +51,7 @@ class SidebarMenu extends Component
                 continue;
             }
 
-            $items[] = $item + ['active' => $request->routeIs($item['active'] ?? $item['route'])];
+            $items[] = ['active' => $request->routeIs(...(array) ($item['active'] ?? $item['route']))] + $item;
         }
 
         return $items;

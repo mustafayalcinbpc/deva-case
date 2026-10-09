@@ -36,7 +36,7 @@
                             @endphp
                             <tr @class(['open-cleanings__row', 'open-cleanings__row--mine' => $row['mine'] !== null])>
                                 <td>
-                                    <span class="record-no text-nowrap">{{ $cleaning->record_no }}</span>
+                                    <a href="{{ route('cleanings.show', $cleaning) }}" class="record-no text-nowrap">{{ $cleaning->record_no }}</a>
                                     @if ($row['mine'] !== null)
                                         <span class="mine-badge" title="{{ $row['mine'] === 'owner' ? 'Bu kaydın sorumlususunuz' : 'Güncel adımda görevlisiniz' }}">Bana ait</span>
                                     @endif
