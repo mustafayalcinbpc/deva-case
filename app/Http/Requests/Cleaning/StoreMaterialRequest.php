@@ -24,7 +24,8 @@ class StoreMaterialRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'material_id' => ['required', 'integer', Rule::exists(Material::class, 'id')],
+            // Kullanımdan kaldırılan malzeme eklenemez; kayıtta zaten olanlar geçerli kalır (K-13).
+            'material_id' => ['required', 'integer', Rule::exists(Material::class, 'id')->where('is_active', true)],
             'lot_no' => ['required', 'string', 'max:100'],
             'expiry_date' => ['required', 'date_format:Y-m-d'],
         ];

@@ -54,8 +54,7 @@ class ProcedureVersioningTest extends TestCase
         $machine = $this->makeMachine([['steps' => 2]]);
         $ahmet = $this->operator('Ahmet');
         $v1 = $machine->procedure->currentVersion();
-        $v2 = $this->publishVersion($machine->procedure, [['steps' => 3]]);
-        $v2->update(['published_at' => now()->addDay()]);
+        $v2 = $this->publishVersion($machine->procedure, [['steps' => 3]], publishedAt: now()->addDay());
 
         $before = $this->openCleaning($ahmet, $machine);
         $this->assertSame($v1->id, $before->procedure_version_id);

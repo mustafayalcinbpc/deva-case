@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Procedures\ProcedureVersionRequest;
+use App\Models\Procedure;
+use App\Models\ProcedureVersion;
+use App\Services\Definitions\ProcedureVersioning;
+use App\Services\Definitions\ProcedureVersionStatus;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+
+/**
+ * Prosedür versiyonu: taslak açma, taslak düzenleyici, yayımlanmış versiyonun salt okunur
+ * görünümü ve taslağı silme (K-15, R-11, R-13).
+ */
+class ProcedureVersionController extends Controller
+{
+    public function __construct(private readonly ProcedureVersioning $versioning) {}
+
+    /**
+     * "Yeni taslak": en son versiyonun fazları ve adımları kopyalanır.
+     */
+    public function store(Procedure $procedure): RedirectResponse
+    {
+        $draft = $this->versioning->createDraft($procedure);
+
+        return redirect()
+            ->route('admin.procedures.versions.show', [$procedure, $draft])
+            ->with('status', "v{$draft->version} taslağı oluşturuldu.");
+    }
+
+    public function show(Procedure $procedure, ProcedureVersion $version): View
+    {
+        $version->load('phases.steps')->loadCount('cleanings');
+        $procedure->load(['currentPublishedVersion', 'draftVersion']);
+
+        return view('admin.procedures.versions.show', [
+            'procedure' => $procedure,
+            'version' => $version,
+            'status' => ProcedureVersionStatus::of($version, $procedure->currentPublishedVersion?->id),
+            'latestPublication' => $procedure->versions()->whereNotNull('published_at')->orderByDesc('published_at')->first(),
+        ]);
+    }
+
+    public function update(ProcedureVersionRequest $request, Procedure $procedure, ProcedureVersion $version): RedirectResponse
+    {
+        $this->versioning->updateDraft($version, $request->materialRequired());
+
+        return redirect()
+            ->route('admin.procedures.versions.show', [$procedure, $version])
+            ->with('status', 'Malzeme zorunluluğu kaydedildi.');
+    }
+
+    public function destroy(Procedure $procedure, ProcedureVersion $version): RedirectResponse
+    {
+        $this->versioning->deleteDraft($version);
+
+        return redirect()
+            ->route('admin.procedures.show', $procedure)
+            ->with('status', "v{$version->version} taslağı silindi.");
+    }
+}

@@ -603,9 +603,10 @@ class CleaningDetailTest extends TestCase
     public function test_step_media_is_rendered_from_storage(): void
     {
         $ahmet = $this->operator('Ahmet');
-        $cleaning = $this->openCleaning($ahmet, $this->makeMachine([['steps' => 3]]));
-        $this->stepOf($cleaning, 1)->procedureStep->update(['media_path' => 'procedures/sokme.jpg', 'description' => 'Kapakları sökün.']);
-        $this->stepOf($cleaning, 2)->procedureStep->update(['media_path' => 'procedures/yikama.mp4']);
+        $cleaning = $this->openCleaning($ahmet, $this->makeMachine([['steps' => 3, 'step_attributes' => [
+            1 => ['media_path' => 'procedures/sokme.jpg', 'description' => 'Kapakları sökün.'],
+            2 => ['media_path' => 'procedures/yikama.mp4'],
+        ]]]));
         [$first, $second, $third] = [$this->stepOf($cleaning, 1), $this->stepOf($cleaning, 2), $this->stepOf($cleaning, 3)];
 
         $response = $this->show($ahmet, $cleaning);

@@ -38,7 +38,8 @@ class StoreCleaningRequest extends FormRequest
             'work_order_id' => ['nullable', 'integer', Rule::exists(WorkOrder::class, 'id')],
             'notes' => ['nullable', 'string', 'max:2000'],
             'materials' => ['nullable', 'array'],
-            'materials.*.material_id' => ['required', 'integer', Rule::exists(Material::class, 'id')],
+            // Kullanımdan kaldırılan malzeme seçilemez (K-13).
+            'materials.*.material_id' => ['required', 'integer', Rule::exists(Material::class, 'id')->where('is_active', true)],
             'materials.*.lot_no' => ['required', 'string', 'max:255'],
             'materials.*.expiry_date' => ['required', 'date_format:Y-m-d'],
         ];

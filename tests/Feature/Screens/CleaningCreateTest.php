@@ -52,7 +52,7 @@ class CleaningCreateTest extends TestCase
 
         // İleri tarihli yayımlanan versiyon henüz geçerli değil (K-15).
         $future = Procedure::create(['code' => 'PRC-FUT', 'name' => 'Gelecek prosedür']);
-        $this->publishVersion($future, [['steps' => 1]])->update(['published_at' => now()->addDay()]);
+        $this->publishVersion($future, [['steps' => 1]], publishedAt: now()->addDay());
         Machine::create(['line_id' => $line->id, 'procedure_id' => $future->id, 'code' => 'M04', 'name' => 'Yeni makine']);
 
         $otherLine = Line::create(['facility_id' => $line->facility_id, 'code' => 'H02', 'name' => 'Paketleme Hattı']);
