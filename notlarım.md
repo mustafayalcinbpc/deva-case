@@ -6,7 +6,7 @@ Son durum: 9 Ekim 2026. `main` = `2299dba` (GitHub'a push edildi). Bütün testl
 
 ```bash
 docker compose up -d --build        # ilk açılışta migration + demo verisi kendiliğinden yüklenir
-# http://localhost:8080
+# http://localhost:8005
 ```
 
 - Demo hesapları, hepsinin şifresi `1234`:
