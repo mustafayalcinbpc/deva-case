@@ -186,3 +186,18 @@
     color: var(--nc-text-muted);
     font-size: .8125rem;
 }
+
+// Üretim iş emri listesi: bağlantı türü (Makine / Hat) küçük ve soluk etiket; açıklama kodun altında
+.work-order-binding__kind {
+    margin-inline-end: .25rem;
+    font-size: .75rem;
+    color: var(--nc-text-muted);
+}
+
+.work-order-binding--none {
+    color: var(--nc-text-muted);
+}
+
+.work-order-list__summary {
+    max-width: 28rem;
+}

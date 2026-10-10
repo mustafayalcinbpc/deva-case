@@ -64,23 +64,27 @@ class CleaningIndexTest extends TestCase
             }
         }
 
-        $completed->refresh();
-        $row = $this->rowText($this->rowOf($response, $completed));
-        $this->assertStringContainsString($completed->field_ref, $row);
-        $this->assertStringContainsString('IST / H01 / M01', $row);
-        $this->assertStringContainsString('Planlı temizlik', $row);
-        $this->assertStringContainsString('Ahmet Yılmaz', $row);
-        $this->assertStringContainsString('Tamamlandı', $row);
-        // Zamanlar İstanbul saatiyle: açılış 11:00, başlangıç 11:10, kapanış 11:25.
-        $this->assertStringContainsString('9 Ekim 11:00 9 Ekim 11:10 9 Ekim 11:25', $row);
-        $this->assertStringEndsWith('15 dk 00 sn', $row);
+        // Sade liste: tür ve saha referansı kayıt no'nun, makine adı konumun altında; başlangıç ve
+        // kapanış zamanları detayda.
+        $this->assertSame(['Kayıt', 'Makine', 'Sorumlu', 'Durum', 'Açılış', 'Net süre'], array_map(
+            fn ($cell) => $this->rowText($cell),
+            iterator_to_array($this->page($response)->querySelectorAll('.cleaning-list__table thead th')),
+        ));
 
-        $row = $this->rowText($this->rowOf($response, $unplanned));
-        $this->assertStringContainsString('Plansız müdahale', $row);
-        $this->assertStringContainsString('Ayşe Demir', $row);
-        $this->assertStringContainsString('Başlamadı', $row);
-        $this->assertStringEndsWith('Başlamadı 9 Ekim 11:30 — — —', $row, 'Başlamamış kaydın başlangıç, kapanış ve net süresi yok.');
-        $this->assertSame('—', $this->rowText($this->rowOf($response, $unplanned)->querySelector('.field-ref')), 'Plansız müdahalenin saha referansı yok.');
+        $completed->refresh();
+        // Zamanlar İstanbul saatiyle: açılış 11:00.
+        $this->assertSame(
+            "{$completed->record_no} Planlı temizlik · {$completed->field_ref} IST / H01 / M01 Makine M01 Ahmet Yılmaz Tamamlandı 9 Ekim 11:00 15 dk 00 sn",
+            $this->rowText($this->rowOf($response, $completed)),
+        );
+
+        $row = $this->rowOf($response, $unplanned);
+        $this->assertSame(
+            "{$unplanned->record_no} Plansız müdahale IST / H01 / M02 Makine M02 Ayşe Demir Başlamadı 9 Ekim 11:30 —",
+            $this->rowText($row),
+            'Başlamamış kaydın net süresi yok.',
+        );
+        $this->assertNull($row->querySelector('.field-ref'), 'Plansız müdahalenin saha referansı yok.');
 
         $this->assertStringContainsString('İptal', $this->rowText($this->rowOf($response, $cancelled)));
 

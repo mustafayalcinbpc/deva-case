@@ -73,7 +73,7 @@ class WorkOrderManagementTest extends TestCase
         $this->assertTrue($byMachine->cleanings()->sole()->is($cleaning));
     }
 
-    public function test_list_shows_binding_and_usage_and_can_be_filtered(): void
+    public function test_list_shows_binding_and_can_be_filtered(): void
     {
         $m05 = $this->makeMachine(code: 'M05');
         $m05->update(['line_id' => $this->h02->id]);
@@ -88,12 +88,23 @@ class WorkOrderManagementTest extends TestCase
             ->assertOk()
             ->assertSee('<title>Üretim İş Emirleri', false));
 
+        // Sade liste: açıklama kodun altında; kullanıldığı kayıt sayısı düzenleme ekranında.
+        $this->assertSame(['Üretim iş emri', 'Makine / hat', 'Durum', 'Plan', 'İşlemler'], array_map(
+            fn (Element $cell) => $this->text($cell),
+            iterator_to_array($page->querySelectorAll('thead th')),
+        ));
         $this->assertSame([
-            ['IE-1', 'Şurup dolum', 'Makine IST / H01 / M01', 'Planlandı', 'Planlanmadı', '1'],
-            ['IE-2', 'Şurup hazırlama', 'Hat IST / H01', 'Planlandı', 'Planlanmadı', '0'],
-            ['IE-3', 'Blister', 'Makine IST / H02 / M05', 'Planlandı', 'Planlanmadı', '0'],
-            ['IE-4', '—', 'Bütün makineler', 'Planlandı', 'Planlanmadı', '0'],
-        ], $this->rows($page));
+            ['IE-1 Şurup dolum', 'Makine IST / H01 / M01', 'Planlandı', 'Planlanmadı'],
+            ['IE-2 Şurup hazırlama', 'Hat IST / H01', 'Planlandı', 'Planlanmadı'],
+            ['IE-3 Blister', 'Makine IST / H02 / M05', 'Planlandı', 'Planlanmadı'],
+            ['IE-4', 'Bütün makineler', 'Planlandı', 'Planlanmadı'],
+        ], array_map(fn (array $row) => array_slice($row, 0, 4), $this->rows($page)));
+
+        // Satırda yalnızca sıradaki adım ve düzenleme: planlanmış emir için "Üretime al".
+        $actions = $page->querySelector('#work-order-'.$ie1->id.' .admin-list__actions');
+        $this->assertNotNull($actions->querySelector('form[action="'.route('admin.work-orders.start', $ie1).'"]'));
+        $this->assertNull($actions->querySelector('form[action="'.route('admin.work-orders.complete', $ie1).'"]'));
+        $this->assertSame(route('admin.work-orders.edit', $ie1), $actions->querySelector('a.btn')->getAttribute('href'));
 
         // Hat filtresi: hatta bağlı olanlar ve hattın makinelerine bağlı olanlar.
         $this->assertSame(['IE-1', 'IE-2'], $this->codes(['line_id' => $this->m01->line_id]));
@@ -326,7 +337,7 @@ class WorkOrderManagementTest extends TestCase
         $this->assertSame('2026-10-14T18:30', $page->getElementById('planned_end_at')->getAttribute('value'));
 
         $row = $this->rows($this->page($this->actingAs($this->manager)->get(route('admin.work-orders.index'))))[0];
-        $this->assertSame(['IE-30', '— Ürün: Parasetamol şurup 150 ml', 'Planlandı', '12 Ekim 06:00 – 14 Ekim 18:30'], [$row[0], $row[1], $row[3], $row[4]]);
+        $this->assertSame(['IE-30 Parasetamol şurup 150 ml', 'Planlandı', '12 Ekim 06:00 – 14 Ekim 18:30'], [$row[0], $row[2], $row[3]]);
     }
 
     public function test_planned_end_cannot_be_before_start(): void
@@ -385,7 +396,7 @@ class WorkOrderManagementTest extends TestCase
             ->assertSessionHasErrors(['status' => 'IE-1 Tamamlandı durumunda; Tamamlandı durumuna geçirilemez.']);
         $page = $this->page($this->actingAs($this->manager)->get(route('admin.work-orders.index'))->assertOk());
         $this->assertNull($page->querySelector('.work-order-status-action'));
-        $this->assertStringContainsString('Tamamlandı: 9 Ekim', $this->rows($page)[0][4]);
+        $this->assertSame('Tamamlandı 9 Ekim 17:30', $this->rows($page)[0][2]);
     }
 
     public function test_planned_work_order_can_be_completed_directly_and_announces_it_once(): void
@@ -431,7 +442,7 @@ class WorkOrderManagementTest extends TestCase
     {
         $page = $this->page($this->actingAs($this->manager)->get(route('admin.work-orders.index', $query))->assertOk());
 
-        return array_map(fn (array $row) => $row[0], $this->rows($page));
+        return array_map(fn (Element $link) => $this->text($link), iterator_to_array($page->querySelectorAll('tbody tr a.record-no')));
     }
 
     /**

@@ -18,6 +18,8 @@
 {{--
     Bütün temizlik kayıtları, en yeni önce. Herkes her kaydı görür (K-11); "Benim kayıtlarım"
     filtresi kaydın sahibi ya da herhangi bir adımında görevli olunan kayıtları gösterir.
+    Liste sade tutulur: tür ve saha referansı kayıt no'nun, makine adı konumun altında; başlangıç
+    ve kapanış zamanları kayıt detayındadır.
 --}}
 @section('content')
     <section class="card cleaning-list" aria-labelledby="cleaning-list-title">
@@ -86,42 +88,37 @@
                     <table class="table table-hover align-middle mb-0 cleaning-list__table">
                         <thead>
                             <tr>
-                                <th scope="col">Kayıt no</th>
-                                <th scope="col">Saha ref.</th>
-                                <th scope="col">Konum</th>
-                                <th scope="col">Tür</th>
+                                <th scope="col">Kayıt</th>
+                                <th scope="col">Makine</th>
                                 <th scope="col">Sorumlu</th>
                                 <th scope="col">Durum</th>
                                 <th scope="col">Açılış</th>
-                                <th scope="col">Başlangıç</th>
-                                <th scope="col">Kapanış</th>
-                                <th scope="col" title="Adımlarda çalışılan süre; duraklamalar ve adımlar arası boşluklar sayılmaz">Net süre</th>
+                                <th scope="col" class="text-end" title="Adımlarda çalışılan süre; duraklamalar ve adımlar arası boşluklar sayılmaz">Net süre</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($cleanings as $row)
-                                @php($cleaning = $row['cleaning'])
+                                @php
+                                    $cleaning = $row['cleaning'];
+                                @endphp
                                 <tr class="cleaning-list__row">
                                     <td>
                                         <a href="{{ route('cleanings.show', $cleaning) }}" class="record-no text-nowrap">{{ $cleaning->record_no }}</a>
+                                        <span class="cell-sub text-nowrap">
+                                            <span class="cleaning-list__type">{{ $cleaning->type->label() }}</span>
+                                            @if ($cleaning->field_ref)
+                                                · <span class="field-ref" title="Saha defteri referansı">{{ $cleaning->field_ref }}</span>
+                                            @endif
+                                        </span>
                                     </td>
-                                    <td class="text-nowrap field-ref">
-                                        @if ($cleaning->field_ref)
-                                            {{ $cleaning->field_ref }}
-                                        @else
-                                            <span class="text-body-secondary" title="{{ $cleaning->type->hasFieldReference() ? 'İlk adım başlatıldığında üretilir' : 'Plansız müdahale saha defterine işlenmez' }}">—</span>
-                                        @endif
+                                    <td>
+                                        <span class="location text-nowrap" title="{{ $cleaning->facility->name }} / {{ $cleaning->line->name }}">{{ $cleaning->facility->code }} / {{ $cleaning->line->code }} / {{ $cleaning->machine->code }}</span>
+                                        <span class="cell-sub">{{ $cleaning->machine->name }}</span>
                                     </td>
-                                    <td class="text-nowrap">
-                                        <span class="location" title="{{ $cleaning->facility->name }} / {{ $cleaning->line->name }} / {{ $cleaning->machine->name }}">{{ $cleaning->facility->code }} / {{ $cleaning->line->code }} / {{ $cleaning->machine->code }}</span>
-                                    </td>
-                                    <td>{{ $cleaning->type->label() }}</td>
                                     <td>{{ $cleaning->owner->name }}</td>
                                     <td><x-status-badge :status="$cleaning->status" /></td>
                                     <td class="text-nowrap"><x-datetime :value="$cleaning->created_at" format="list" /></td>
-                                    <td class="text-nowrap"><x-datetime :value="$cleaning->started_at" format="list" /></td>
-                                    <td class="text-nowrap"><x-datetime :value="$cleaning->closed_at" format="list" /></td>
-                                    <td class="text-nowrap net-time">
+                                    <td class="text-nowrap text-end net-time">
                                         @if ($row['netSeconds'] === null)
                                             <span class="text-body-secondary">—</span>
                                         @else

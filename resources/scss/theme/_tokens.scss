@@ -313,6 +313,12 @@
     --app-progress-line-skipped: var(--nc-divider);
     --app-progress-track: var(--nc-row-divider);
 
+    // Tablolar: zeminli başlık satırı, tam genişlikte satır çizgisi, belirgin üzerine gelme
+    --app-table-head-bg: color-mix(in srgb, var(--nc-text) 5%, transparent);
+    --app-table-head-fg: var(--nc-text-label);
+    --app-table-divider: color-mix(in srgb, var(--nc-text) 11%, transparent);
+    --app-table-hover-bg: color-mix(in srgb, var(--nc-accent) 6%, transparent);
+
     // "Bana ait" işareti ve satır vurgusu
     --app-mine-bg: var(--nc-accent-tint);
     --app-mine-fg: var(--nc-accent);

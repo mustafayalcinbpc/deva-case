@@ -251,7 +251,7 @@ Faz minimum süresi, fazın ayarına göre net ya da brüt süreyle kontrol edil
 
 - **Gösterge paneli:** başlamamış, devam eden, bugün tamamlanan kayıtlar ve minimum süre altında kalan fazlar; açık kayıtlar tablosu. Kullanıcının sorumlu ya da görevli olduğu kayıtlar "Bana ait" olarak işaretlenir.
 - **Yapılması gereken temizlikler (gösterge paneli):** görev planlandığı an burada görünür (K-24). Vakti gelenler üstte, son tarih sırasıyla; son tarihi (vakit + planın gecikme toleransı) geçen "Gecikti" olarak işaretlenir. Vakti gelmeyenler "İleride yapılacak" altında: periyodik görevde vakit, üretim iş emri tetikli görevde "emir tamamlanınca" yazar ve vakti gelene kadar kayıt açılamaz. "Kaydı aç" görevden kayıt açar; yönetici görevi gerekçeyle iptal edebilir (K-21, K-23).
-- **Temizlik kayıtları:** bütün kayıtlar; duruma, makineye ve "bana ait" olmaya göre filtrelenir.
+- **Temizlik kayıtları:** bütün kayıtlar; duruma, makineye ve "bana ait" olmaya göre filtrelenir. Liste sadedir: kayıt (altında tür ve saha referansı), makine (altında adı), sorumlu, durum, açılış ve net süre. Başlangıç ve kapanış zamanları kayıt detayındadır.
 - **Yeni kayıt:** yalnızca kullanımda olan ve geçerli prosedürü bulunan makineler seçilebilir. Seçilen makinenin prosedürü (fazlar, minimum süreler, beklenen malzemeler) ve makinede başlamamış kayıt varsa uyarı gösterilir.
   - Prosedürün beklediği malzemeler satır olarak gelir; operatör her biri için lot seçer (yalnızca kullanımdaki ve SKT'si geçmemiş lotlar). Lot no ve SKT elle yazılmaz (K-14). Ek malzeme eklenebilir.
   - Görevden gelindiyse makine ve tür (planlı) kilitli, üretim iş emri görevin sonraki emriyle dolu gelir.
@@ -277,7 +277,7 @@ Yönetim ekranları yalnızca yöneticiye açıktır (`manage-definitions`); ope
   - Taslakta beklenen malzemeler listelenir (zorunlu ya da isteğe bağlı, sıralı); "malzeme zorunlu" bilgisi bu listeden türetilir (K-13).
   - Yayımlanmış versiyon ve fazları/adımları/malzeme listesi model seviyesinde değiştirilemez (K-15). Açık kayıtlar açıldıkları versiyonla devam eder.
 - **Malzemeler ve lotlar:** Malzeme silinmez, kullanımdan kaldırılır; kaldırılan malzeme yeni kayıtlarda seçilemez. Malzeme sayfasında lotlar tanımlanır (lot no, SKT, giriş tarihi); lot silinmez, kullanımdan kaldırılır. Kayıtta kullanılmış lotun numarası kilitlenir, SKT düzeltilebilir; kayıtlar seçildikleri andaki kopyayı taşır (K-14).
-- **Üretim iş emirleri:** Bir hatta ya da makineye bağlanabilir; ürün, planlanan başlangıç/bitiş ve durum taşır. "Üretime al" ve "Tamamlandı" ERP'nin yerine geçer; tamamlanma temizlik planlarının tetiğidir (K-19).
+- **Üretim iş emirleri:** Bir hatta ya da makineye bağlanabilir; ürün, planlanan başlangıç/bitiş ve durum taşır. "Üretime al" ve "Tamamla" ERP'nin yerine geçer; tamamlanma temizlik planlarının tetiğidir (K-19). Listede satırda yalnızca sıradaki adım görünür; açıklama kodun, tamamlanma anı durumun altındadır. Tamamlama onayı uygulamanın onay penceresinde sorulur.
 - **Temizlik planları:** Makine bazında periyodik ("7 günde bir") ya da "üretim iş emri tamamlanınca" kuralı ve gecikme toleransı (saat). Plan görev üretir; aynı anda tek etkin görevi olur. Sıradaki görev hemen açılır: periyodik planda vakti bir aralık sonra, tetikli planda makinedeki emir tamamlanınca gelir. Listede etkin görev ve vakti görünür (K-20, K-24).
 - **Kullanıcılar:**
   - Pasife alınan kullanıcı açık oturumundan da çıkarılır.
@@ -357,7 +357,9 @@ Arayüz AdminLTE 4 (Bootstrap 5.3) üzerine kuruludur ve Vite + Sass ile derleni
 - Açık renkli sidebar ve vurgulu menü bağlantıları.
 - Sol menü gruplar halindedir: Gösterge Paneli, Temizlik, Planlama, Tanımlar, Raporlar, Yönetim (operatör yalnızca ilk ikisini görür). Gruplar aşağı doğru açılır; bulunulan sayfanın grubu açık gelir. Menü geniş ekranda yalnızca ana ikonlarla durur; fare üzerine gelince (ya da klavyeyle içine girilince) içeriği itmeden açılır, çıkınca ikonlara döner. Üst bardaki menü düğmesi menüyü kalıcı olarak açar. Telefonda menü düğmeyle açılan kenar çekmecesidir.
 - Üst barda breadcrumb, tema düğmesi ve bildirim zili.
-- KPI kartları, etiket rozetleri, kenarlara doğru solan tablo ayırıcıları.
+- KPI kartları, etiket rozetleri.
+- Tablolar: zeminli başlık satırı, satırlar arasında tam genişlikte ince çizgi, üzerine gelince vurgu tonunda zemin. Hücrede ikincil bilgi ana bilginin altında soluk yazılır (`.cell-sub`); böylece listeler az sütunla kalır.
+- Onay gerektiren işlemler (iptal, kaldırma, yayımlama, tamamlama) tarayıcının kutusu yerine ortak onay penceresinde sorulur (`<x-confirm-modal>`).
 - Inter yazı tipi.
 - Listelerde tarihler kısa biçimdedir: "10 Ekim 16:34" (SKT gibi saatsiz tarihler "31 Mayıs 2027"); yıl yalnızca bu yıldan değilse yazılır, tam zaman üzerine gelince görünür (`<x-datetime format="list">`). Kayıt detayı, olay geçmişi ve denetim raporu saniyeli tam zamanı gösterir.
 
