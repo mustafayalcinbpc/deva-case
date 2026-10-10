@@ -1,5 +1,5 @@
 {{--
-    İş emrinin bağlantısı: "IST / H01 / M01 — Makine adı", "IST / H01 — Hat adı" ya da bağlantı yok.
+    Üretim iş emrinin bağlantısı: "IST / H01 / M01 — Makine adı", "IST / H01 — Hat adı" ya da bağlantı yok.
     machine.line.facility ve line.facility ilişkileri yüklenmiş olmalıdır.
 --}}
 @php

@@ -37,8 +37,8 @@
 
 {{--
     Taslak düzenleyici ya da yayımlanmış versiyonun salt okunur görünümü (K-15). Taslakta
-    fazlar ve adımlar eklenir, düzenlenir, silinir ve sıralanır; bütün işlemler sunucu tarafı
-    formlardır, JS gerektirmez. Yayımlanmış versiyon hiçbir zaman değişmez.
+    fazlar, adımlar ve beklenen malzemeler eklenir, düzenlenir, silinir ve sıralanır; bütün
+    işlemler sunucu tarafı formlardır, JS gerektirmez. Yayımlanmış versiyon hiçbir zaman değişmez.
 --}}
 @section('content')
     @include('admin.procedures.partials.errors', ['keys' => ['version']])
@@ -74,6 +74,7 @@
 
         <div class="col-xl-4 procedure-version__side">
             @include('admin.procedures.versions.settings')
+            @include('admin.procedures.versions.materials')
 
             @if ($editable)
                 @include('admin.procedures.versions.add-phase')

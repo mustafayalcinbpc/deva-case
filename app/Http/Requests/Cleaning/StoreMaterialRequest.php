@@ -2,14 +2,14 @@
 
 namespace App\Http\Requests\Cleaning;
 
-use App\Models\Material;
+use App\Models\MaterialLot;
 use App\Services\Cleaning\MaterialEntry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Kayda malzeme ekleme (K-12, K-13). Son kullanma tarihinin geçip geçmediğini sunucu tarihine
- * göre workflow denetler (K-14).
+ * Kayda malzeme ekleme (K-12, K-14): operatör lotu seçer; lot no ve SKT lot kaydından gelir.
+ * Lotun kullanımda olup olmadığını ve SKT'sinin geçip geçmediğini workflow denetler.
  */
 class StoreMaterialRequest extends FormRequest
 {
@@ -24,19 +24,20 @@ class StoreMaterialRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Kullanımdan kaldırılan malzeme eklenemez; kayıtta zaten olanlar geçerli kalır (K-13).
-            'material_id' => ['required', 'integer', Rule::exists(Material::class, 'id')->where('is_active', true)],
-            'lot_no' => ['required', 'string', 'max:100'],
-            'expiry_date' => ['required', 'date_format:Y-m-d'],
+            'material_lot_id' => ['required', 'integer', Rule::exists(MaterialLot::class, 'id')],
         ];
     }
 
     public function entry(): MaterialEntry
     {
-        return new MaterialEntry(
-            materialId: (int) $this->validated('material_id'),
-            lotNo: $this->validated('lot_no'),
-            expiryDate: $this->validated('expiry_date'),
-        );
+        return new MaterialEntry((int) $this->validated('material_lot_id'));
+    }
+
+    /**
+     * Doğrulama hatasında kayıt detayı Malzemeler sekmesinde açılır; hata gizli sekmede kalmaz.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return strtok(parent::getRedirectUrl(), '#').'#materials';
     }
 }

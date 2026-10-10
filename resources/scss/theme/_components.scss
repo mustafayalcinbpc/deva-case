@@ -19,7 +19,7 @@
     border: 1px solid var(--status-border, transparent);
     border-radius: var(--app-badge-radius);
 
-    @each $status in created, in-progress, completed, expired, cancelled, pending, running, paused {
+    @each $status in created, in-progress, completed, expired, cancelled, pending, running, paused, planned, in-production, open, in-record, done, overdue {
         &--#{$status} {
             --status-bg: var(--app-status-#{$status}-bg);
             --status-fg: var(--app-status-#{$status}-fg);
@@ -185,4 +185,45 @@ a.record-no {
         font-weight: 400;
         color: var(--nc-text-muted);
     }
+}
+
+// Bölüm sekmeleri (<x-section-tabs.nav>, <x-section-tabs.pane>, modules/section-tabs.js): kayıt
+// detayı ve prosedür sayfası. Çubuğun görünümü bootstrap/_navs.scss'ten (etkin sekme vurgu alt
+// çizgili, dar ekranda yatay kayar); düğmeler dokunmaya uygun yükseklikte. Paneldeki kartın
+// başlığı sekme adını tekrarlar: ekranda görsel olarak gizli, ekran okuyucuya açık. Yazdırırken
+// sekme çubuğu gizlenir (_shell.scss); bütün paneller başlıklarıyla basılır.
+.section-tabs__tab {
+    min-height: 2.75rem;
+}
+
+.section-tabs__count {
+    margin-left: var(--nc-space-1);
+    font-size: .75rem;
+    color: var(--nc-text-muted);
+}
+
+.section-tabs__panes {
+    margin-top: var(--section-tabs-gap, 1rem);
+}
+
+@media screen {
+    .section-tabs__pane > .card > .card-header {
+        @include visually-hidden;
+    }
+}
+
+@media print {
+    .section-tabs__pane {
+        display: block !important;
+        opacity: 1 !important;
+    }
+
+    .section-tabs__pane + .section-tabs__pane {
+        margin-top: var(--section-tabs-gap, 1rem);
+    }
+}
+
+.section-tabs__pane:focus-visible {
+    outline: 2px solid var(--nc-focus-ring);
+    outline-offset: 2px;
 }

@@ -3,8 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Enums\CleaningType;
+use App\Models\CleaningTask;
 use App\Models\Machine;
-use App\Models\Material;
+use App\Models\MaterialLot;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\Cleaning\MaterialEntry;
@@ -13,13 +14,15 @@ use Illuminate\Validation\Rule;
 
 /**
  * Kayıt açma formu (R-14–R-20). Burada yalnızca girdinin biçimi doğrulanır; iş kuralları
- * (makine kullanımda mı, prosedürü var mı, iş emri makineye ait mi, malzemenin son kullanma
- * tarihi, yardımcının aktifliği) CleaningWorkflow::open() içindedir.
+ * (makine kullanımda mı, prosedürü var mı, üretim iş emri makineye ait mi, lot kullanılabilir mi,
+ * yardımcının aktifliği, görev açık mı) CleaningWorkflow::open() içindedir.
+ *
+ * Malzeme satırı: materials[i][material_lot_id] seçilen lot (K-14); materials[i][material_id]
+ * yalnızca formun satırı yeniden çizmesi içindir (prosedürden gelen satır), kurala girmez.
+ * Lotu seçilmemiş satır yok sayılır: zorunlu malzeme ilk adımdan önce de girilebilir (K-12).
  */
 class StoreCleaningRequest extends FormRequest
 {
-    private const MATERIAL_FIELDS = ['material_id', 'lot_no', 'expiry_date'];
-
     public function authorize(): bool
     {
         return true;
@@ -37,17 +40,16 @@ class StoreCleaningRequest extends FormRequest
             'helper_ids.*' => ['integer', Rule::exists(User::class, 'id')],
             'work_order_id' => ['nullable', 'integer', Rule::exists(WorkOrder::class, 'id')],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'cleaning_task_id' => ['nullable', 'integer', Rule::exists(CleaningTask::class, 'id')],
             'materials' => ['nullable', 'array'],
-            // Kullanımdan kaldırılan malzeme seçilemez (K-13).
-            'materials.*.material_id' => ['required', 'integer', Rule::exists(Material::class, 'id')->where('is_active', true)],
-            'materials.*.lot_no' => ['required', 'string', 'max:255'],
-            'materials.*.expiry_date' => ['required', 'date_format:Y-m-d'],
+            'materials.*.material_id' => ['nullable', 'integer'],
+            'materials.*.material_lot_id' => ['required', 'integer', Rule::exists(MaterialLot::class, 'id')],
         ];
     }
 
     /**
-     * Formda her zaman boş bir malzeme satırı bulunur; üç alanı da boş satırlar yok sayılır.
-     * Satır anahtarları korunur, böylece hata mesajları formdaki doğru satıra düşer.
+     * Lotu seçilmemiş malzeme satırları yok sayılır. Satır anahtarları korunur, böylece hata
+     * mesajları formdaki doğru satıra düşer.
      */
     protected function prepareForValidation(): void
     {
@@ -76,6 +78,16 @@ class StoreCleaningRequest extends FormRequest
         return array_map(intval(...), array_values($this->validated('helper_ids') ?? []));
     }
 
+    /**
+     * Kaydın açıldığı görev (K-21); görevsiz kayıtta null.
+     */
+    public function task(): ?CleaningTask
+    {
+        $id = $this->validated('cleaning_task_id');
+
+        return $id === null ? null : CleaningTask::query()->findOrFail($id);
+    }
+
     public function workOrder(): ?WorkOrder
     {
         $id = $this->validated('work_order_id');
@@ -89,7 +101,7 @@ class StoreCleaningRequest extends FormRequest
     public function materialEntries(): array
     {
         return array_map(
-            fn (array $row) => new MaterialEntry((int) $row['material_id'], $row['lot_no'], $row['expiry_date']),
+            fn (array $row) => new MaterialEntry((int) $row['material_lot_id']),
             array_values($this->validated('materials') ?? []),
         );
     }
@@ -101,16 +113,6 @@ class StoreCleaningRequest extends FormRequest
 
     private function isBlankMaterialRow(mixed $row): bool
     {
-        if (! is_array($row)) {
-            return false;
-        }
-
-        foreach (self::MATERIAL_FIELDS as $field) {
-            if (filled($row[$field] ?? null)) {
-                return false;
-            }
-        }
-
-        return true;
+        return is_array($row) && blank($row['material_lot_id'] ?? null);
     }
 }

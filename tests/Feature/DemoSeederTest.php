@@ -4,16 +4,23 @@ namespace Tests\Feature;
 
 use App\Enums\CancelReason;
 use App\Enums\CleaningStatus;
+use App\Enums\CleaningTaskSource;
+use App\Enums\CleaningTaskStatus;
 use App\Enums\CleaningType;
 use App\Enums\SliceEndReason;
 use App\Enums\StepStatus;
 use App\Enums\UserRole;
+use App\Enums\WorkOrderStatus;
 use App\Models\Cleaning;
 use App\Models\CleaningEvent;
+use App\Models\CleaningMaterial;
 use App\Models\CleaningPhase;
+use App\Models\CleaningPlan;
+use App\Models\CleaningTask;
 use App\Models\Facility;
 use App\Models\Line;
 use App\Models\Machine;
+use App\Models\MaterialLot;
 use App\Models\Procedure;
 use App\Models\User;
 use App\Models\WorkSlice;
@@ -47,7 +54,53 @@ class DemoSeederTest extends TestCase
         $this->assertHistoryShowsPauseWorkerChangeAndDeviation();
         $this->assertProcedureVersionsAreUsedAsIntended();
         $this->assertUnplannedCleaningsHaveNoFieldReference();
+        $this->assertMaterialsComeFromLots();
+        $this->assertPlansAndTasksShowEveryTaskState();
         $this->assertEveryEventChainVerifies();
+    }
+
+    /**
+     * K-13, K-14: prosedürler beklenen malzemeleri listeler; her malzeme satırı bir lottan gelir
+     * ve lotun lot no / SKT kopyasını taşır. Biri geçmiş, biri kullanımdan kaldırılmış lot vardır.
+     */
+    private function assertMaterialsComeFromLots(): void
+    {
+        $filling = Procedure::where('code', 'PRC-DOL')->firstOrFail()->versions()->where('version', 1)->firstOrFail();
+        $this->assertSame(
+            [['DET-01', true], ['DEZ-02', true], ['DUR-03', false]],
+            $filling->materials()->with('material')->get()->map(fn ($item) => [$item->material->code, $item->is_required])->all(),
+            'Dolum prosedürünün beklediği malzemeler',
+        );
+
+        $this->assertSame(0, CleaningMaterial::whereNull('material_lot_id')->count(), 'Lotsuz malzeme satırı');
+        foreach (CleaningMaterial::with('lot')->get() as $item) {
+            $this->assertSame([$item->lot->lot_no, $item->lot->expiry_date->toDateString()], [$item->lot_no, $item->expiry_date->toDateString()]);
+        }
+
+        $this->assertTrue(MaterialLot::where('expiry_date', '<', now()->toDateString())->exists(), 'SKT\'si geçmiş lot');
+        $this->assertTrue(MaterialLot::where('is_active', false)->exists(), 'Kullanımdan kaldırılmış lot');
+    }
+
+    /**
+     * K-20, K-21, K-23: planlar görev üretir; demo açık (biri gecikmiş), kayda bağlı ve
+     * tamamlanmış görev içerir. Görevden açılan kayıt planlıdır.
+     */
+    private function assertPlansAndTasksShowEveryTaskState(): void
+    {
+        $this->assertSame(5, CleaningPlan::count());
+        $this->assertSame(1, CleaningTask::where('status', CleaningTaskStatus::Done)->count(), 'Tamamlanan görev');
+        $this->assertSame(1, CleaningTask::where('status', CleaningTaskStatus::InRecord)->count(), 'Kayda bağlı görev');
+        $this->assertSame(2, CleaningTask::where('status', CleaningTaskStatus::Open)->count(), 'Açık görev');
+        $this->assertTrue(CleaningTask::open()->get()->contains(fn (CleaningTask $task) => $task->isOverdue(now())), 'Gecikmiş görev');
+
+        $fromWorkOrder = CleaningTask::where('source', CleaningTaskSource::WorkOrder)->sole();
+        $this->assertSame('IE-2026-1051', $fromWorkOrder->triggerWorkOrder->code);
+        $this->assertSame('IE-2026-1056', $fromWorkOrder->workOrder->code);
+        $this->assertSame(WorkOrderStatus::Completed, $fromWorkOrder->triggerWorkOrder->status);
+
+        foreach (Cleaning::whereNotNull('cleaning_task_id')->get() as $cleaning) {
+            $this->assertSame(CleaningType::Planned, $cleaning->type);
+        }
     }
 
     private function assertDemoUsersMatchThePlan(): void

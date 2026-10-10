@@ -7,6 +7,7 @@ use App\Enums\StepStatus;
 use App\Models\Cleaning;
 use App\Models\CleaningPhase;
 use App\Models\CleaningStep;
+use App\Models\CleaningTask;
 use App\Models\User;
 use App\Services\Cleaning\WorkTime;
 use Carbon\CarbonInterface;
@@ -15,9 +16,11 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 
 /**
- * Gösterge paneli: özet sayaçlar ve açık kayıtlar tablosu. Operatör ve yönetici aynı sayfayı
- * görür ve sayfa salt okunurdur (K-11). Görmek çalıştırmak değildir (R-44); kullanıcının
- * işlem yapabileceği satırlar (sahibi ya da güncel adımın görevlisi) işaretlenir.
+ * Gösterge paneli: özet sayaçlar, yapılması gereken temizlikler (açık görevler) ve açık kayıtlar
+ * tablosu. Operatör ve yönetici aynı sayfayı görür; açık kayıtlar salt okunurdur (K-11). Görmek
+ * çalıştırmak değildir (R-44); kullanıcının işlem yapabileceği satırlar (sahibi ya da güncel
+ * adımın görevlisi) işaretlenir. Görevden herkes kayıt açabilir; görevi yalnızca yönetici iptal
+ * eder (K-21, K-23).
  */
 class DashboardController extends Controller
 {
@@ -40,7 +43,24 @@ class DashboardController extends Controller
                 'below_minimum' => $this->phasesBelowMinimum(),
             ],
             'rows' => $openCleanings->map(fn (Cleaning $cleaning) => $this->row($cleaning, $request->user()))->values(),
+            'tasks' => $this->openTasks(),
+            'now' => now(),
         ]);
+    }
+
+    /**
+     * K-21: yapılması gereken temizlikler; son tarihi en yakın (ya da en çok geciken) önce.
+     *
+     * @return Collection<int, CleaningTask>
+     */
+    private function openTasks(): Collection
+    {
+        return CleaningTask::query()
+            ->open()
+            ->with(['machine.line.facility', 'triggerWorkOrder', 'workOrder'])
+            ->orderBy('due_at')
+            ->orderBy('id')
+            ->get();
     }
 
     /**

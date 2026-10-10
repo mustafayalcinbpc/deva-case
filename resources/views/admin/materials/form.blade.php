@@ -8,7 +8,7 @@
 
 @section('title', $editing ? "Malzeme {$material->code}" : 'Yeni Malzeme')
 @section('page-title', $editing ? "Malzeme: {$material->code}" : 'Yeni Malzeme')
-@section('page-subtitle', 'Katalogdaki malzeme, temizlik kaydı açılırken ve sonradan malzeme eklenirken seçilir.')
+@section('page-subtitle', 'Katalogdaki malzeme prosedürlerde beklenen malzeme olarak listelenir; kayıtta lotu seçilir.')
 
 @section('page-actions')
     <a href="{{ route('admin.materials.index') }}" class="btn btn-outline-secondary">
@@ -81,6 +81,12 @@
                     <a href="{{ route('admin.materials.index') }}" class="btn btn-link">Vazgeç</a>
                 </div>
             </form>
+
+            @if ($editing)
+                @include('admin.materials.lots', ['material' => $material, 'lots' => $lots])
+            @else
+                <p class="form-text mt-3 material-form__lots-hint">Lotlar malzeme kaydedildikten sonra malzemenin sayfasında eklenir (K-14).</p>
+            @endif
         </div>
 
         @if ($editing)
@@ -99,7 +105,7 @@
                             @endif
                         </p>
                         <p class="form-text">
-                            Malzeme silinmez. Kullanımdan kaldırılan malzeme yeni kayıtlarda ve malzeme eklerken seçilemez;
+                            Malzeme silinmez. Kullanımdan kaldırılan malzemenin lotları yeni kayıtlarda ve malzeme eklerken seçilemez;
                             girildiği kayıtlarda görünmeye devam eder.
                         </p>
                         @include('admin.materials.toggle', ['material' => $material])

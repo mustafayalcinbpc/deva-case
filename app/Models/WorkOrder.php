@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\WorkOrderStatus;
 use App\Models\Concerns\RecordsDefinitionChanges;
+use App\Models\Concerns\TransitionsStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,12 +12,30 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Üretim iş emri (K-19). Bir makineye, bir hatta ya da hiçbirine bağlı değildir; makineye bağlı
- * iş emri o makinenin hattına da bağlıdır.
+ * üretim iş emri o makinenin hattına da bağlıdır. Durumu ve zamanları gerçekte ERP'den gelir;
+ * "tamamlandı"ya geçiş temizlik planlarının tetiğidir (K-20).
  */
-#[Fillable(['code', 'line_id', 'machine_id', 'description'])]
+#[Fillable([
+    'code', 'line_id', 'machine_id', 'description', 'product', 'status', 'planned_start_at',
+    'planned_end_at', 'completed_at',
+])]
 class WorkOrder extends Model
 {
-    use RecordsDefinitionChanges;
+    use RecordsDefinitionChanges, TransitionsStatus;
+
+    protected $attributes = [
+        'status' => 'planned',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => WorkOrderStatus::class,
+            'planned_start_at' => 'immutable_datetime',
+            'planned_end_at' => 'immutable_datetime',
+            'completed_at' => 'immutable_datetime',
+        ];
+    }
 
     public function definitionChangeLabel(): string
     {
@@ -43,7 +63,7 @@ class WorkOrder extends Model
     }
 
     /**
-     * İş emri makineye ya da hatta bağlıysa, yalnızca o makinedeki temizliklerde kullanılabilir.
+     * Üretim iş emri makineye ya da hatta bağlıysa, yalnızca o makinedeki temizliklerde kullanılabilir.
      */
     public function isUsableFor(Machine $machine): bool
     {

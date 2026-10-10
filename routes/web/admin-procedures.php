@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ProcedurePhaseController;
 use App\Http\Controllers\Admin\ProcedurePublicationController;
 use App\Http\Controllers\Admin\ProcedureStepController;
 use App\Http\Controllers\Admin\ProcedureVersionController;
+use App\Http\Controllers\Admin\ProcedureVersionMaterialController;
 use Illuminate\Support\Facades\Route;
 
 // Grup ve ön ek routes/web.php'de verilir (docs/plan-yonetim-rapor-tasarim.md).
@@ -17,9 +18,16 @@ Route::resource('procedures', ProcedureController::class)->only(['index', 'creat
 Route::scopeBindings()->prefix('/procedures/{procedure}/versions')->name('procedures.')->group(function () {
     Route::post('/', [ProcedureVersionController::class, 'store'])->name('versions.store');
     Route::get('/{version}', [ProcedureVersionController::class, 'show'])->name('versions.show');
-    Route::match(['put', 'patch'], '/{version}', [ProcedureVersionController::class, 'update'])->name('versions.update');
     Route::delete('/{version}', [ProcedureVersionController::class, 'destroy'])->name('versions.destroy');
     Route::post('/{version}/publish', [ProcedurePublicationController::class, 'store'])->name('versions.publish');
+
+    // K-13: beklenen malzemeler; {material} versiyonun listesindeki satırdır (ProcedureVersionMaterial).
+    Route::post('/{version}/materials', [ProcedureVersionMaterialController::class, 'store'])->name('materials.store');
+    Route::match(['put', 'patch'], '/{version}/materials/{material}', [ProcedureVersionMaterialController::class, 'update'])->name('materials.update');
+    Route::delete('/{version}/materials/{material}', [ProcedureVersionMaterialController::class, 'destroy'])->name('materials.destroy');
+    Route::post('/{version}/materials/{material}/move/{direction}', [ProcedureVersionMaterialController::class, 'move'])
+        ->whereIn('direction', ['up', 'down'])
+        ->name('materials.move');
 
     Route::post('/{version}/phases', [ProcedurePhaseController::class, 'store'])->name('phases.store');
     Route::get('/{version}/phases/{phase}/edit', [ProcedurePhaseController::class, 'edit'])->name('phases.edit');

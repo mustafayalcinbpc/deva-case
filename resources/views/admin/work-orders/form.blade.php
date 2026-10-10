@@ -2,25 +2,31 @@
 
 @php
     $editing = $workOrder->exists;
-    // Kayıt, açıldığı andaki iş emrine bağlıdır; kullanılmış iş emrinin kodu ve bağlantısı değişmez.
+    // Kayıt, açıldığı andaki üretim iş emrine bağlıdır; kullanılmış üretim iş emrinin kodu ve bağlantısı değişmez.
     $locked = $editing && $usage > 0;
     $selectedLine = (string) old('line_id', $workOrder->line_id);
     $selectedMachine = (string) old('machine_id', $workOrder->machine_id);
+    // datetime-local: gösterim saat diliminde (SaveWorkOrderRequest::INPUT_FORMAT).
+    $localInput = fn ($moment) => $moment?->setTimezone(config('app.display_timezone'))->format('Y-m-d\TH:i');
 @endphp
 
-@section('title', $editing ? "İş Emri {$workOrder->code}" : 'Yeni İş Emri')
-@section('page-title', $editing ? "İş Emri: {$workOrder->code}" : 'Yeni İş Emri')
-@section('page-subtitle', 'Gerçek kullanımda iş emirleri ERP\'den gelir; demoda burada tanımlanır.')
+@section('title', $editing ? "Üretim İş Emri {$workOrder->code}" : 'Yeni Üretim İş Emri')
+@section('page-title', $editing ? "Üretim İş Emri: {$workOrder->code}" : 'Yeni Üretim İş Emri')
+@section('page-subtitle', 'Gerçek kullanımda üretim iş emirleri ERP\'den gelir; demoda burada tanımlanır.')
 
 @section('page-actions')
+    @if ($editing)
+        @include('admin.work-orders.status-actions', ['workOrder' => $workOrder])
+    @endif
     <a href="{{ route('admin.work-orders.index') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left" aria-hidden="true"></i> İş emirleri
+        <i class="bi bi-arrow-left" aria-hidden="true"></i> Üretim iş emirleri
     </a>
 @endsection
 
 {{--
-    K-19: iş emri bir hatta, bir makineye ya da hiçbirine bağlanır. Makine seçilirse hat
+    K-19: üretim iş emri bir hatta, bir makineye ya da hiçbirine bağlanır. Makine seçilirse hat
     makineden gelir; ikisi birlikte seçilirse makine o hatta olmalıdır (SaveWorkOrderRequest).
+    Durum bu formla değişmez: "Üretime al" ve "Tamamlandı" sayfa başındaki düğmelerdir (K-20 tetiği).
 --}}
 @section('content')
     <form method="POST"
@@ -34,19 +40,32 @@
         @endif
 
         <div class="card-header">
-            <h2 class="card-title" id="work-order-form-title">İş emri bilgileri</h2>
+            <h2 class="card-title" id="work-order-form-title">Üretim iş emri bilgileri</h2>
         </div>
 
         <div class="card-body">
+            @if ($editing)
+                <p class="work-order-form__status">
+                    Durum: <x-status-badge :status="$workOrder->status" />
+                    @if ($workOrder->completed_at)
+                        <span class="work-order-form__completed">Tamamlandı: <x-datetime :value="$workOrder->completed_at" /></span>
+                    @endif
+                </p>
+            @endif
+
+            @if ($errors->has('status'))
+                <div class="alert alert-danger work-order-form__status-error" role="alert">{{ $errors->first('status') }}</div>
+            @endif
+
             @if ($locked)
                 <div class="alert alert-info work-order-form__locked" role="note">
-                    Bu iş emri {{ $usage }} temizlik kaydında kullanıldı. Kodu ve bağlantısı değiştirilemez; yalnızca açıklaması düzeltilebilir.
+                    Bu üretim iş emri {{ $usage }} temizlik kaydında kullanıldı. Kodu ve bağlantısı değiştirilemez; yalnızca açıklaması düzeltilebilir.
                 </div>
             @endif
 
             <div class="row g-3">
                 <div class="col-12 col-md-4">
-                    <label for="code" class="form-label">İş emri kodu</label>
+                    <label for="code" class="form-label">Üretim iş emri kodu</label>
                     <input type="text"
                            id="code"
                            name="code"
@@ -73,6 +92,46 @@
                            @error('description') aria-describedby="description-error" @enderror>
                     @error('description')
                         <div id="description-error" class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="product" class="form-label">Ürün <span class="optional-mark">(isteğe bağlı)</span></label>
+                    <input type="text"
+                           id="product"
+                           name="product"
+                           value="{{ old('product', $workOrder->product) }}"
+                           maxlength="255"
+                           @class(['form-control', 'is-invalid' => $errors->has('product')])
+                           @error('product') aria-describedby="product-error" @enderror>
+                    @error('product')
+                        <div id="product-error" class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="planned_start_at" class="form-label">Planlanan başlangıç <span class="optional-mark">(isteğe bağlı)</span></label>
+                    <input type="datetime-local"
+                           id="planned_start_at"
+                           name="planned_start_at"
+                           value="{{ old('planned_start_at', $localInput($workOrder->planned_start_at)) }}"
+                           @class(['form-control', 'is-invalid' => $errors->has('planned_start_at')])
+                           @error('planned_start_at') aria-describedby="planned_start_at-error" @enderror>
+                    @error('planned_start_at')
+                        <div id="planned_start_at-error" class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="planned_end_at" class="form-label">Planlanan bitiş <span class="optional-mark">(isteğe bağlı)</span></label>
+                    <input type="datetime-local"
+                           id="planned_end_at"
+                           name="planned_end_at"
+                           value="{{ old('planned_end_at', $localInput($workOrder->planned_end_at)) }}"
+                           @class(['form-control', 'is-invalid' => $errors->has('planned_end_at')])
+                           @error('planned_end_at') aria-describedby="planned_end_at-error" @enderror>
+                    @error('planned_end_at')
+                        <div id="planned_end_at-error" class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
 
@@ -126,9 +185,9 @@
 
                 <div class="col-12">
                     <div id="binding-help" class="form-text">
-                        Makineye bağlı iş emri yalnızca o makinede, hatta bağlı iş emri o hattın makinelerinde seçilebilir.
+                        Makineye bağlı üretim iş emri yalnızca o makinede, hatta bağlı üretim iş emri o hattın makinelerinde seçilebilir.
                         Makine seçilirse hat makineden gelir; ikisi birlikte seçilirse makine o hatta olmalıdır.
-                        Hiçbiri seçilmezse iş emri bütün makinelerde kullanılabilir.
+                        Hiçbiri seçilmezse üretim iş emri bütün makinelerde kullanılabilir.
                     </div>
                 </div>
             </div>
@@ -136,7 +195,7 @@
 
         <div class="card-footer admin-form__actions">
             <button type="submit" class="btn btn-primary">
-                <i class="bi bi-check2-circle" aria-hidden="true"></i> {{ $editing ? 'Kaydet' : 'İş emrini ekle' }}
+                <i class="bi bi-check2-circle" aria-hidden="true"></i> {{ $editing ? 'Kaydet' : 'Üretim iş emrini ekle' }}
             </button>
             <a href="{{ route('admin.work-orders.index') }}" class="btn btn-link">Vazgeç</a>
         </div>

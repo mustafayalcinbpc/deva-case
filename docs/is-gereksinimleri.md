@@ -213,9 +213,10 @@ Süre eşikleri (30 dk, 4 saat) varsayılan değerlerdir ve yönetici tarafında
 
 ### Malzeme
 
-- **K-12 Malzeme girişi (R-09, R-16):** Malzeme kayıt açılırken girilir; temizlik sürerken ek malzeme de eklenebilir. Prosedürde malzeme zorunluysa, en az bir geçerli malzeme girilmeden ilk adım başlatılamaz. Yanlış girilen malzeme silinmez; gerekçe yazılarak geçersiz işaretlenir ve ilk kayıt olduğu gibi kalır.
-- **K-13 Zorunluluğun seviyesi (R-08):** Malzemenin zorunlu olup olmadığı prosedür versiyonunda evet/hayır olarak tanımlanır. Malzeme kodu, yöneticinin tanımladığı katalogdan seçilir; lot ve son kullanma tarihini operatör girer.
-- **K-14 Son kullanma tarihi (R-07):** Son kullanma tarihi, giriş anındaki sunucu tarihine göre geçmişse malzeme kaydedilemez.
+- **K-12 Malzeme girişi (R-09, R-16):** Prosedürün beklediği malzemeler kayıt formunda kendiliğinden gelir; operatör her biri için kullandığı lotu seçer. Ek malzeme eklenebilir, temizlik sürerken de malzeme eklenebilir. Prosedürün zorunlu malzemelerinin her biri için en az bir geçerli giriş olmadan ilk adım başlatılamaz; hata eksik malzemeleri adıyla söyler. Yanlış girilen malzeme silinmez; gerekçe yazılarak geçersiz işaretlenir ve ilk kayıt olduğu gibi kalır.
+- **K-13 Zorunluluğun seviyesi (R-08):** Prosedür versiyonu beklenen malzemeleri listeler; her malzeme zorunlu ya da isteğe bağlıdır. Liste versiyonla birlikte yayımlanır ve sonra değişmez (K-15). Versiyonun "malzeme zorunlu" bilgisi listeden türetilir. Malzeme ve lot katalogdan seçilir; kullanımdan kaldırılan malzeme yeni girişte seçilemez.
+- **K-14 Lot ve son kullanma tarihi (R-07, R-10):** Son kullanma tarihi lotun özelliğidir. Lot (lot no, SKT, giriş tarihi) bir kez tanımlanır; demoda yönetici tanımlar, gerçekte depo/ERP'den gelir. Operatör lot no ya da SKT yazmaz, yalnızca kullanımdaki ve SKT'si giriş anındaki sunucu tarihine göre geçmemiş lotlardan seçer. Kayıttaki satır lot no ve SKT'nin seçildiği andaki kopyasını taşır; lot sonradan düzeltilse de geçmiş kayıt değişmez. Kayıtta kullanılmış lotun numarası değiştirilemez.
+  - *Önceki karar:* Lot ve SKT her girişte operatör tarafından yazılıyordu. Aynı lot için farklı SKT girilebildiği ve yazım hatasına açık olduğu için değiştirildi (10 Ekim 2026).
 
 ### Tanımlar ve numaralandırma
 
@@ -231,7 +232,14 @@ Süre eşikleri (30 dk, 4 saat) varsayılan değerlerdir ve yönetici tarafında
   - Geçerli prosedürü tanımlanmamış bir makine için kayıt açılamaz.
   - Aynı prosedür birden fazla makineye bağlanabilir (ör. aynı model makineler).
   - Plansız müdahalede saha defteri referansı üretilmez. Bunun dışında kilit, süre, malzeme ve değiştirilemezlik kuralları planlı temizlikle aynıdır.
-- **K-19 Üretim iş emri (R-16):** Sistemde bir iş emri tablosu bulunur; demoda örnek verilerle doldurulur, gerçekte ERP'den gelir. İş emri makineye veya hatta göre filtrelenip listeden seçilir. Periyodik temizlikte ilgili bir iş emri olmayabileceği için alan opsiyoneldir.
+- **K-19 Üretim iş emri (R-16):** Alan "üretim iş emri"dir (bakım iş emri değil). Sistemde bir üretim iş emri tablosu bulunur; demoda örnek verilerle doldurulur, gerçekte ERP'den gelir. Üretim iş emrinin ürünü, durumu (planlandı, üretimde, tamamlandı) ve planlanan zamanları vardır; demoda yönetici "Üretime al" ve "Tamamlandı" ile değiştirir. Makineye veya hatta göre filtrelenip listeden seçilir. Kayıt, temizliğin hazırladığı **sonraki** üretim iş emrine bağlanır: denetimde "B partisi üretilmeden önce makine temizlendi" gösterilir; temizliği doğuran (tamamlanan) emir görevde durur (K-21). Periyodik temizlikte ilgili bir iş emri olmayabileceği için alan opsiyoneldir.
+
+### Planlama
+
+- **K-20 Temizlik planı (bağlam: periyodik ve ürün değişimi temizliği):** Makine bazında tanımlanır. Kural ya periyodiktir ("N günde bir") ya da tetiktir ("makinedeki üretim iş emri tamamlanınca"). Plan, yapılması gereken temizliği görev olarak üretir: periyodik planlar saatlik komutla (`cleaning:generate-tasks`), tetikli planlar üretim iş emri tamamlanınca. Bir planın aynı anda tek etkin (açık ya da kayda bağlı) görevi olur; veritabanında unique index ile korunur. Plan silinmez, kullanımdan kaldırılır.
+- **K-21 Temizlik görevi:** Görev kayıt değildir: ileri tarihlidir ve K-06'daki süre dolumu ona işlemez. Gösterge panelinde "Yapılması gereken temizlikler" olarak son tarih sırasıyla listelenir; son tarihi geçen görev "gecikti" görünür ve yöneticilere bir kez bildirim gider. Operatör görevden "Kaydı aç" der; kayıt planlı tiptedir, makine ve sonraki üretim iş emri görevden gelir. Kaydı açan kaydın sorumlusudur (R-15). Aynı görevden aynı anda tek kayıt açılır (görev satırı kilitlenir). Plansız müdahale görevden açılmaz. Operatör görev olmadan da planlı kayıt açabilir (plan dışı rutin temizlik).
+- **K-22 Görev ataması (bekliyor):** Yöneticinin görevi sorumlu operatör ve yardımcı personel seçerek vermesi; "Görevlerim" listesi. Görevden açılan kaydın sorumlusu yine kaydı açan, yani görevin sorumlusu olur; R-15 bozulmaz. Henüz uygulanmadı.
+- **K-23 Görevin durumu:** Açık → kayıt açıldı → tamamlandı. Kayıt iptal edilir ya da süresi dolarsa görev yeniden açık olur; temizlik hâlâ yapılmamıştır. Yönetici açık görevi gerekçe yazarak iptal edebilir (ör. makine bakımda); kim ve neden iptal ettiği görevde kalır.
 
 ### Kararlardan çıkan sonuçlar
 

@@ -56,9 +56,27 @@ final class CleaningRuleViolation extends DomainException
         return new self('no_procedure', "{$machine->code} makinesinin yayımlanmış geçerli bir prosedürü yok.");
     }
 
+    /**
+     * K-21, K-23: görevden kayıt açılamıyor (görev açık değil ya da başka bir makineye ait).
+     */
+    public static function taskNotOpen(): self
+    {
+        return new self('task_not_open', 'Bu görev için kayıt açılamaz; görev açık değil.');
+    }
+
+    public static function taskMachineMismatch(): self
+    {
+        return new self('task_machine_mismatch', 'Görev başka bir makineye ait.');
+    }
+
+    public static function taskRequiresPlanned(): self
+    {
+        return new self('task_requires_planned', 'Görevden açılan kayıt planlı temizliktir; plansız müdahale görevden açılmaz.');
+    }
+
     public static function invalidWorkOrder(): self
     {
-        return new self('invalid_work_order', 'Seçilen iş emri bu makineye ait değil.');
+        return new self('invalid_work_order', 'Seçilen üretim iş emri bu makineye ait değil.');
     }
 
     public static function inactiveUser(User $user): self
@@ -103,6 +121,28 @@ final class CleaningRuleViolation extends DomainException
     public static function materialRequired(): self
     {
         return new self('material_required', 'Bu prosedürde malzeme zorunlu; malzeme girilmeden ilk adım başlatılamaz.');
+    }
+
+    /**
+     * K-12: prosedürün zorunlu malzemelerinden biri için geçerli lot girilmemiş.
+     *
+     * @param  list<string>  $codes
+     */
+    public static function requiredMaterialsMissing(array $codes): self
+    {
+        $list = implode(', ', $codes);
+
+        return new self('material_required', "Zorunlu malzemeler için lot girilmeden ilk adım başlatılamaz: {$list}.", [
+            'material_codes' => $codes,
+        ]);
+    }
+
+    /**
+     * K-13, K-14: lot ya da malzemesi kullanımdan kaldırılmış.
+     */
+    public static function materialLotUnavailable(string $lotNo): self
+    {
+        return new self('material_lot_unavailable', "{$lotNo} lotu kullanımda değil.", ['lot_no' => $lotNo]);
     }
 
     public static function materialExpired(string $lotNo, string $expiryDate): self

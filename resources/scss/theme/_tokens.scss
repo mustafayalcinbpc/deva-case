@@ -271,6 +271,22 @@
     --app-status-cancelled-bg: var(--nc-crit-deep);
     --app-status-cancelled-fg: var(--nc-crit-text);
 
+    // Üretim iş emri (K-19): planlandı nötr, üretimde vurgu; tamamlandı yukarıdaki completed.
+    --app-status-planned-bg: var(--nc-neutral-800);
+    --app-status-planned-fg: var(--nc-neutral-100);
+    --app-status-in-production-bg: var(--nc-accent-800);
+    --app-status-in-production-fg: var(--nc-accent-100);
+
+    // Temizlik görevi (K-23): açık nötr, kayıt açıldı vurgu, tamamlandı ok; gecikmiş görev warn.
+    --app-status-open-bg: var(--nc-neutral-800);
+    --app-status-open-fg: var(--nc-neutral-100);
+    --app-status-in-record-bg: var(--nc-accent-800);
+    --app-status-in-record-fg: var(--nc-accent-100);
+    --app-status-done-bg: var(--nc-ok-deep);
+    --app-status-done-fg: var(--nc-ok-text);
+    --app-status-overdue-bg: var(--nc-warn-deep);
+    --app-status-overdue-fg: var(--nc-warn-text);
+
     // Detay ekranında güncel adım vurgusu
     --app-current-step-border: var(--nc-accent);
     --app-current-step-bg: color-mix(in srgb, var(--nc-accent) 5%, transparent);

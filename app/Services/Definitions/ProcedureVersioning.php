@@ -2,10 +2,12 @@
 
 namespace App\Services\Definitions;
 
+use App\Models\Material;
 use App\Models\Procedure;
 use App\Models\ProcedurePhase;
 use App\Models\ProcedureStep;
 use App\Models\ProcedureVersion;
+use App\Models\ProcedureVersionMaterial;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,11 +20,14 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Prosedür tanımları: taslak versiyon, fazlar, adımlar, adım medyası ve yayımlama
- * (R-01–R-06, R-11, R-13, K-02, K-13, K-15).
+ * Prosedür tanımları: taslak versiyon, fazlar, adımlar, adım medyası, beklenen malzemeler ve
+ * yayımlama (R-01–R-06, R-11, R-13, K-02, K-12, K-13, K-15).
  *
  * - Bir prosedürün aynı anda en fazla bir taslağı olur. Yeni taslak, en son versiyonun
- *   fazlarını ve adımlarını (medya yolları dahil) kopyalayarak başlar.
+ *   fazlarını, adımlarını (medya yolları dahil) ve beklenen malzemelerini kopyalayarak başlar.
+ * - Malzeme zorunluluğu (material_required) beklenen malzemeler listesinden türetilir: listede
+ *   zorunlu bir malzeme varsa açıktır. Liste tanımlanmadan önceki versiyonlardan kopyalanan değer,
+ *   liste ilk kez değişene kadar korunur.
  * - Yalnızca taslak değişir. Her işlem versiyon satırını kilitler ve taslak olduğunu yeniden
  *   doğrular; böylece yayımlama ile eşzamanlı bir düzenleme yayımlanmış versiyona yazamaz.
  *   Modeller de aynı kuralı LogicException ile korur.
@@ -70,7 +75,7 @@ final class ProcedureVersioning
                 ]);
             }
 
-            $latest = $procedure->versions()->orderByDesc('version')->with('phases.steps')->first();
+            $latest = $procedure->versions()->orderByDesc('version')->with(['phases.steps', 'materials'])->first();
 
             $draft = $procedure->versions()->create([
                 'version' => ($latest?->version ?? 0) + 1,
@@ -83,6 +88,10 @@ final class ProcedureVersioning
                 foreach ($phase->steps as $step) {
                     $copy->steps()->create($step->only(['sequence', 'title', 'description', 'media_path']));
                 }
+            }
+
+            foreach ($latest?->materials ?? [] as $item) {
+                $draft->materials()->create($item->only(['material_id', 'sequence', 'is_required']));
             }
 
             return $draft;
@@ -103,6 +112,7 @@ final class ProcedureVersioning
                 $phase->delete();
             }
 
+            $draft->materials()->get()->each->delete();
             $draft->delete();
 
             return $phases->flatMap->steps->pluck('media_path')->all();
@@ -112,12 +122,66 @@ final class ProcedureVersioning
     }
 
     /**
-     * K-13: malzeme zorunluluğu versiyonda tanımlanır.
+     * K-13: taslağın beklediği malzemeye ekler. Aynı malzeme listede bir kez bulunur;
+     * kullanımdan kaldırılmış malzeme eklenemez.
      */
-    public function updateDraft(ProcedureVersion $version, bool $materialRequired): void
+    public function addMaterial(ProcedureVersion $version, Material $material, bool $required): ProcedureVersionMaterial
     {
-        DB::transaction(function () use ($version, $materialRequired) {
-            $this->lockDraft($version->id)->update(['material_required' => $materialRequired]);
+        return DB::transaction(function () use ($version, $material, $required) {
+            $draft = $this->lockDraft($version->id);
+            $material->refresh();
+
+            if (! $material->is_active) {
+                throw ValidationException::withMessages([
+                    'material_id' => "{$material->code} kullanımdan kaldırılmış; listeye eklenemez.",
+                ]);
+            }
+
+            if ($draft->materials()->where('material_id', $material->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'material_id' => "{$material->code} bu versiyonun listesinde zaten var.",
+                ]);
+            }
+
+            $item = $draft->materials()->create([
+                'material_id' => $material->id,
+                'sequence' => $this->nextSequence($draft->materials()),
+                'is_required' => $required,
+            ]);
+
+            $this->syncMaterialRequirement($draft);
+
+            return $item;
+        });
+    }
+
+    /**
+     * K-12: malzeme zorunlu ya da isteğe bağlı yapılır.
+     */
+    public function updateMaterial(ProcedureVersionMaterial $item, bool $required): void
+    {
+        DB::transaction(function () use ($item, $required) {
+            $draft = $this->lockDraft($item->procedure_version_id);
+            $item->refresh()->update(['is_required' => $required]);
+            $this->syncMaterialRequirement($draft);
+        });
+    }
+
+    public function removeMaterial(ProcedureVersionMaterial $item): void
+    {
+        DB::transaction(function () use ($item) {
+            $draft = $this->lockDraft($item->procedure_version_id);
+            $item->refresh()->delete();
+            $this->closeGap($draft->materials(), $item->sequence);
+            $this->syncMaterialRequirement($draft);
+        });
+    }
+
+    public function moveMaterial(ProcedureVersionMaterial $item, string $direction): void
+    {
+        DB::transaction(function () use ($item, $direction) {
+            $draft = $this->lockDraft($item->procedure_version_id);
+            $this->move($item->refresh(), $draft->materials(), $direction);
         });
     }
 
@@ -317,6 +381,18 @@ final class ProcedureVersioning
     {
         if (! $version->isDraft()) {
             throw $this->publishedVersion($version);
+        }
+    }
+
+    /**
+     * K-13: liste değişince versiyonun malzeme zorunluluğu listeden yeniden hesaplanır.
+     */
+    private function syncMaterialRequirement(ProcedureVersion $draft): void
+    {
+        $required = $draft->materials()->where('is_required', true)->exists();
+
+        if ($draft->material_required !== $required) {
+            $draft->update(['material_required' => $required]);
         }
     }
 

@@ -38,7 +38,7 @@
     kayıt açıksa ve CleaningPermissions izin veriyorsa gösterilir; asıl kontrol her zaman workflow'dadır.
 
     Bölüm id'leri (#now, #checklist, #summary, #materials, #history) adres çapası olarak kullanılır;
-    çapa bir paneldeyse o sekme açılır (resources/js/modules/detail-tabs.js).
+    çapa bir paneldeyse o sekme açılır (resources/js/modules/section-tabs.js).
 --}}
 @php
     $tabs = [
@@ -53,24 +53,14 @@
 @section('content')
     <div class="cleaning-detail">
         <div class="cleaning-detail__layout">
-            <div class="cleaning-detail__main" data-module="detail-tabs">
-                <ul class="nav nav-tabs cleaning-detail__nav" role="tablist" aria-label="Kayıt bölümleri">
-                    @foreach ($tabs as $section => $label)
-                        <li class="nav-item" role="presentation">
-                            <button type="button" id="tab-{{ $section }}" @class(['nav-link', 'cleaning-detail__tab', 'cleaning-detail__tab--'.$section, 'active' => $loop->first])
-                                    data-bs-toggle="tab" data-bs-target="#pane-{{ $section }}" data-section="{{ $section }}"
-                                    role="tab" aria-controls="pane-{{ $section }}" aria-selected="{{ $loop->first ? 'true' : 'false' }}"
-                                    @unless ($loop->first) tabindex="-1" @endunless>{{ $label }}</button>
-                        </li>
-                    @endforeach
-                </ul>
+            <div class="cleaning-detail__main" data-module="section-tabs">
+                <x-section-tabs.nav :tabs="$tabs" label="Kayıt bölümleri" class="cleaning-detail__nav" />
 
-                <div class="tab-content cleaning-detail__panes">
-                    @foreach ($tabs as $section => $label)
-                        <div id="pane-{{ $section }}" @class(['tab-pane', 'fade', 'cleaning-detail__pane', 'cleaning-detail__pane--'.$section, 'show active' => $loop->first])
-                             role="tabpanel" aria-labelledby="tab-{{ $section }}" tabindex="0">
+                <div class="tab-content section-tabs__panes cleaning-detail__panes">
+                    @foreach (array_keys($tabs) as $section)
+                        <x-section-tabs.pane :section="$section" :active="$loop->first" class="cleaning-detail__pane">
                             @include('cleanings.show.'.$section)
-                        </div>
+                        </x-section-tabs.pane>
                     @endforeach
                 </div>
             </div>

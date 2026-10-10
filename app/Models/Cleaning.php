@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
     'record_no', 'field_ref', 'type', 'status', 'facility_id', 'line_id', 'machine_id',
-    'procedure_version_id', 'owner_id', 'work_order_id', 'notes', 'started_at', 'closed_at',
+    'procedure_version_id', 'owner_id', 'work_order_id', 'cleaning_task_id', 'notes', 'started_at', 'closed_at',
     'cancelled_by', 'cancel_reason', 'cancel_note',
 ])]
 class Cleaning extends Model
@@ -73,6 +73,14 @@ class Cleaning extends Model
     public function workOrder(): BelongsTo
     {
         return $this->belongsTo(WorkOrder::class);
+    }
+
+    /**
+     * Kaydın açıldığı görev (K-21); görevsiz açılan kayıtta yok.
+     */
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(CleaningTask::class, 'cleaning_task_id');
     }
 
     public function phases(): HasMany

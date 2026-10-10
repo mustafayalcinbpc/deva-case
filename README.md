@@ -75,9 +75,10 @@ Uygulama Docker üzerinde çalışacak şekilde yapılandırılmıştır.
 * Temizlik kaydı oluşturma
 * Adım bazlı başlatma / tamamlama
 * Adımlarda görev alan personellerin takibi
-* Malzeme, lot ve son kullanma tarihi takibi
+* Malzeme lotları (lot no, son kullanma tarihi) ve prosedürün beklediği malzemeler
 * Gerçek çalışma süresi ve insan eforunun ayrı hesaplanması
-* Üretim iş emri ile ilişkilendirme
+* Üretim iş emri ile ilişkilendirme; üretim iş emri durumu (planlandı, üretimde, tamamlandı)
+* Temizlik planları (periyodik ya da üretim iş emri tamamlanınca) ve yapılması gereken temizlikler
 * Yetki bazlı kullanıcı işlemleri
 * Açık ve tamamlanmış temizliklerin takibi
 * Temizlik geçmişi ve detaylı kayıt görüntüleme
@@ -172,7 +173,8 @@ docker compose up -d --build
 `vite` container'ı `npm install` çalıştırıp arayüz için geliştirme sunucusunu başlatır. Sonraki açılışlarda veritabanında kayıt olduğu için demo verisi yeniden yüklenmez.
 
 Demo verisi bütün süreci kapsar:
-- **Tanımlar:** tesis, iki hat, yedi makine (biri kullanımdan kaldırılmış), dört prosedür (birinin v1 ve v2 versiyonu), malzeme kataloğu, iş emirleri ve beş kullanıcı (biri pasif).
+- **Tanımlar:** tesis, iki hat, yedi makine (biri kullanımdan kaldırılmış), dört prosedür (birinin v1 ve v2 versiyonu, her biri beklediği malzemelerle), malzeme kataloğu ve lotları (biri SKT'si geçmiş, biri kullanımdan kaldırılmış), farklı durumlarda üretim iş emirleri, beş temizlik planı ve beş kullanıcı (biri pasif).
+- **Görevler:** biri gecikmiş, biri kayda bağlı, biri tamamlanmış temizlik görevi.
 - **Temizlik kayıtları** (17 kayıt, her durumdan):
   - başlamamış, devam eden ve duraklatılmış kayıtlar;
   - bugün ve geçmiş haftalarda tamamlanmış temizlikler: adım bazında farklı görevliler, duraklatma, adım sırasında görevli değişikliği, minimum süre altında gerekçeyle kapanan faz, geçersiz kılınmış malzeme, plansız müdahale;
@@ -196,7 +198,7 @@ Giriş sayfası `local` ortamda demo hesaplarını listeler (`config/demo.php`);
 | RabbitMQ yönetim paneli | http://localhost:15672 (`temizlik` / `secret`) |
 | MySQL | `localhost:33060` (`temizlik` / `secret`) |
 
-`queue` container'ı kuyruğu işler, `scheduler` container'ı zamanlanmış görevleri çalıştırır (ör. her dakika süresi dolan kayıtları kapatan `cleanings:expire-stale`).
+`queue` container'ı kuyruğu işler, `scheduler` container'ı zamanlanmış görevleri çalıştırır (ör. her dakika süresi dolan kayıtları kapatan `cleanings:expire-stale`, saatte bir periyodik planlardan görev üreten ve geciken görevleri bildiren `cleaning:generate-tasks`).
 
 ## Testler
 
@@ -248,14 +250,17 @@ Faz minimum süresi, fazın ayarına göre net ya da brüt süreyle kontrol edil
 ## Ekranlar
 
 - **Gösterge paneli:** başlamamış, devam eden, bugün tamamlanan kayıtlar ve minimum süre altında kalan fazlar; açık kayıtlar tablosu. Kullanıcının sorumlu ya da görevli olduğu kayıtlar "Bana ait" olarak işaretlenir.
+- **Yapılması gereken temizlikler (gösterge paneli):** planların ürettiği açık görevler son tarih sırasıyla; son tarihi geçen "Gecikti" olarak işaretlenir. "Kaydı aç" görevden kayıt açar; yönetici görevi gerekçeyle iptal edebilir (K-21, K-23).
 - **Temizlik kayıtları:** bütün kayıtlar; duruma, makineye ve "bana ait" olmaya göre filtrelenir.
-- **Yeni kayıt:** yalnızca kullanımda olan ve geçerli prosedürü bulunan makineler seçilebilir. Seçilen makinenin prosedürü (fazlar, minimum süreler, malzeme zorunluluğu) ve makinede başlamamış kayıt varsa uyarı gösterilir.
+- **Yeni kayıt:** yalnızca kullanımda olan ve geçerli prosedürü bulunan makineler seçilebilir. Seçilen makinenin prosedürü (fazlar, minimum süreler, beklenen malzemeler) ve makinede başlamamış kayıt varsa uyarı gösterilir.
+  - Prosedürün beklediği malzemeler satır olarak gelir; operatör her biri için lot seçer (yalnızca kullanımdaki ve SKT'si geçmemiş lotlar). Lot no ve SKT elle yazılmaz (K-14). Ek malzeme eklenebilir.
+  - Görevden gelindiyse makine ve tür (planlı) kilitli, üretim iş emri görevin sonraki emriyle dolu gelir.
 - **Kayıt detayı (sahadaki ekran):**
   - Bölümler sekmelerdedir: **Şimdi**, **Adımlar**, **Özet**, **Malzemeler**, **Olay geçmişi**. Her sekme yalnızca kendi bölümünü gösterir; adresteki çapa (`#materials`, `#step-12`) ilgili sekmeyi açar, yenilemede aynı sekme kalır.
   - **Şimdi** sekmesinde güncel adım, büyük aksiyon butonları (başlat, duraklat, devam et, tamamla) ve canlı sayan çalışma süresi bulunur. Butonlar yalnızca kaydın sorumlusuna ve adımın görevlilerine görünür.
   - Fazı minimum süresinin altında kapatırken gerekçe alanı açılır.
   - Sağ sütundaki **İlerleme** göstergesi kargo takibindeki gibi kayıt açılışından kapanışa fazları ve adımları noktadan noktaya gösterir: tamamlanan, devam eden, duraklatılan, gelecek ve (iptal/süre dolumunda) yapılmayan adımlar renk, simge ve metinle ayrılır. Adıma tıklamak Adımlar sekmesinde o adımı açar. İptal formu da sağ sütundadır.
-  - Malzemeler (ekleme, gerekçeyle geçersiz kılma) ve olay geçmişi ile bütünlük doğrulaması kendi sekmelerindedir.
+  - Malzemeler sekmesinde prosedürün beklediği malzemeler ve girilen lotlar, eksik zorunlu malzemeler, lot seçerek ekleme ve gerekçeyle geçersiz kılma bulunur. Olay geçmişi ile bütünlük doğrulaması kendi sekmesindedir.
 
 Bütün aksiyonlar `CleaningWorkflow` üzerinden çalışır. Kural ihlalinde kullanıcı aynı sayfaya mesajla döner; ekranlar kural tekrarlamaz, yalnızca hangi butonun gösterileceğine `CleaningPermissions` ile karar verir.
 
@@ -267,9 +272,13 @@ Yönetim ekranları yalnızca yöneticiye açıktır (`manage-definitions`); ope
   - Kayıt numarasında geçen kodlar, o yere ait ilk temizlik kaydı açıldıktan sonra değiştirilemez (K-17); adlar değiştirilebilir.
   - Açık kaydı olan makine kullanımdan kaldırılamaz (K-16). Kaldırılan makine silinmez, geçmişte görünmeye devam eder.
 - **Prosedürler:**
+  - Prosedür sayfasında Versiyonlar, Özet, Kullanan makineler ve Değişiklik geçmişi sekmelerdedir; her sekme yalnızca kendi bölümünü gösterir (kayıt detayıyla aynı sekme yapısı).
   - Taslak hazırlanır, fazlar ve adımlar düzenlenir (minimum süre, adımlar arası boşluk ayarı, açıklama, fotoğraf/video), sonra hemen ya da ileri bir tarihte yayımlanır.
-  - Yayımlanmış versiyon ve fazları/adımları model seviyesinde değiştirilemez (K-15). Açık kayıtlar açıldıkları versiyonla devam eder.
-- **Malzemeler ve iş emirleri:** Malzeme silinmez, kullanımdan kaldırılır; kaldırılan malzeme yeni kayıtlarda seçilemez. İş emri bir hatta ya da makineye bağlanabilir (K-19).
+  - Taslakta beklenen malzemeler listelenir (zorunlu ya da isteğe bağlı, sıralı); "malzeme zorunlu" bilgisi bu listeden türetilir (K-13).
+  - Yayımlanmış versiyon ve fazları/adımları/malzeme listesi model seviyesinde değiştirilemez (K-15). Açık kayıtlar açıldıkları versiyonla devam eder.
+- **Malzemeler ve lotlar:** Malzeme silinmez, kullanımdan kaldırılır; kaldırılan malzeme yeni kayıtlarda seçilemez. Malzeme sayfasında lotlar tanımlanır (lot no, SKT, giriş tarihi); lot silinmez, kullanımdan kaldırılır. Kayıtta kullanılmış lotun numarası kilitlenir, SKT düzeltilebilir; kayıtlar seçildikleri andaki kopyayı taşır (K-14).
+- **Üretim iş emirleri:** Bir hatta ya da makineye bağlanabilir; ürün, planlanan başlangıç/bitiş ve durum taşır. "Üretime al" ve "Tamamlandı" ERP'nin yerine geçer; tamamlanma temizlik planlarının tetiğidir (K-19).
+- **Temizlik planları:** Makine bazında periyodik ("7 günde bir") ya da "üretim iş emri tamamlanınca" kuralı. Plan görev üretir; aynı anda tek etkin görevi olur. Listede etkin görev ve sonraki görev zamanı görünür (K-20).
 - **Kullanıcılar:**
   - Pasife alınan kullanıcı açık oturumundan da çıkarılır.
   - Açık kayıtları varsa listelenir; yönetici bu kayıtları "personel ayrıldı" gerekçesiyle iptal edebilir (K-08).
@@ -280,7 +289,7 @@ Yönetim ekranları yalnızca yöneticiye açıktır (`manage-definitions`); ope
 
 - **Süre ve efor:** Makine bazında tamamlanan temizlik sayısı; ortalama, en kısa ve en uzun net süre; brüt süre ve insan eforu. Bir makine seçilince faz bazında ortalama süre ve minimum sürenin altında kalma sayısı görünür. "Bu makinenin temizliği 30 dakika mı sürüyor, 50 mi; hangi faz uzun?" sorusunun cevabı buradadır.
 - **Sapmalar:** Minimum süre altında kapanan fazlar (gerekçe, kim, ne zaman) ve eşikten uzun çalışma dilimleri.
-- **Malzeme izlenebilirliği:** Malzeme ya da lot numarasıyla geriye dönük arama (R-10).
+- **Malzeme izlenebilirliği:** Malzeme ya da lot numarasıyla geriye dönük arama (R-10); arama lot kaydının güncel numarasını da kapsar, sonradan düzeltilen ya da kullanımdan kaldırılan lot satırda belirtilir.
 - **Denetim raporu:** Bir kaydın bütün hikâyesi (R-45) ve olay zincirinin doğrulama sonucu. Yazdırılabilir; PDF olarak da hazırlanabilir.
 - **Dışa aktarma:** PDF ve CSV dosyaları kuyrukta üretilir; hazır olunca isteyene bildirim gider.
 
@@ -293,7 +302,10 @@ Durum makinesi önemli geçişlerde domain olayları yayımlar: minimum süre al
 Olayları dinleyen işler RabbitMQ kuyruğunda çalışır ve ilgili kişilere bildirim yazar:
 - minimum süre altı faz → bütün aktif yöneticilere;
 - başkası tarafından iptal → kayıt sahibine;
-- süre dolumu → kayıt sahibine.
+- süre dolumu → kayıt sahibine;
+- geciken temizlik görevi → bütün aktif yöneticilere, görev başına bir kez (`cleaning:generate-tasks`).
+
+Üretim iş emri tamamlanınca yayımlanan olayı da kuyruktaki bir dinleyici işler ve tetikli planlar için görev açar.
 
 Rapor dışa aktarmaları da aynı kuyrukta üretilir. Bildirimler üst bardaki zilde ve `/notifications` sayfasında görünür.
 

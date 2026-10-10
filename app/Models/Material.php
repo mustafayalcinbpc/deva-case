@@ -39,6 +39,14 @@ class Material extends Model
     }
 
     /**
+     * Malzemenin partileri (K-14).
+     */
+    public function lots(): HasMany
+    {
+        return $this->hasMany(MaterialLot::class)->orderBy('expiry_date')->orderBy('lot_no');
+    }
+
+    /**
      * Yeni kayıtta ve malzeme ekleme formunda seçilebilen malzemeler.
      */
     public function scopeActive(Builder $query): void

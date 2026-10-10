@@ -2,7 +2,7 @@
 
 @section('title', 'Değişiklik Günlüğü')
 @section('page-title', 'Değişiklik Günlüğü')
-@section('page-subtitle', 'Tesis, hat, makine, prosedür, malzeme, iş emri ve kullanıcı tanımlarında kim, ne zaman, neyi değiştirdi. Günlük kayıtları değiştirilemez ve silinemez.')
+@section('page-subtitle', 'Tesis, hat, makine, prosedür, malzeme, üretim iş emri ve kullanıcı tanımlarında kim, ne zaman, neyi değiştirdi. Günlük kayıtları değiştirilemez ve silinemez.')
 
 {{--
     Tanım değişiklik günlüğü (R-49). En yeni değişiklik üstte. Her satırda işlemi yapan (oturum

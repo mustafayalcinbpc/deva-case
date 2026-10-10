@@ -1,9 +1,10 @@
-// Kayıt detayının sekmeleri: <div data-module="detail-tabs"> içinde Bootstrap sekme çubuğu ve
-// paneller (#pane-now, #pane-checklist …). Adres çapası bir panelin içini gösteriyorsa (#materials,
-// #step-12, aksiyonlardan sonraki #now) önce o panelin sekmesi açılır, sonra çapaya kaydırılır.
-// Sayfadaki "#…" bağlantıları (ilerleme göstergesi, "Malzemelere git") da aynı yoldan gider;
-// hedefi panelde olmayan bağlantıya (#cancel) dokunulmaz. Sekme değişince adres #bölüm olur,
-// yenilemede aynı sekme açılır. JS yoksa sunucunun etkin getirdiği "Şimdi" görünür.
+// Bölüm sekmeleri (kayıt detayı, prosedür sayfası): <div data-module="section-tabs"> içinde
+// <x-section-tabs.nav> sekme çubuğu ve <x-section-tabs.pane> panelleri (#pane-{bölüm}); her panel
+// tek bir bölümü (#{bölüm}) sarar. Adres çapası bir panelin içini gösteriyorsa (#materials, #step-12,
+// aksiyonlardan sonraki #now) önce o panelin sekmesi açılır, sonra çapaya kaydırılır. Sayfadaki
+// "#…" bağlantıları (ilerleme göstergesi, "Malzemelere git") da aynı yoldan gider; hedefi panelde
+// olmayan bağlantıya (#cancel) dokunulmaz. Sekme değişince adres #bölüm olur (sekme düğmesinin
+// data-section'ı), yenilemede aynı sekme açılır. JS yoksa sunucunun etkin getirdiği ilk sekme görünür.
 
 export default function (element) {
     const nav = element.querySelector('[role="tablist"]');

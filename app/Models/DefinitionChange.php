@@ -36,7 +36,10 @@ class DefinitionChange extends Model
         'procedure_phase' => ProcedurePhase::class,
         'procedure_step' => ProcedureStep::class,
         'material' => Material::class,
+        'material_lot' => MaterialLot::class,
+        'procedure_version_material' => ProcedureVersionMaterial::class,
         'work_order' => WorkOrder::class,
+        'cleaning_plan' => CleaningPlan::class,
         'user' => User::class,
     ];
 
@@ -49,7 +52,10 @@ class DefinitionChange extends Model
         'procedure_phase' => 'Prosedür fazı',
         'procedure_step' => 'Prosedür adımı',
         'material' => 'Malzeme',
-        'work_order' => 'İş emri',
+        'material_lot' => 'Malzeme lotu',
+        'procedure_version_material' => 'Prosedür malzemesi',
+        'work_order' => 'Üretim iş emri',
+        'cleaning_plan' => 'Temizlik planı',
         'user' => 'Kullanıcı',
     ];
 
@@ -76,6 +82,19 @@ class DefinitionChange extends Model
         'email' => 'E-posta',
         'email_verified_at' => 'E-posta doğrulama',
         'role' => 'Rol',
+        'material_id' => 'Malzeme',
+        'lot_no' => 'Lot no',
+        'expiry_date' => 'Son kullanma tarihi',
+        'received_at' => 'Giriş tarihi',
+        'is_required' => 'Zorunlu',
+        'product' => 'Ürün',
+        'status' => 'Durum',
+        'planned_start_at' => 'Planlanan başlangıç',
+        'planned_end_at' => 'Planlanan bitiş',
+        'completed_at' => 'Tamamlanma',
+        'kind' => 'Kural',
+        'interval_days' => 'Aralık (gün)',
+        'last_task_at' => 'Son görev',
     ];
 
     private const TYPE_ATTRIBUTE_LABELS = [
@@ -83,7 +102,7 @@ class DefinitionChange extends Model
         'procedure_phase' => ['name' => 'Faz adı'],
     ];
 
-    private const DATETIME_ATTRIBUTES = ['published_at', 'email_verified_at'];
+    private const DATETIME_ATTRIBUTES = ['published_at', 'email_verified_at', 'planned_start_at', 'planned_end_at', 'completed_at', 'last_task_at'];
 
     private const DURATION_ATTRIBUTES = ['min_duration_seconds'];
 

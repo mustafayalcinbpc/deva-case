@@ -2,56 +2,67 @@
 
 namespace Tests\Feature\Screens\Actions;
 
+use App\Models\Cleaning;
 use App\Models\CleaningMaterial;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * Malzeme aksiyonları: ekleme ve geçersiz kılma (K-12–K-14).
+ * Malzeme aksiyonları: lot seçerek ekleme ve geçersiz kılma (K-12–K-14). Başarılı aksiyondan
+ * sonra detay sayfası Malzemeler sekmesinde açılır (#materials).
  */
 class MaterialActionsTest extends CleaningActionTestCase
 {
-    public function test_owner_adds_a_material(): void
+    public function test_owner_adds_a_material_by_choosing_a_lot(): void
     {
+        // K-14: operatör lotu seçer; lot no ve SKT lot kaydından kopyalanır.
         $ahmet = $this->operator();
         $cleaning = $this->openCleaning($ahmet, $this->makeMachine());
-        $material = $this->makeMaterial();
+        $lot = $this->lot($this->makeMaterial(), 'LOT-42', '2027-03-31');
 
         $this->actingAs($ahmet)
-            ->post(route('cleanings.materials.store', $cleaning), [
-                'material_id' => (string) $material->id,
-                'lot_no' => 'LOT-42',
-                'expiry_date' => '2027-03-31',
-            ])
-            ->assertRedirect($this->showUrl($cleaning))
+            ->post(route('cleanings.materials.store', $cleaning), ['material_lot_id' => (string) $lot->id])
+            ->assertRedirect($this->materialsUrl($cleaning))
             ->assertSessionHasNoErrors()
             ->assertSessionHas('status', 'Malzeme eklendi.');
 
         $item = $cleaning->materials()->sole();
-        $this->assertSame($material->id, $item->material_id);
+        $this->assertSame($lot->id, $item->material_lot_id);
+        $this->assertSame($lot->material_id, $item->material_id);
         $this->assertSame('LOT-42', $item->lot_no);
         $this->assertSame('2027-03-31', $item->expiry_date->toDateString());
         $this->assertSame($ahmet->id, $item->added_by);
         $this->assertNull($item->voided_at);
     }
 
-    public function test_expired_material_is_rejected_and_the_input_is_kept(): void
+    public function test_expired_lot_is_rejected_and_the_input_is_kept(): void
     {
-        // K-14: sunucu tarihi 2026-10-09; dünkü tarih geçmiştir.
+        // K-14: sunucu tarihi 2026-10-09; SKT'si dün dolan lot kullanılamaz.
         $ahmet = $this->operator();
         $cleaning = $this->openCleaning($ahmet, $this->makeMachine());
-        $material = $this->makeMaterial();
+        $lot = $this->lot($this->makeMaterial(), 'LOT-42', '2026-10-08');
 
         $response = $this->actingAs($ahmet)
             ->from($this->showUrl($cleaning))
-            ->post(route('cleanings.materials.store', $cleaning), [
-                'material_id' => $material->id,
-                'lot_no' => 'LOT-42',
-                'expiry_date' => '2026-10-08',
-            ]);
+            ->post(route('cleanings.materials.store', $cleaning), ['material_lot_id' => $lot->id]);
 
         $this->assertViolation($response, $cleaning, 'material_expired')
-            ->assertSessionHasInput('lot_no', 'LOT-42')
-            ->assertSessionHasInput('expiry_date', '2026-10-08');
+            ->assertSessionHasInput('material_lot_id', $lot->id);
+        $this->assertSame(0, $cleaning->materials()->count());
+    }
+
+    public function test_inactive_lot_is_rejected(): void
+    {
+        // K-14: kullanımdan kaldırılan (ör. geri çağrılan) lot eklenemez.
+        $ahmet = $this->operator();
+        $cleaning = $this->openCleaning($ahmet, $this->makeMachine());
+        $lot = $this->lot($this->makeMaterial(), 'LOT-42');
+        $lot->update(['is_active' => false]);
+
+        $response = $this->actingAs($ahmet)
+            ->from($this->showUrl($cleaning))
+            ->post(route('cleanings.materials.store', $cleaning), ['material_lot_id' => $lot->id]);
+
+        $this->assertViolation($response, $cleaning, 'material_lot_unavailable');
         $this->assertSame(0, $cleaning->materials()->count());
     }
 
@@ -59,40 +70,34 @@ class MaterialActionsTest extends CleaningActionTestCase
     {
         $ahmet = $this->operator();
         $cleaning = $this->openCleaning($ahmet, $this->makeMachine());
-        $material = $this->makeMaterial();
+        $lot = $this->lot($this->makeMaterial(), 'LOT-42');
 
         $response = $this->actingAs($this->operator('Zeynep'))
             ->from($this->showUrl($cleaning))
-            ->post(route('cleanings.materials.store', $cleaning), [
-                'material_id' => $material->id,
-                'lot_no' => 'LOT-42',
-                'expiry_date' => '2027-03-31',
-            ]);
+            ->post(route('cleanings.materials.store', $cleaning), ['material_lot_id' => $lot->id]);
 
         $this->assertViolation($response, $cleaning, 'not_allowed');
         $this->assertSame(0, $cleaning->materials()->count());
     }
 
     /**
-     * @return iterable<string, array{array<string, mixed>, string, string}>
+     * @return iterable<string, array{array<string, mixed>}>
      */
-    public static function invalidMaterials(): iterable
+    public static function invalidLots(): iterable
     {
-        yield 'malzeme seçilmemiş' => [['material_id' => null], 'material_id', 'malzeme zorunludur.'];
-        yield 'katalogda olmayan malzeme' => [['material_id' => 999999], 'material_id', 'Seçilen malzeme geçersiz.'];
-        yield 'lot girilmemiş' => [['lot_no' => ''], 'lot_no', 'lot numarası zorunludur.'];
-        yield 'lot çok uzun' => [['lot_no' => str_repeat('L', 101)], 'lot_no', 'lot numarası en fazla 100 karakter olabilir.'];
-        yield 'tarih girilmemiş' => [['expiry_date' => ''], 'expiry_date', 'son kullanma tarihi zorunludur.'];
-        yield 'tarih yerel biçimde' => [['expiry_date' => '31.03.2027'], 'expiry_date', 'son kullanma tarihi Y-m-d biçiminde olmalıdır.'];
-        yield 'takvimde olmayan gün' => [['expiry_date' => '2027-02-30'], 'expiry_date', 'son kullanma tarihi Y-m-d biçiminde olmalıdır.'];
+        yield 'lot seçilmemiş' => [['material_lot_id' => null]];
+        yield 'boş seçim' => [['material_lot_id' => '']];
+        yield 'olmayan lot' => [['material_lot_id' => 999999]];
+        yield 'sayı olmayan değer' => [['material_lot_id' => 'LOT-42']];
     }
 
     /**
-     * @param  array<string, mixed>  $overrides
+     * @param  array<string, mixed>  $input
      */
-    #[DataProvider('invalidMaterials')]
-    public function test_invalid_material_input_is_rejected(array $overrides, string $field, string $message): void
+    #[DataProvider('invalidLots')]
+    public function test_invalid_lot_input_is_rejected(array $input): void
     {
+        // Eski alanlar (malzeme, lot no, SKT) artık kabul edilmez; yalnızca lot seçimi.
         $ahmet = $this->operator();
         $cleaning = $this->openCleaning($ahmet, $this->makeMachine());
         $material = $this->makeMaterial();
@@ -103,10 +108,11 @@ class MaterialActionsTest extends CleaningActionTestCase
                 'material_id' => $material->id,
                 'lot_no' => 'LOT-42',
                 'expiry_date' => '2027-03-31',
-                ...$overrides,
+                ...$input,
             ])
-            ->assertRedirect($this->showUrl($cleaning))
-            ->assertSessionHasErrors([$field => $message]);
+            // Doğrulama hatası Malzemeler sekmesine döner; hata gizli sekmede kalmaz.
+            ->assertRedirect($this->materialsUrl($cleaning))
+            ->assertSessionHasErrors(['material_lot_id']);
 
         $this->assertSame(0, $cleaning->materials()->count());
     }
@@ -119,7 +125,7 @@ class MaterialActionsTest extends CleaningActionTestCase
 
         $this->actingAs($ahmet)
             ->post(route('cleanings.materials.void', [$cleaning, $item]), ['void_reason' => 'Yanlış lot girildi'])
-            ->assertRedirect($this->showUrl($cleaning))
+            ->assertRedirect($this->materialsUrl($cleaning))
             ->assertSessionHasNoErrors()
             ->assertSessionHas('status', 'Malzeme geçersiz kılındı.');
 
@@ -139,7 +145,7 @@ class MaterialActionsTest extends CleaningActionTestCase
         $this->actingAs($ahmet)
             ->from($this->showUrl($cleaning))
             ->post(route('cleanings.materials.void', [$cleaning, $item]), ['void_reason' => '   '])
-            ->assertRedirect($this->showUrl($cleaning))
+            ->assertRedirect($this->materialsUrl($cleaning))
             ->assertSessionHasErrors(['void_reason' => 'gerekçe zorunludur.']);
 
         $this->assertNull($item->fresh()->voided_at);
@@ -174,5 +180,10 @@ class MaterialActionsTest extends CleaningActionTestCase
         $this->assertViolation($response, $cleaning, 'material_already_voided');
         $this->assertSame('Yanlış lot girildi', $item->fresh()->void_reason);
         $this->assertEquals($firstVoid->voided_at, $item->fresh()->voided_at);
+    }
+
+    private function materialsUrl(Cleaning $cleaning): string
+    {
+        return route('cleanings.show', $cleaning).'#materials';
     }
 }

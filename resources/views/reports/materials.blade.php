@@ -7,7 +7,9 @@
 {{--
     R-10: "Bu makinenin temizliği yapılırken hangi malzeme (ve hangi lot) kullanılmış?" sorusunun
     tersi de cevaplanır: bir malzeme ya da lot hangi kayıtlarda kullanılmış. Geçersiz kılınan
-    girişler de listelenir; ilk kayıt silinmez (K-12).
+    girişler de listelenir; ilk kayıt silinmez (K-12). Girişteki lot no ve SKT seçildiği andaki
+    kopyadır (K-14); lot kaydı sonradan düzeltildiyse ya da kullanımdan kaldırıldıysa (ör. geri
+    çağırma) satırda ayrıca belirtilir.
 --}}
 @section('content')
     <section class="card mb-4 report-filters" aria-labelledby="material-search-title">
@@ -42,7 +44,7 @@
                 </div>
             </form>
 
-            <p class="form-text mb-0 mt-3">Malzeme, lot numarası ya da ikisi birlikte aranabilir. Lot numarasının bir kısmını yazmak yeterlidir.</p>
+            <p class="form-text mb-0 mt-3">Malzeme, lot numarası ya da ikisi birlikte aranabilir. Lot numarasının bir kısmını yazmak yeterlidir; girişteki ve lot kaydındaki güncel numarada aranır.</p>
         </div>
     </section>
 
@@ -86,7 +88,19 @@
                                         <td class="text-nowrap"><x-datetime :value="$cleaning->created_at" /></td>
                                         <td class="text-nowrap"><x-datetime :value="$cleaning->closed_at" /></td>
                                         <td>{{ $item->material->code }} — {{ $item->material->name }}</td>
-                                        <td class="text-nowrap">{{ $item->lot_no }}</td>
+                                        <td class="material-trace__lot">
+                                            <span class="text-nowrap">{{ $item->lot_no }}</span>
+                                            @if ($item->lot === null)
+                                                <br><small class="material-trace__lot-note">Lot kaydı yok (eski giriş)</small>
+                                            @else
+                                                @if ($item->lot->lot_no !== $item->lot_no || $item->lot->expiry_date->toDateString() !== $item->expiry_date->toDateString())
+                                                    <br><small class="material-trace__lot-note">Lot kaydı sonradan düzeltildi: {{ $item->lot->lot_no }}, SKT {{ $item->lot->expiry_date->format('d.m.Y') }}</small>
+                                                @endif
+                                                @if (! $item->lot->is_active)
+                                                    <br><small class="material-trace__lot-note material-trace__lot-note--inactive">Lot kullanımdan kaldırıldı</small>
+                                                @endif
+                                            @endif
+                                        </td>
                                         <td class="text-nowrap"><time datetime="{{ $item->expiry_date->toDateString() }}">{{ $item->expiry_date->format('d.m.Y') }}</time></td>
                                         <td>
                                             {{ $item->addedBy?->name ?? '—' }}<br>

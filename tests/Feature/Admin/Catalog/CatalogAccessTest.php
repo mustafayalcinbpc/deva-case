@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * R-42, R-43: malzeme, iş emri ve kullanıcı tanımlarını yalnızca yönetici yönetir.
+ * R-42, R-43: malzeme, üretim iş emri ve kullanıcı tanımlarını yalnızca yönetici yönetir.
  */
 class CatalogAccessTest extends TestCase
 {
@@ -28,11 +28,11 @@ class CatalogAccessTest extends TestCase
         yield 'malzeme güncelleme' => ['PUT', 'admin.materials.update'];
         yield 'malzemeyi kaldırma' => ['POST', 'admin.materials.deactivate'];
         yield 'malzemeyi kullanıma alma' => ['POST', 'admin.materials.activate'];
-        yield 'iş emri listesi' => ['GET', 'admin.work-orders.index'];
-        yield 'iş emri formu' => ['GET', 'admin.work-orders.create'];
-        yield 'iş emri ekleme' => ['POST', 'admin.work-orders.store'];
-        yield 'iş emri düzenleme' => ['GET', 'admin.work-orders.edit'];
-        yield 'iş emri güncelleme' => ['PUT', 'admin.work-orders.update'];
+        yield 'üretim iş emri listesi' => ['GET', 'admin.work-orders.index'];
+        yield 'üretim iş emri formu' => ['GET', 'admin.work-orders.create'];
+        yield 'üretim iş emri ekleme' => ['POST', 'admin.work-orders.store'];
+        yield 'üretim iş emri düzenleme' => ['GET', 'admin.work-orders.edit'];
+        yield 'üretim iş emri güncelleme' => ['PUT', 'admin.work-orders.update'];
         yield 'kullanıcı listesi' => ['GET', 'admin.users.index'];
         yield 'kullanıcı formu' => ['GET', 'admin.users.create'];
         yield 'kullanıcı ekleme' => ['POST', 'admin.users.store'];

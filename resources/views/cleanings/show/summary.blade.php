@@ -77,7 +77,7 @@
                 <dd>{{ $version->material_required ? 'Zorunlu' : 'Zorunlu değil' }}</dd>
             </div>
             <div class="cleaning-summary__item">
-                <dt>İş emri</dt>
+                <dt>Üretim iş emri</dt>
                 <dd>
                     @if ($cleaning->workOrder)
                         <span class="record-no">{{ $cleaning->workOrder->code }}</span>
@@ -86,6 +86,21 @@
                         @endif
                     @else
                         <span class="cleaning-summary__empty">—</span>
+                    @endif
+                </dd>
+            </div>
+            {{-- K-21: kayıt bir görevden açıldıysa görevin nedeni ve son tarihi. --}}
+            <div class="cleaning-summary__item cleaning-summary__task">
+                <dt>Görev</dt>
+                <dd>
+                    @if ($cleaning->task)
+                        {{ $cleaning->task->source->label() }}
+                        @if ($cleaning->task->triggerWorkOrder)
+                            · <span class="record-no">{{ $cleaning->task->triggerWorkOrder->code }}</span>
+                        @endif
+                        <span class="cleaning-summary__version">son tarih <x-datetime :value="$cleaning->task->due_at" /></span>
+                    @else
+                        <span class="cleaning-summary__empty">Görevsiz açıldı</span>
                     @endif
                 </dd>
             </div>

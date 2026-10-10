@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin\Locations;
 use App\Models\Procedure;
 use App\Models\ProcedureVersion;
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Feature\Cleaning\Concerns\BuildsCleaningFixtures;
 use Tests\Feature\Cleaning\Concerns\InteractsWithCleaningWorkflow;
@@ -32,10 +33,15 @@ abstract class LocationsTestCase extends TestCase
      *
      * @param  list<array{steps?: int, min_seconds?: int, include_gaps?: bool}>  $phases
      */
-    protected function publishVersion(Procedure $procedure, array $phases, bool $materialRequired = false): ProcedureVersion
+    protected function publishVersion(Procedure $procedure, array $phases, bool $materialRequired = false, ?CarbonInterface $publishedAt = null, array $materials = []): ProcedureVersion
     {
         $version = $this->draftVersion($procedure, $phases, $materialRequired);
-        $version->update(['published_at' => now()]);
+
+        foreach ($materials as $index => [$material, $required]) {
+            $version->materials()->create(['material_id' => $material->id, 'sequence' => $index + 1, 'is_required' => $required]);
+        }
+
+        $version->update(['published_at' => $publishedAt ?? now()]);
 
         return $version;
     }

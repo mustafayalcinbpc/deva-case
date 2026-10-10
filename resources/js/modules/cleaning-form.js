@@ -2,8 +2,10 @@
 // bu modül yalnızca kolaylık katar:
 // - seçilen makinenin prosedür özetini ve başlamamış kayıt uyarısını (K-05) gösterir,
 // - malzeme zorunluysa ipucunu gösterir (K-12),
-// - iş emirlerini seçilen makineye göre süzer (K-19; asıl kontrol sunucuda),
-// - malzeme satırı ekler ve çıkarır.
+// - seçilen makinenin prosedürünün beklediği malzeme satırlarını gösterir; diğer makinelerinkini
+//   devre dışı bırakır, gönderilmezler (K-13),
+// - üretim iş emirlerini seçilen makineye göre süzer (K-19; asıl kontrol sunucuda),
+// - ek malzeme satırı ekler ve çıkarır.
 
 const INDEX_PLACEHOLDER = /__INDEX__/g;
 
@@ -27,6 +29,8 @@ export default function cleaningForm(form) {
             if (materialHint) {
                 materialHint.hidden = machine?.dataset.materialRequired !== '1';
             }
+
+            showExpectedMaterials(form, machine);
 
             filterWorkOrders(workOrderSelect, workOrderEmpty, machine);
         };
@@ -57,9 +61,27 @@ function showSummary(container, machine) {
 }
 
 /**
- * WorkOrder::isUsableFor ile aynı koşul: iş emri bir makineye ya da hatta bağlıysa yalnızca o
+ * Yalnızca seçili makinenin beklenen malzeme satırları görünür ve gönderilir: fieldset devre dışı
+ * kalınca içindeki alanlar forma girmez. Makine seçilmemişse açıklama gösterilir.
+ */
+function showExpectedMaterials(form, machine) {
+    const id = machine?.value ?? '';
+
+    form.querySelectorAll('[data-expected-materials]').forEach((group) => {
+        const selected = group.dataset.expectedMaterials === id;
+
+        group.hidden = !selected;
+
+        if (group instanceof HTMLFieldSetElement) {
+            group.disabled = !selected;
+        }
+    });
+}
+
+/**
+ * WorkOrder::isUsableFor ile aynı koşul: üretim iş emri bir makineye ya da hatta bağlıysa yalnızca o
  * makinede kullanılabilir. Gizlenen seçenek ayrıca devre dışı bırakılır (bazı mobil tarayıcılar
- * gizli seçeneği yine de listeler). Seçili iş emri artık uygun değilse seçim kaldırılır.
+ * gizli seçeneği yine de listeler). Seçili üretim iş emri artık uygun değilse seçim kaldırılır.
  */
 function filterWorkOrders(select, emptyHint, machine) {
     if (!select) {
@@ -117,7 +139,7 @@ function setUpMaterialRows(form) {
         nextIndex += 1;
 
         rows.append(row);
-        row.querySelector('select, input')?.focus();
+        row.querySelector('select')?.focus();
     });
 
     rows.addEventListener('click', (event) => {

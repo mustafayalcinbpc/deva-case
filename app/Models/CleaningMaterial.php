@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Kayıtta kullanılan malzeme satırı: malzeme, lot ve SKT'nin seçildiği andaki kopyası (K-14).
+ * Silinmez, değiştirilmez; yanlışsa gerekçeyle geçersiz kılınır (K-12).
+ */
 #[Fillable([
-    'cleaning_id', 'material_id', 'lot_no', 'expiry_date', 'added_by', 'voided_at', 'voided_by',
-    'void_reason',
+    'cleaning_id', 'material_id', 'material_lot_id', 'lot_no', 'expiry_date', 'added_by', 'voided_at',
+    'voided_by', 'void_reason',
 ])]
 class CleaningMaterial extends Model
 {
@@ -27,8 +31,8 @@ class CleaningMaterial extends Model
     protected function immutableAttributes(): array
     {
         return [
-            'cleaning_id', 'material_id', 'lot_no', 'expiry_date', 'added_by', 'voided_at',
-            'voided_by', 'void_reason',
+            'cleaning_id', 'material_id', 'material_lot_id', 'lot_no', 'expiry_date', 'added_by',
+            'voided_at', 'voided_by', 'void_reason',
         ];
     }
 
@@ -40,6 +44,15 @@ class CleaningMaterial extends Model
     public function material(): BelongsTo
     {
         return $this->belongsTo(Material::class);
+    }
+
+    /**
+     * Seçilen lot (K-14). lot_no ve expiry_date bu lotun seçildiği andaki kopyasıdır; eski
+     * satırlarda lot bağlantısı yoktur.
+     */
+    public function lot(): BelongsTo
+    {
+        return $this->belongsTo(MaterialLot::class, 'material_lot_id');
     }
 
     public function scopeValid(Builder $query): void
