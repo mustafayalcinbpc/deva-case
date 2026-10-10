@@ -279,14 +279,29 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
         font-size: 1.0625rem;
     }
 
-    .nav-header {
-        display: block;
-        padding: 0 12px;
-        margin: var(--nc-space-6) 0 var(--nc-space-2);
-        font-size: .625rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: .12em;
+    // Açılır grup: başlığı tam genişlikte bir düğme; ok açıkken döner (AdminLTE).
+    .nav-group__toggle {
+        width: 100%;
+        text-align: start;
+    }
+
+    // Bulunulan sayfanın grubu kapalıyken başlığı vurgulanır (açıkken etkin öğe vurgulu).
+    .nav-group:not(.menu-open) > .nav-group__toggle--current {
+        background-color: var(--nc-accent-tint);
+    }
+
+    // Grubun öğeleri grup ikonunun hizasından içeride, biraz küçük
+    .nav-treeview {
+        padding-left: 0;
+
+        > .nav-item > .nav-link {
+            padding-left: 30px;
+            font-size: .8125rem;
+        }
+
+        .nav-icon {
+            font-size: .9375rem;
+        }
     }
 }
 
@@ -336,7 +351,8 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
 }
 
 // Mini sidebar (geniş ekran): yalnızca ikonlar görünür. Fare üzerine gelince ya da klavyeyle
-// içine girilince tam genişlikte, içeriği itmeden onun üstüne açılır; çıkınca ikonlara döner.
+// içine girilince (:focus-visible; fareyle tıklanan düğmede kalan odak menüyü açık tutmaz) tam
+// genişlikte, içeriği itmeden onun üstüne açılır; çıkınca ikonlara döner.
 // Açılıp kapanma AdminLTE'nin sidebar-mini sidebar-collapse davranışıdır; burada ızgara sütunu
 // mini genişlikte sabitlenir (açılan menü içeriğin üstüne taşar) ve tema boşluklarına uyulur.
 // Başlıktaki menü düğmesi menüyü kalıcı olarak açar (içerik yana kayar) ya da mini hale döndürür.
@@ -359,12 +375,22 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
         }
 
         // Dar hal; fare üzerindeyken ya da odak içerideyken aşağıdaki tam genişlik geçerlidir.
-        .app-sidebar:not(:hover, :focus-within) {
+        .app-sidebar:not(:hover, :has(:focus-visible)) {
             min-width: var(--app-sidebar-mini-width);
             max-width: var(--app-sidebar-mini-width);
 
             .sidebar-menu .nav-link {
                 gap: 0;
+            }
+
+            // Dar halde yalnızca ana ikonlar; açık grubun öğeleri de (treeview satır içi
+            // display verdiği için !important).
+            .sidebar-menu .nav-treeview {
+                display: none !important;
+            }
+
+            .sidebar-menu .nav-group__toggle--current {
+                background-color: var(--nc-accent-tint);
             }
 
             .app-brand__text,
@@ -375,14 +401,10 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
         }
 
         .app-sidebar:hover,
-        .app-sidebar:focus-within {
+        .app-sidebar:has(:focus-visible) {
             min-width: var(--lte-sidebar-width);
             max-width: var(--lte-sidebar-width);
             box-shadow: var(--nc-shadow-lg);
-
-            .sidebar-menu .nav-header {
-                display: block;
-            }
 
             .sidebar-menu .nav-link p {
                 width: auto;
@@ -391,15 +413,9 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
             }
         }
 
-        // AdminLTE hover'da başlıkları satır içi yapar ve etikete ek boşluk verir; tema düzeni korunur.
-        &:not(.sidebar-without-hover) .app-sidebar:hover {
-            .sidebar-menu .nav-header {
-                display: block;
-            }
-
-            .sidebar-menu .nav-link p {
-                padding-left: 0;
-            }
+        // AdminLTE hover'da etikete ek boşluk verir; tema düzeni korunur.
+        &:not(.sidebar-without-hover) .app-sidebar:hover .sidebar-menu .nav-link p {
+            padding-left: 0;
         }
     }
 }

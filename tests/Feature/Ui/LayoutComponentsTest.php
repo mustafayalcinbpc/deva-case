@@ -6,6 +6,7 @@ use App\Enums\CleaningStatus;
 use App\Enums\StepStatus;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Dom\HTMLDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -52,32 +53,90 @@ class LayoutComponentsTest extends TestCase
         $this->blade('<x-duration :seconds="3900" />')->assertSee('1 sa 05 dk');
     }
 
-    public function test_sidebar_shows_items_by_role_and_hides_empty_headers(): void
+    public function test_sidebar_shows_items_and_groups_by_role(): void
     {
         config(['menu' => [
             ['label' => 'Gösterge Paneli', 'icon' => 'bi-speedometer2', 'route' => 'dashboard'],
-            ['header' => 'Yönetim', 'roles' => ['manager']],
-            ['label' => 'Tanımlar', 'icon' => 'bi-gear', 'route' => 'dashboard', 'roles' => ['manager']],
+            ['group' => 'Yönetim', 'icon' => 'bi-shield-lock', 'roles' => ['manager'], 'items' => [
+                ['label' => 'Kullanıcı listesi', 'icon' => 'bi-people', 'route' => 'dashboard'],
+            ]],
+            ['group' => 'Temizlik', 'icon' => 'bi-droplet-half', 'items' => [
+                ['label' => 'Kayıt listesi', 'icon' => 'bi-list', 'route' => 'cleanings.index'],
+                ['label' => 'Yalnızca yönetici', 'icon' => 'bi-gear', 'route' => 'dashboard', 'roles' => ['manager']],
+            ]],
         ]]);
 
         $this->actingAs(User::factory()->create());
         $this->blade('<x-sidebar-menu />')
             ->assertSee('Gösterge Paneli')
+            ->assertSee('Temizlik')
+            ->assertSee('Kayıt listesi')
             ->assertDontSee('Yönetim')
-            ->assertDontSee('Tanımlar');
+            ->assertDontSee('Kullanıcı listesi')
+            ->assertDontSee('Yalnızca yönetici');
 
         $this->actingAs(User::factory()->manager()->create());
         $this->blade('<x-sidebar-menu />')
             ->assertSee('Yönetim')
-            ->assertSee('Tanımlar');
+            ->assertSee('Kullanıcı listesi')
+            ->assertSee('Yalnızca yönetici');
+    }
+
+    public function test_group_is_a_collapsible_toggle_with_its_items_below(): void
+    {
+        config(['menu' => [
+            ['group' => 'Raporlar', 'icon' => 'bi-bar-chart-line', 'items' => [
+                ['label' => 'Süre', 'icon' => 'bi-stopwatch', 'route' => 'dashboard'],
+                ['label' => 'Kayıtlar', 'icon' => 'bi-list', 'route' => 'cleanings.index'],
+            ]],
+        ]]);
+        $this->actingAs(User::factory()->manager()->create());
+
+        $html = (string) $this->blade('<x-sidebar-menu />');
+        $page = HTMLDocument::createFromString('<!doctype html><html><body>'.$html.'</body></html>', LIBXML_NOERROR);
+
+        $this->assertSame('treeview', $page->querySelector('ul.sidebar-menu')->getAttribute('data-lte-toggle'));
+        $group = $page->querySelector('ul.sidebar-menu > li.nav-group');
+        $toggle = $group->querySelector('button.nav-link');
+        $this->assertSame('Raporlar', trim($toggle->querySelector('p')->firstChild->textContent));
+        $this->assertNotNull($toggle->querySelector('.nav-arrow'));
+        $this->assertSame('menu-group-0', $toggle->getAttribute('aria-controls'));
+        $this->assertSame(
+            ['Süre', 'Kayıtlar'],
+            array_map(fn ($link) => trim($link->textContent), iterator_to_array($group->querySelectorAll('#menu-group-0.nav-treeview > li > a.nav-link'))),
+        );
+        // Etkin öğe bu grupta değil: grup kapalı gelir.
+        $this->assertFalse($group->classList->contains('menu-open'));
+        $this->assertSame('false', $toggle->getAttribute('aria-expanded'));
+    }
+
+    public function test_group_of_the_current_page_is_open(): void
+    {
+        config(['menu' => [
+            ['label' => 'Gösterge Paneli', 'icon' => 'bi-speedometer2', 'route' => 'dashboard'],
+            ['group' => 'Temizlik', 'icon' => 'bi-droplet-half', 'items' => [
+                ['label' => 'Kayıt listesi', 'icon' => 'bi-list', 'route' => 'cleanings.index', 'active' => 'cleanings.*'],
+            ]],
+        ]]);
+        $this->actingAs(User::factory()->create());
+
+        $page = HTMLDocument::createFromString($this->get(route('cleanings.create'))->getContent(), LIBXML_NOERROR);
+
+        $group = $page->querySelector('.sidebar-menu li.nav-group');
+        $this->assertTrue($group->classList->contains('menu-open'));
+        $this->assertSame('true', $group->querySelector('button.nav-link')->getAttribute('aria-expanded'));
+        $this->assertTrue($group->querySelector('button.nav-link')->classList->contains('nav-group__toggle--current'));
+        $this->assertSame('page', $group->querySelector('.nav-treeview a.nav-link.active')->getAttribute('aria-current'));
     }
 
     public function test_items_whose_route_is_not_defined_are_hidden(): void
     {
         config(['menu' => [
             ['label' => 'Gösterge Paneli', 'icon' => 'bi-speedometer2', 'route' => 'dashboard'],
-            ['header' => 'Raporlar'],
             ['label' => 'Henüz yok', 'icon' => 'bi-gear', 'route' => 'reports.not-yet-defined'],
+            ['group' => 'Raporlar', 'icon' => 'bi-bar-chart-line', 'items' => [
+                ['label' => 'Bu da yok', 'icon' => 'bi-gear', 'route' => 'reports.not-yet-defined'],
+            ]],
         ]]);
 
         $this->actingAs(User::factory()->manager()->create());
@@ -85,18 +144,44 @@ class LayoutComponentsTest extends TestCase
         $this->blade('<x-sidebar-menu />')
             ->assertSee('Gösterge Paneli')
             ->assertDontSee('Henüz yok')
+            ->assertDontSee('Bu da yok')
             ->assertDontSee('Raporlar');
     }
 
-    public function test_header_without_visible_items_is_hidden(): void
+    public function test_group_without_visible_items_is_hidden(): void
     {
         config(['menu' => [
-            ['header' => 'Boş başlık'],
-            ['label' => 'Yalnızca yönetici', 'icon' => 'bi-gear', 'route' => 'dashboard', 'roles' => ['manager']],
+            ['group' => 'Boş grup', 'icon' => 'bi-folder', 'items' => [
+                ['label' => 'Yalnızca yönetici', 'icon' => 'bi-gear', 'route' => 'dashboard', 'roles' => ['manager']],
+            ]],
         ]]);
 
         $this->actingAs(User::factory()->create());
 
-        $this->blade('<x-sidebar-menu />')->assertDontSee('Boş başlık');
+        $this->blade('<x-sidebar-menu />')->assertDontSee('Boş grup');
+    }
+
+    public function test_application_menu_groups_are_meaningful_for_each_role(): void
+    {
+        // Operatör yalnızca sahadaki işi görür; yönetici planlama, tanımlar, raporlar ve yönetim gruplarını da.
+        $this->actingAs(User::factory()->create());
+        $this->assertSame(['Gösterge Paneli', 'Temizlik'], $this->topLevelLabels());
+
+        $this->actingAs(User::factory()->manager()->create());
+        $this->assertSame(['Gösterge Paneli', 'Temizlik', 'Planlama', 'Tanımlar', 'Raporlar', 'Yönetim'], $this->topLevelLabels());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function topLevelLabels(): array
+    {
+        $html = (string) $this->blade('<x-sidebar-menu />');
+        $page = HTMLDocument::createFromString('<!doctype html><html><body>'.$html.'</body></html>', LIBXML_NOERROR);
+
+        return array_map(
+            fn ($link) => trim($link->querySelector('p')->firstChild->textContent),
+            iterator_to_array($page->querySelectorAll('ul.sidebar-menu > li > .nav-link')),
+        );
     }
 }
