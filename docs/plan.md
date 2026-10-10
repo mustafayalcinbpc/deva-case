@@ -59,11 +59,11 @@ final class RecordNumberGenerator
 {
     // Açık bir DB transaction'ı içinde çağrılır. Sıra: sequence_counters tablosunda,
     // satır kilitlenerek (insertOrIgnore + lockForUpdate + update) artırılır.
-    public function recordNo(Machine $machine, CleaningType $type, CarbonInterface $at): string;
-    //   "{tesis}-{hat}-{makine}-{T|M}-{yıl}-{sıra:04}"  örn. IST-H01-M03-T-2026-0042
+    public function recordNo(Machine $machine, CarbonInterface $at): string;
+    //   "{tesis}-{hat}{makine}-{yy}{sıra:04}"  örn. IST-H01M03-260042 (K-17)
     //   sayaç anahtarı: "cleaning:{machine_id}:{yıl}"  (planlı ve plansız aynı sırayı paylaşır)
     public function fieldRef(Facility $facility, CarbonInterface $at): string;
-    //   "{tesis}-SD-{yıl}-{sıra:04}"  örn. IST-SD-2026-0123
+    //   "{tesis}-SD-{yy}{sıra:04}"  örn. IST-SD-260123
     //   sayaç anahtarı: "field-ref:{facility_id}:{yıl}"
 }
 

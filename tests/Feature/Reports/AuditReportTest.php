@@ -46,7 +46,7 @@ class AuditReportTest extends TestCase
         $response->assertDontSee('Bir adım hâlâ çalışıyor');
         $this->assertSame([
             "Kayıt no {$cleaning->record_no}",
-            'Saha defteri referansı IST-SD-2026-0001',
+            'Saha defteri referansı IST-SD-260001',
             'Tür Planlı temizlik',
             'Durum Tamamlandı',
             'Tesis IST — İstanbul Tesisi',                                 // 1

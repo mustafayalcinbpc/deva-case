@@ -320,7 +320,7 @@ class CleaningCreateTest extends TestCase
             ->assertSessionHas('status', "Kayıt açıldı: {$cleaning->record_no}")
             ->assertSessionHasNoErrors();
 
-        $this->assertSame('IST-H01-M03-T-2026-0001', $cleaning->record_no);
+        $this->assertSame('IST-H01M03-260001', $cleaning->record_no);
         $this->assertSame(CleaningType::Planned, $cleaning->type);
         $this->assertSame(CleaningStatus::Created, $cleaning->status, 'Kayıt açmak işe başlamak değildir (R-20).');
         $this->assertNull($cleaning->started_at);
@@ -358,7 +358,7 @@ class CleaningCreateTest extends TestCase
 
         $cleaning = Cleaning::query()->sole();
         $this->assertSame(CleaningType::Unplanned, $cleaning->type);
-        $this->assertSame('IST-H01-M03-M-2026-0001', $cleaning->record_no);
+        $this->assertSame('IST-H01M03-260001', $cleaning->record_no);
         $this->assertNull($cleaning->field_ref);
         $this->assertNull($cleaning->work_order_id);
         $this->assertNull($cleaning->notes);

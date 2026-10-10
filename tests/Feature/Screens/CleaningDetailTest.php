@@ -126,7 +126,7 @@ class CleaningDetailTest extends TestCase
         $response->assertSee('<title>'.$cleaning->record_no, false);
         foreach ([
             'Kayıt no '.$cleaning->record_no,
-            'Saha defteri referansı IST-SD-2026-0001',
+            'Saha defteri referansı IST-SD-260001',
             'Tür Planlı temizlik',
             'Durum Devam ediyor',
             'Tesis IST — İstanbul Tesisi',
@@ -715,7 +715,7 @@ class CleaningDetailTest extends TestCase
         $this->assertStringContainsString('#1 09.10.2026 11:00:00 Ahmet Kayıt açıldı Tür Planlı temizlik', $this->text($items[0]));
         $this->assertStringContainsString('Yardımcı personel Mehmet', $this->text($items[0]));
         $this->assertStringContainsString('Malzeme DET-01 — Malzeme DET-01 Lot LOT-7 Son kullanma tarihi 01.05.2027', $this->text($items[1]));
-        $this->assertStringContainsString('Saha defteri referansı IST-SD-2026-0001', $this->text($items[2]));
+        $this->assertStringContainsString('Saha defteri referansı IST-SD-260001', $this->text($items[2]));
         $this->assertStringContainsString('Adım Faz 1 adım 1 Görevliler Ahmet, Mehmet', $this->text($items[4]));
         $this->assertStringContainsString('09.10.2026 11:12:00 Mehmet 1. adım duraklatıldı', $this->text($items[5]));
         $this->assertStringContainsString('Eklenen Ayşe Çıkarılan Mehmet', $this->text($items[7]));

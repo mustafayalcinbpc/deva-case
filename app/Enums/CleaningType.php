@@ -8,17 +8,6 @@ enum CleaningType: string
     case Unplanned = 'unplanned';
 
     /**
-     * Kayıt numarasındaki tip harfi (K-17).
-     */
-    public function code(): string
-    {
-        return match ($this) {
-            self::Planned => 'T',
-            self::Unplanned => 'M',
-        };
-    }
-
-    /**
      * Saha defterine yalnızca planlı temizlikler işlenir (R-18, R-19).
      */
     public function hasFieldReference(): bool
