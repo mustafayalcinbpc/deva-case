@@ -103,6 +103,20 @@ class CleaningMaterialsTabTest extends TestCase
         $this->assertNull($form->querySelector('input[name="lot_no"], input[name="expiry_date"], select[name="material_id"]'));
     }
 
+    public function test_add_form_is_the_first_thing_in_the_tab(): void
+    {
+        // Sekme açılınca ilk görülen aksiyon "Malzeme ekle"; beklenen malzemeler ve liste altında.
+        $this->lot($this->detergent, 'DT-1', '2027-01-31');
+        $ahmet = $this->operator('Ahmet');
+        $cleaning = $this->openCleaning($ahmet, $this->machine, materials: [$this->entry($this->detergent, 'DT-1', '2027-01-31')]);
+
+        $body = $this->one($this->show($ahmet, $cleaning), '#materials .card-body');
+
+        $this->assertTrue($body->firstElementChild->classList->contains('material-form'));
+        $this->assertSame('Malzeme ekle', $this->text($body->firstElementChild->querySelector('summary')));
+        $this->assertNotNull($body->querySelector('.material-form ~ .materials-list'));
+    }
+
     public function test_without_usable_lots_the_form_explains_instead_of_offering_a_choice(): void
     {
         $ahmet = $this->operator('Ahmet');

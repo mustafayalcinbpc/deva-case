@@ -24,6 +24,47 @@
     </div>
 
     <div class="card-body">
+        {{-- Ekleme formu en üstte: sekme açılınca ilk görülen aksiyon. --}}
+        @if ($canManageMaterials)
+            <details class="material-form" @if ($materialFormOpen) open @endif>
+                <summary class="material-form__toggle">
+                    <i class="bi bi-plus-circle" aria-hidden="true"></i> Malzeme ekle
+                </summary>
+
+                <form method="POST" action="{{ route('cleanings.materials.store', $cleaning) }}" class="material-form__form" data-module="submit-once">
+                    @csrf
+
+                    @if ($lotCatalog->isEmpty())
+                        <p class="empty-state material-form__no-lots">
+                            Kullanımda ve son kullanma tarihi geçmemiş lot yok. Lotları yönetici tanımlar.
+                        </p>
+                    @else
+                        <div class="material-form__field">
+                            <label for="material-lot-id" class="form-label">Malzeme ve lot</label>
+                            <select id="material-lot-id" name="material_lot_id" required
+                                    @class(['form-select', 'is-invalid' => $errors->has('material_lot_id')])
+                                    aria-describedby="material-lot-help @error('material_lot_id') material-lot-error @enderror">
+                                <option value="">Seçin</option>
+                                @foreach ($lotCatalog as $lots)
+                                    <optgroup label="{{ $lots->first()->material->code }} — {{ $lots->first()->material->name }}">
+                                        @foreach ($lots as $lot)
+                                            <option value="{{ $lot->id }}" @selected((string) old('material_lot_id') === (string) $lot->id)>{{ $lot->lot_no }} · SKT {{ $lot->expiry_date->format('d.m.Y') }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endforeach
+                            </select>
+                            @error('material_lot_id')
+                                <div id="material-lot-error" class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <p id="material-lot-help" class="form-text">Lot numarası ve son kullanma tarihi lot kaydından gelir; yalnızca kullanımdaki ve süresi geçmemiş lotlar listelenir.</p>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary material-form__submit">Malzemeyi ekle</button>
+                    @endif
+                </form>
+            </details>
+        @endif
+
         @if ($expectedMaterials !== [])
             <h3 class="materials-card__subtitle" id="expected-materials-title">Prosedürün beklediği malzemeler</h3>
             <ul class="materials-expected" aria-labelledby="expected-materials-title">
@@ -148,47 +189,6 @@
                     </li>
                 @endforeach
             </ul>
-        @endif
-
-        @if ($canManageMaterials)
-            <details class="material-form" @if ($materialFormOpen) open @endif>
-                <summary class="material-form__toggle">
-                    <i class="bi bi-plus-circle" aria-hidden="true"></i> Malzeme ekle
-                </summary>
-
-                <form method="POST" action="{{ route('cleanings.materials.store', $cleaning) }}" class="material-form__form" data-module="submit-once">
-                    @csrf
-
-                    @if ($lotCatalog->isEmpty())
-                        <p class="empty-state material-form__no-lots">
-                            Kullanımda ve son kullanma tarihi geçmemiş lot yok. Lotları yönetici tanımlar.
-                        </p>
-                    @else
-                        <div class="material-form__field">
-                            <label for="material-lot-id" class="form-label">Malzeme ve lot</label>
-                            <select id="material-lot-id" name="material_lot_id" required
-                                    @class(['form-select', 'is-invalid' => $errors->has('material_lot_id')])
-                                    aria-describedby="material-lot-help @error('material_lot_id') material-lot-error @enderror">
-                                <option value="">Seçin</option>
-                                @foreach ($lotCatalog as $lots)
-                                    @php($material = $lots->first()->material)
-                                    <optgroup label="{{ $material->code }} — {{ $material->name }}">
-                                        @foreach ($lots as $lot)
-                                            <option value="{{ $lot->id }}" @selected((string) old('material_lot_id') === (string) $lot->id)>{{ $lot->lot_no }} · SKT {{ $lot->expiry_date->format('d.m.Y') }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                @endforeach
-                            </select>
-                            @error('material_lot_id')
-                                <div id="material-lot-error" class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <p id="material-lot-help" class="form-text">Lot numarası ve son kullanma tarihi lot kaydından gelir; yalnızca kullanımdaki ve süresi geçmemiş lotlar listelenir.</p>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary material-form__submit">Malzemeyi ekle</button>
-                    @endif
-                </form>
-            </details>
         @endif
     </div>
 </section>

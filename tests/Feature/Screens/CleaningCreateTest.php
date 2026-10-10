@@ -86,6 +86,35 @@ class CleaningCreateTest extends TestCase
         $this->assertTrue($page->querySelector('#machine_id')->hasAttribute('required'));
     }
 
+    public function test_missing_machine_message_is_ready_below_the_field(): void
+    {
+        // Tarayıcının genel "Listeden bir öğe seçin" uyarısı yerine (cleaning-form.js), gizli gelir.
+        $this->makeMachine(code: 'M01');
+
+        $page = $this->page($this->actingAs($this->operator())->get(route('cleanings.create'))->assertOk());
+
+        $message = $page->querySelector('#machine_id ~ #machine_id-required');
+        $this->assertNotNull($message);
+        $this->assertTrue($message->hasAttribute('hidden'));
+        $this->assertTrue($message->classList->contains('invalid-feedback'));
+        $this->assertSame('Lütfen bir makine seçin.', $this->text($message));
+        $this->assertTrue($page->querySelector('#machine_id')->hasAttribute('required'));
+    }
+
+    public function test_extra_material_explains_when_there_is_no_usable_lot(): void
+    {
+        $this->makeMachine(code: 'M01');
+        $material = $this->makeMaterial('DET-01');
+        $operator = $this->operator();
+
+        $page = $this->page($this->actingAs($operator)->get(route('cleanings.create'))->assertOk());
+        $this->assertStringContainsString('Kullanımda ve son kullanma tarihi geçmemiş lot yok', $this->text($page->querySelector('.material-rows__no-lots')));
+
+        $this->lot($material, 'DT-1', '2027-01-31');
+        $page = $this->page($this->actingAs($operator)->get(route('cleanings.create'))->assertOk());
+        $this->assertNull($page->querySelector('.material-rows__no-lots'));
+    }
+
     public function test_machine_summary_shows_procedure_phases_material_requirement_and_pending_records(): void
     {
         $this->at('07:30:00');

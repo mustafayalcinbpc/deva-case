@@ -53,6 +53,12 @@
         </div>
 
         <h3 class="material-rows__title" id="extra-materials-title">Ek malzeme</h3>
+        @if ($lotsByMaterial->isEmpty())
+            <p class="form-text material-rows__no-lots" role="note">
+                Kullanımda ve son kullanma tarihi geçmemiş lot yok; seçilecek malzeme listelenmez. Lotları yönetici
+                Malzemeler sayfasında tanımlar.
+            </p>
+        @endif
         <div class="material-rows" data-material-rows data-next-index="{{ $nextMaterialIndex }}" role="group" aria-labelledby="extra-materials-title">
             @foreach ($extraRows as $index => $row)
                 @include('cleanings.form.material-row', ['index' => $index, 'row' => is_array($row) ? $row : []])
