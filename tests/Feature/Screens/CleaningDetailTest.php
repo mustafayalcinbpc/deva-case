@@ -26,7 +26,8 @@ use Tests\Feature\Cleaning\Concerns\InteractsWithCleaningWorkflow;
 use Tests\TestCase;
 
 /**
- * Kayıt detayı: özet, "Şimdi" kartı, kontrol listesi, malzemeler, iptal ve olay geçmişi.
+ * Kayıt detayı: sekmeler ("Şimdi" kartı, kontrol listesi, özet, malzemeler, olay geçmişi) ve sağ
+ * sütunda ilerleme ile iptal (docs/plan-detay-sekmeler.md).
  * Sayfa veri değiştirmez; formların doğru kullanıcıya, doğru durumda ve sözleşmedeki route ve
  * alan adlarıyla gösterildiği doğrulanır (docs/plan-ekranlar.md). Formlar burada gönderilmez.
  */
@@ -50,6 +51,54 @@ class CleaningDetailTest extends TestCase
     public function test_unknown_record_returns_404(): void
     {
         $this->actingAs($this->operator())->get('/cleanings/999999')->assertNotFound();
+    }
+
+    public function test_sections_are_tabs_and_each_pane_shows_only_its_own_section(): void
+    {
+        $ahmet = $this->operator('Ahmet');
+        $cleaning = $this->openCleaning($ahmet, $this->makeMachine());
+        $sections = ['now' => 'Şimdi', 'checklist' => 'Adımlar', 'summary' => 'Özet', 'materials' => 'Malzemeler', 'history' => 'Olay geçmişi'];
+
+        // Operatör (sahip ya da yalnızca görüntüleyen) ve yönetici aynı sekmeleri görür.
+        foreach ([$ahmet, $this->operator('İzleyici'), $this->manager()] as $viewer) {
+            $page = $this->page($this->show($viewer, $cleaning));
+            $tabs = iterator_to_array($page->querySelectorAll('[data-module~="detail-tabs"] .cleaning-detail__nav [role="tab"]'));
+
+            $this->assertSame(array_values($sections), array_map(fn (Element $tab) => $this->text($tab), $tabs));
+            $this->assertSame(
+                array_map(fn (string $section) => "#pane-{$section}", array_keys($sections)),
+                array_map(fn (Element $tab) => $tab->getAttribute('data-bs-target'), $tabs),
+            );
+
+            // Sunucu "Şimdi"yi etkin getirir; diğer paneller sekmesi seçilince görünür.
+            $this->assertSame(['true', 'false', 'false', 'false', 'false'], array_map(fn (Element $tab) => $tab->getAttribute('aria-selected'), $tabs));
+            $this->assertSame(['pane-now'], array_map(
+                fn (Element $pane) => $pane->id,
+                iterator_to_array($page->querySelectorAll('[data-module~="detail-tabs"] .tab-pane.active')),
+            ));
+
+            foreach (array_keys($sections) as $section) {
+                $pane = $page->getElementById("pane-{$section}");
+                $this->assertNotNull($pane, "#pane-{$section} yok.");
+                $this->assertSame("tab-{$section}", $pane->getAttribute('aria-labelledby'));
+                $this->assertSame([$section], $this->childIds($pane), "#pane-{$section} yalnızca kendi bölümünü içermeli.");
+                $this->assertCount(1, $page->querySelectorAll("#{$section}"), "#{$section} sayfada bir kez olmalı.");
+            }
+        }
+    }
+
+    public function test_progress_and_cancel_are_in_the_side_column_next_to_the_tabs(): void
+    {
+        $cleaning = $this->openCleaning($this->operator('Ahmet'), $this->makeMachine());
+
+        $page = $this->page($this->show($this->manager(), $cleaning));
+        $this->assertSame(['progress', 'cancel'], $this->childIds($page->querySelector('.cleaning-detail__aside')));
+        $this->assertNull($page->querySelector('.cleaning-detail__panes #progress'));
+        $this->assertNull($page->querySelector('.cleaning-detail__panes #cancel'));
+
+        // İptal edemeyen kullanıcının sağ sütununda yalnızca ilerleme var.
+        $page = $this->page($this->show($this->operator('İzleyici'), $cleaning));
+        $this->assertSame(['progress'], $this->childIds($page->querySelector('.cleaning-detail__aside')));
     }
 
     public function test_summary_answers_where_who_which_procedure_and_how_long(): void
@@ -783,6 +832,23 @@ class CleaningDetailTest extends TestCase
     private function text(Element $element): string
     {
         return trim(preg_replace('/\s+/u', ' ', $element->textContent));
+    }
+
+    /**
+     * Elemanın doğrudan alt elemanlarının id'leri, sırasıyla.
+     *
+     * @return list<string>
+     */
+    private function childIds(?Element $element): array
+    {
+        $this->assertNotNull($element);
+        $ids = [];
+
+        for ($child = $element->firstElementChild; $child !== null; $child = $child->nextElementSibling) {
+            $ids[] = $child->id;
+        }
+
+        return $ids;
     }
 
     /**

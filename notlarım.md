@@ -58,7 +58,9 @@ docker compose up -d --build        # ilk açılışta migration + demo verisi k
    - kayıt numarası yılı yerel takvime göre (Europe/Istanbul);
    - kayıt açma ile makine kaldırma arasındaki yarış (makine satırı kilitleniyor);
    - production'da seeder (Faker yok);
-   - geliştirme ortamında 20 MB dosya yükleme.
+   - geliştirme ortamında 20 MB dosya yükleme;
+   - root'a ait derlenmiş view'lar yüzünden 500: entrypoint her açılışta `storage` sahipliğini www-data'ya veriyor.
+15. **Kayıt detayı sekmeleri ve ilerleme göstergesi** (`docs/plan-detay-sekmeler.md`): Şimdi, Adımlar, Özet, Malzemeler, Olay geçmişi sekmelerde; sağ sütunda kargo takibi gibi faz/adım ilerlemesi. Operatör ve yönetici aynı sayfayı görür.
 
 ## Önemli kararlar (mülakatta sorulabilir)
 
@@ -85,6 +87,5 @@ docker compose up -d --build        # ilk açılışta migration + demo verisi k
    - `storage/logs/audit-checkpoints.log` dosyasının sunucu dışına taşınması operasyon işi.
 6. **Tasarım farkları:**
    - üst barda arama yok (uygulamada arama yok);
-   - çok sütunlu tablolar yatay kayıyor;
-   - detay sayfası sekmelerinde kaydırma takibi yok.
+   - çok sütunlu tablolar yatay kayıyor.
 7. **Yerel branch'ler.** `feature/*` branch'leri yalnızca yerelde duruyor, GitHub'a gönderilmedi.
