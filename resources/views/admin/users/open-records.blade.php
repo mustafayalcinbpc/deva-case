@@ -10,7 +10,7 @@
             <div class="user-open-records__meta">
                 <span title="{{ $cleaning->machine->name }}">{{ $cleaning->facility->code }} / {{ $cleaning->line->code }} / {{ $cleaning->machine->code }}</span>
                 · Sorumlu: {{ $cleaning->owner->name }}
-                · Açılış: <x-datetime :value="$cleaning->created_at" />
+                · Açılış: <x-datetime :value="$cleaning->created_at" format="list" />
             </div>
         </li>
     @endforeach

@@ -118,9 +118,9 @@
                                     <td>{{ $cleaning->type->label() }}</td>
                                     <td>{{ $cleaning->owner->name }}</td>
                                     <td><x-status-badge :status="$cleaning->status" /></td>
-                                    <td class="text-nowrap"><x-datetime :value="$cleaning->created_at" /></td>
-                                    <td class="text-nowrap"><x-datetime :value="$cleaning->started_at" /></td>
-                                    <td class="text-nowrap"><x-datetime :value="$cleaning->closed_at" /></td>
+                                    <td class="text-nowrap"><x-datetime :value="$cleaning->created_at" format="list" /></td>
+                                    <td class="text-nowrap"><x-datetime :value="$cleaning->started_at" format="list" /></td>
+                                    <td class="text-nowrap"><x-datetime :value="$cleaning->closed_at" format="list" /></td>
                                     <td class="text-nowrap net-time">
                                         @if ($row['netSeconds'] === null)
                                             <span class="text-body-secondary">—</span>

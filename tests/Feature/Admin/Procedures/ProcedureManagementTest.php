@@ -30,8 +30,8 @@ class ProcedureManagementTest extends ProcedureTestCase
 
         $first = $this->text($rows[0]);
         $this->assertStringContainsString('PRC-M03', $first);
-        $this->assertStringContainsString('v1 09.10.2026 11:00', $first);
-        $this->assertStringContainsString('v2: 10.10.2026 11:00 itibarıyla', $first);
+        $this->assertStringContainsString('v1 9 Ekim 11:00', $first);
+        $this->assertStringContainsString('v2: 10 Ekim 11:00 itibarıyla', $first);
         $this->assertStringContainsString('v3 taslağı', $first);
         $this->assertStringContainsString('H01 / M03', $first);
         $this->assertSame('2', $this->text($rows[0]->querySelector('td:last-child')));
@@ -115,9 +115,9 @@ class ProcedureManagementTest extends ProcedureTestCase
         $response = $this->get(route('admin.procedures.show', $procedure))->assertOk();
 
         $row = fn ($version) => $this->text($this->one($response, "#version-{$version->id}"));
-        $this->assertSame('v1 Eski 09.10.2026 11:00 Zorunlu değil 1 2 1 Görüntüle', $row($v1));
-        $this->assertSame('v2 Yayında 09.10.2026 12:00 Zorunlu 2 5 1 Görüntüle', $row($v2));
-        $this->assertSame('v3 Yayımlanacak 11.10.2026 12:00 Zorunlu değil 1 1 0 Görüntüle', $row($v3));
+        $this->assertSame('v1 Eski 9 Ekim 11:00 Zorunlu değil 1 2 1 Görüntüle', $row($v1));
+        $this->assertSame('v2 Yayında 9 Ekim 12:00 Zorunlu 2 5 1 Görüntüle', $row($v2));
+        $this->assertSame('v3 Yayımlanacak 11 Ekim 12:00 Zorunlu değil 1 1 0 Görüntüle', $row($v3));
         $this->assertSame('v4 Taslak — Zorunlu değil 1 4 0 Düzenle Sil', $row($v4));
 
         // Taslak varken ikinci taslak açılamaz: düğme yerine taslağa bağlantı gösterilir.

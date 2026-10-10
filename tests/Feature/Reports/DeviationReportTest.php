@@ -59,7 +59,7 @@ class DeviationReportTest extends TestCase
         $response = $this->actingAs($this->manager())->get(route('reports.deviations'))->assertOk();
 
         $this->assertSame(
-            [$cleaning->record_no.' IST / H01 / M03 1. Faz 1 (net) 5 dk 00 sn 10 dk 00 sn 5 dk 00 sn Makine erken durdu Mehmet 09.10.2026 11:05:00 Denetim raporu'],
+            [$cleaning->record_no.' IST / H01 / M03 1. Faz 1 (net) 5 dk 00 sn 10 dk 00 sn 5 dk 00 sn Makine erken durdu Mehmet 9 Ekim 11:05 Denetim raporu'],
             $this->texts($response, '#below-minimum tbody tr'),
         );
         $this->one($response, '#below-minimum a[href="'.route('cleanings.show', $cleaning).'"]');
@@ -123,8 +123,8 @@ class DeviationReportTest extends TestCase
 
         $this->assertSame(
             [
-                $cleaning->record_no.' IST / H01 / M03 3. Faz 1 adım 3 09.10.2026 18:00:00 Devam ediyor 5 sa 00 dk Ahmet, Mehmet Denetim raporu',
-                $cleaning->record_no.' IST / H01 / M03 2. Faz 1 adım 2 09.10.2026 13:00:00 09.10.2026 17:30:00 4 sa 30 dk Mehmet Denetim raporu',
+                $cleaning->record_no.' IST / H01 / M03 3. Faz 1 adım 3 9 Ekim 18:00 Devam ediyor 5 sa 00 dk Ahmet, Mehmet Denetim raporu',
+                $cleaning->record_no.' IST / H01 / M03 2. Faz 1 adım 2 9 Ekim 13:00 9 Ekim 17:30 4 sa 30 dk Mehmet Denetim raporu',
             ],
             $this->texts($response, '#anomalous-slices tbody tr'),
         );

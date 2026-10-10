@@ -54,8 +54,8 @@ class CleaningPlanManagementTest extends TestCase
             ->assertSee('<title>Temizlik Planları', false));
 
         $this->assertSame([
-            ['IST / H01 / M01 Makine M01', 'Periyodik · 7 günde bir', 'Gecikti Son tarih: 09.10.2026 10:00', 'Kullanımda'],
-            ['IST / H01 / M02 Makine M02', 'Periyodik · 14 günde bir', 'Sonraki görev: 22.10.2026 11:00', 'Kullanımda'],
+            ['IST / H01 / M01 Makine M01', 'Periyodik · 7 günde bir', 'Gecikti Son tarih: 9 Ekim 10:00', 'Kullanımda'],
+            ['IST / H01 / M02 Makine M02', 'Periyodik · 14 günde bir', 'Sonraki görev: 22 Ekim 11:00', 'Kullanımda'],
             ['IST / H01 / M02 Makine M02', 'Üretim iş emri tamamlanınca', 'Üretim iş emri tamamlanınca açılır', 'Kullanımda'],
             ['IST / H01 / M01 Makine M01', 'Üretim iş emri tamamlanınca', '—', 'Kullanımdan kaldırıldı'],
         ], array_map(fn (array $row) => [$row[0], $row[1], $row[2], $row[4]], $this->rows($page)));
@@ -75,7 +75,7 @@ class CleaningPlanManagementTest extends TestCase
 
         $row = $this->rows($this->page($this->actingAs($this->manager)->get(route('admin.cleaning-plans.index'))))[0];
 
-        $this->assertSame('Kayıt açıldı Son tarih: 09.10.2026 12:00', $row[2]);
+        $this->assertSame('Kayıt açıldı Son tarih: 9 Ekim 12:00', $row[2]);
     }
 
     public function test_periodic_plan_is_created_with_an_interval(): void

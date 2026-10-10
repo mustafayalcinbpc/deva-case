@@ -54,7 +54,7 @@
                     @if ($currentVersion)
                         <div class="form-text">
                             Yeni kayıtlar v{{ $currentVersion->version }} versiyonuna bağlanır.
-                            Yayın: <x-datetime :value="$currentVersion->published_at" />
+                            Yayın: <x-datetime :value="$currentVersion->published_at" format="list" />
                         </div>
                     @endif
                 </dd>
@@ -107,7 +107,7 @@
                                     <td>{{ $cleaning->type->label() }}</td>
                                     <td>{{ $cleaning->owner->name }}</td>
                                     <td><x-status-badge :status="$cleaning->status" /></td>
-                                    <td class="text-nowrap"><x-datetime :value="$cleaning->created_at" /></td>
+                                    <td class="text-nowrap"><x-datetime :value="$cleaning->created_at" format="list" /></td>
                                 </tr>
                             @endforeach
                         </tbody>

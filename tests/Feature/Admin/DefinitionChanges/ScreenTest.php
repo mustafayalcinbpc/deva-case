@@ -47,8 +47,8 @@ class ScreenTest extends DefinitionChangesTestCase
         $page = $this->page($this->get(route('admin.definition-changes.index'))->assertOk());
         $rows = $this->rows($page);
 
-        $this->assertSame(['09.10.2026 13:00:00', 'Zeynep Arslan', 'Makine IST / H01 / M01', 'Kullanımdan kaldırıldı'], array_slice($rows[0], 0, 4));
-        $this->assertSame(['09.10.2026 12:00:00', 'Zeynep Arslan', 'Makine IST / H01 / M01', 'Güncellendi'], array_slice($rows[1], 0, 4));
+        $this->assertSame(['9 Ekim 13:00', 'Zeynep Arslan', 'Makine IST / H01 / M01', 'Kullanımdan kaldırıldı'], array_slice($rows[0], 0, 4));
+        $this->assertSame(['9 Ekim 12:00', 'Zeynep Arslan', 'Makine IST / H01 / M01', 'Güncellendi'], array_slice($rows[1], 0, 4));
         $this->assertSame('Sistem', $rows[2][1]);
         $this->assertSame(DefinitionChange::count(), count($rows));
 
@@ -210,7 +210,7 @@ class ScreenTest extends DefinitionChangesTestCase
         // Makinede en yeni beş değişiklik, en yeni üstte.
         $machineHistory = $this->page($this->get(route('admin.machines.show', $machine)))->querySelector('.definition-history');
         $first = $machineHistory->querySelector('.definition-history__item');
-        $this->assertStringContainsString('09.10.2026 12:06', $this->text($first->querySelector('.definition-history__meta')));
+        $this->assertStringContainsString('9 Ekim 12:06', $this->text($first->querySelector('.definition-history__meta')));
         $this->assertStringContainsString('Zeynep Arslan', $this->text($first->querySelector('.definition-history__meta')));
         $this->assertSame('yeni değer Makine 6', $this->text($first->querySelector('.definition-change-diff__new')));
 

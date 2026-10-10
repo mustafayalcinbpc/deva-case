@@ -15,7 +15,7 @@
         @else
             <x-status-badge :status="$task->status" />
         @endif
-        <span class="cleaning-plan-task__due">Son tarih: <x-datetime :value="$task->due_at" /></span>
+        <span class="cleaning-plan-task__due">Son tarih: <x-datetime :value="$task->due_at" format="list" /></span>
     </span>
 @elseif (! $plan->is_active)
     <span class="cleaning-plan-task cleaning-plan-task--none">—</span>
@@ -23,7 +23,7 @@
     <span class="cleaning-plan-task cleaning-plan-task--next">
         Sonraki görev:
         @if ($plan->last_task_at)
-            <x-datetime :value="$plan->last_task_at->addDays($plan->interval_days)" />
+            <x-datetime :value="$plan->last_task_at->addDays($plan->interval_days)" format="list" />
         @else
             ilk çalışmada
         @endif

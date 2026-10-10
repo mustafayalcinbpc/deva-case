@@ -326,7 +326,7 @@ class WorkOrderManagementTest extends TestCase
         $this->assertSame('2026-10-14T18:30', $page->getElementById('planned_end_at')->getAttribute('value'));
 
         $row = $this->rows($this->page($this->actingAs($this->manager)->get(route('admin.work-orders.index'))))[0];
-        $this->assertSame(['IE-30', '— Ürün: Parasetamol şurup 150 ml', 'Planlandı', '12.10.2026 06:00 – 14.10.2026 18:30'], [$row[0], $row[1], $row[3], $row[4]]);
+        $this->assertSame(['IE-30', '— Ürün: Parasetamol şurup 150 ml', 'Planlandı', '12 Ekim 06:00 – 14 Ekim 18:30'], [$row[0], $row[1], $row[3], $row[4]]);
     }
 
     public function test_planned_end_cannot_be_before_start(): void
@@ -379,7 +379,7 @@ class WorkOrderManagementTest extends TestCase
             ->assertSessionHasErrors(['status' => 'IE-1 Tamamlandı durumunda; Tamamlandı durumuna geçirilemez.']);
         $page = $this->page($this->actingAs($this->manager)->get(route('admin.work-orders.index'))->assertOk());
         $this->assertNull($page->querySelector('.work-order-status-action'));
-        $this->assertStringContainsString('Tamamlandı: 09.10.2026', $this->rows($page)[0][4]);
+        $this->assertStringContainsString('Tamamlandı: 9 Ekim', $this->rows($page)[0][4]);
     }
 
     public function test_planned_work_order_can_be_completed_directly_and_announces_it_once(): void

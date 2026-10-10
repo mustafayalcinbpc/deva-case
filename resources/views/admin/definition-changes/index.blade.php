@@ -117,7 +117,7 @@
                             @foreach ($changes as $change)
                                 <tr id="definition-change-{{ $change->id }}" class="definition-change-list__row">
                                     <td class="text-nowrap definition-change__time">
-                                        <x-datetime :value="$change->occurred_at" format="d.m.Y H:i:s" />
+                                        <x-datetime :value="$change->occurred_at" format="list" />
                                     </td>
                                     <td @class(['definition-change__actor', 'definition-change__actor--system' => $change->actor_id === null])>
                                         {{ $change->actorName() }}

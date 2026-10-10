@@ -283,9 +283,9 @@ class MaterialManagementTest extends TestCase
 
         // SKT sırasıyla; geçmiş ve kullanımdan kaldırılmış lot işaretli.
         $this->assertSame([
-            ['DT-23090', '30.09.2026', '—', 'SKT geçti', '0'],
-            ['DT-24118', '31.05.2027', '01.09.2026', 'Kullanımda', '1'],
-            ['DT-24500', '31.08.2027', '—', 'Kullanımdan kaldırıldı', '0'],
+            ['DT-23090', '30 Eylül', '—', 'SKT geçti', '0'],
+            ['DT-24118', '31 Mayıs 2027', '1 Eylül', 'Kullanımda', '1'],
+            ['DT-24500', '31 Ağustos 2027', '—', 'Kullanımdan kaldırıldı', '0'],
         ], $rows);
         $this->assertNotNull($page->querySelector("#material-lot-{$expired->id} a[href=\"".route('admin.materials.lots.edit', [$material, $expired]).'"]'));
         $this->assertNotNull($page->querySelector("#material-lot-{$recalled->id} form[action=\"".route('admin.materials.lots.activate', [$material, $recalled]).'"]'));

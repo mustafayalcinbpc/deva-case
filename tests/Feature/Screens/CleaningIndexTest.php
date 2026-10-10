@@ -72,14 +72,14 @@ class CleaningIndexTest extends TestCase
         $this->assertStringContainsString('Ahmet Yılmaz', $row);
         $this->assertStringContainsString('Tamamlandı', $row);
         // Zamanlar İstanbul saatiyle: açılış 11:00, başlangıç 11:10, kapanış 11:25.
-        $this->assertStringContainsString('09.10.2026 11:00 09.10.2026 11:10 09.10.2026 11:25', $row);
+        $this->assertStringContainsString('9 Ekim 11:00 9 Ekim 11:10 9 Ekim 11:25', $row);
         $this->assertStringEndsWith('15 dk 00 sn', $row);
 
         $row = $this->rowText($this->rowOf($response, $unplanned));
         $this->assertStringContainsString('Plansız müdahale', $row);
         $this->assertStringContainsString('Ayşe Demir', $row);
         $this->assertStringContainsString('Başlamadı', $row);
-        $this->assertStringEndsWith('Başlamadı 09.10.2026 11:30 — — —', $row, 'Başlamamış kaydın başlangıç, kapanış ve net süresi yok.');
+        $this->assertStringEndsWith('Başlamadı 9 Ekim 11:30 — — —', $row, 'Başlamamış kaydın başlangıç, kapanış ve net süresi yok.');
         $this->assertSame('—', $this->rowText($this->rowOf($response, $unplanned)->querySelector('.field-ref')), 'Plansız müdahalenin saha referansı yok.');
 
         $this->assertStringContainsString('İptal', $this->rowText($this->rowOf($response, $cancelled)));

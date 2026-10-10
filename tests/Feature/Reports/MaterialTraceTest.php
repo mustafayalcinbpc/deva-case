@@ -76,8 +76,8 @@ class MaterialTraceTest extends TestCase
         $this->assertSame('2 giriş', $this->text($this->one($response, '#material-results .card-tools')));
         $this->assertSame(
             [
-                $this->second->record_no.' IST / H01 / M04 Başlamadı 09.10.2026 12:00 — DET-01 — Malzeme DET-01 LOT-2026-A1 31.12.2027 Ahmet 09.10.2026 12:00:00 Geçersiz kılındı: Lot etiketi yanlış okundu Zeynep, 09.10.2026 12:02:00 Denetim raporu',
-                $this->first->record_no.' IST / H01 / M03 Tamamlandı 09.10.2026 11:00 09.10.2026 11:02 DET-01 — Malzeme DET-01 LOT-2026-A1 31.12.2027 Ahmet 09.10.2026 11:00:00 Geçerli Denetim raporu',
+                $this->second->record_no.' IST / H01 / M04 Başlamadı 9 Ekim 12:00 — DET-01 — Malzeme DET-01 LOT-2026-A1 31 Aralık 2027 Ahmet 9 Ekim 12:00 Geçersiz kılındı: Lot etiketi yanlış okundu Zeynep, 9 Ekim 12:02 Denetim raporu',
+                $this->first->record_no.' IST / H01 / M03 Tamamlandı 9 Ekim 11:00 9 Ekim 11:02 DET-01 — Malzeme DET-01 LOT-2026-A1 31 Aralık 2027 Ahmet 9 Ekim 11:00 Geçerli Denetim raporu',
             ],
             $this->texts($response, '#material-results tbody tr'),
         );
