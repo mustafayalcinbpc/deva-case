@@ -2,7 +2,6 @@
 
 namespace App\Services\Cleaning;
 
-use App\Enums\CleaningType;
 use App\Models\Facility;
 use App\Models\Machine;
 use Carbon\CarbonInterface;
@@ -16,10 +15,11 @@ use Illuminate\Support\Facades\DB;
 final class RecordNumberGenerator
 {
     /**
-     * Örn. IST-H01-M03-T-2026-0042. Sıra makine ve yıl bazındadır; planlı ve
-     * plansız kayıtlar aynı sırayı paylaşır.
+     * Örn. IST-H01M03-260042: tesis, hat+makine, yılın son iki hanesi ve dört haneli sıra.
+     * Sıra makine ve yıl bazındadır; planlı ve plansız kayıtlar aynı sırayı paylaşır
+     * (tür numarada yer almaz, kayıtta ayrıca durur).
      */
-    public function recordNo(Machine $machine, CleaningType $type, CarbonInterface $at): string
+    public function recordNo(Machine $machine, CarbonInterface $at): string
     {
         $machine->loadMissing('line.facility');
 
@@ -27,25 +27,32 @@ final class RecordNumberGenerator
         $sequence = $this->next("cleaning:{$machine->id}:{$year}");
 
         return sprintf(
-            '%s-%s-%s-%s-%d-%04d',
+            '%s-%s%s-%s',
             $machine->line->facility->code,
             $machine->line->code,
             $machine->code,
-            $type->code(),
-            $year,
-            $sequence,
+            $this->yearAndSequence($year, $sequence),
         );
     }
 
     /**
-     * Örn. IST-SD-2026-0123. Sıra tesis ve yıl bazındadır.
+     * Örn. IST-SD-260123. Sıra tesis ve yıl bazındadır.
      */
     public function fieldRef(Facility $facility, CarbonInterface $at): string
     {
         $year = $this->localYear($at);
         $sequence = $this->next("field-ref:{$facility->id}:{$year}");
 
-        return sprintf('%s-SD-%d-%04d', $facility->code, $year, $sequence);
+        return sprintf('%s-SD-%s', $facility->code, $this->yearAndSequence($year, $sequence));
+    }
+
+    /**
+     * "26" + "0042". Yıl her zaman iki hanedir; sıra 9999'u aşarsa beş haneye uzar ve numara
+     * yine tekildir (sayaç anahtarı tam yılı tutar).
+     */
+    private function yearAndSequence(int $year, int $sequence): string
+    {
+        return sprintf('%02d%04d', $year % 100, $sequence);
     }
 
     /**

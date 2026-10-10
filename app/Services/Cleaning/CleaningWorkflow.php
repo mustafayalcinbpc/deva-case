@@ -108,7 +108,7 @@ final class CleaningWorkflow
             $lots = array_map(fn (MaterialEntry $entry) => $this->usableLot($entry, $now), $materials);
 
             $cleaning = Cleaning::create([
-                'record_no' => $this->numbers->recordNo($machine, $type, $now),
+                'record_no' => $this->numbers->recordNo($machine, $now),
                 'type' => $type,
                 'status' => CleaningStatus::Created,
                 'facility_id' => $machine->line->facility_id,

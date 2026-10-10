@@ -65,8 +65,8 @@ class ConcurrencyRulesTest extends TestCase
         $this->workflow()->startStep($ahmet, $this->stepOf($ahmets, 1));
 
         $this->assertSame(CleaningStatus::InProgress, $ahmets->fresh()->status);
-        $this->assertSame('IST-SD-2026-0001', $mehmets->fresh()->field_ref);
-        $this->assertSame('IST-SD-2026-0002', $ahmets->fresh()->field_ref);
+        $this->assertSame('IST-SD-260001', $mehmets->fresh()->field_ref);
+        $this->assertSame('IST-SD-260002', $ahmets->fresh()->field_ref);
     }
 
     public function test_paused_record_keeps_holding_the_machine(): void
