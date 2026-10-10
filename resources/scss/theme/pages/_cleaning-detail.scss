@@ -25,42 +25,13 @@
     }
 }
 
-// Sekme çubuğu: görünüm bootstrap/_navs.scss'ten (etkin sekme vurgu alt çizgili, dar ekranda
-// yatay kayar). Sekme düğmeleri dokunmaya uygun yükseklikte.
+// Sekme çubuğu ve paneller: ortak görünüm theme/_components.scss (.section-tabs__*).
 .cleaning-detail__nav {
     margin-top: calc(var(--nc-space-2) * -1);
 }
 
-.cleaning-detail__tab {
-    min-height: 2.75rem;
-}
-
 .cleaning-detail__panes {
-    margin-top: var(--cleaning-detail-gap);
-}
-
-// Paneldeki kartın başlığı sekme adını tekrarlar: ekranda görsel olarak gizli, ekran okuyucuya
-// açık. Yazdırırken sekme çubuğu gizlenir (_shell.scss); bütün paneller başlıklarıyla basılır.
-@media screen {
-    .cleaning-detail__pane > .card > .card-header {
-        @include visually-hidden;
-    }
-}
-
-@media print {
-    .cleaning-detail__pane {
-        display: block !important;
-        opacity: 1 !important;
-    }
-
-    .cleaning-detail__pane + .cleaning-detail__pane {
-        margin-top: var(--cleaning-detail-gap);
-    }
-}
-
-.cleaning-detail__pane:focus-visible {
-    outline: 2px solid var(--nc-focus-ring);
-    outline-offset: 2px;
+    --section-tabs-gap: var(--cleaning-detail-gap);
 }
 
 .cleaning-detail__layout {

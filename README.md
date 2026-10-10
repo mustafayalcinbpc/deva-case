@@ -267,6 +267,7 @@ Yönetim ekranları yalnızca yöneticiye açıktır (`manage-definitions`); ope
   - Kayıt numarasında geçen kodlar, o yere ait ilk temizlik kaydı açıldıktan sonra değiştirilemez (K-17); adlar değiştirilebilir.
   - Açık kaydı olan makine kullanımdan kaldırılamaz (K-16). Kaldırılan makine silinmez, geçmişte görünmeye devam eder.
 - **Prosedürler:**
+  - Prosedür sayfasında Versiyonlar, Özet, Kullanan makineler ve Değişiklik geçmişi sekmelerdedir; her sekme yalnızca kendi bölümünü gösterir (kayıt detayıyla aynı sekme yapısı).
   - Taslak hazırlanır, fazlar ve adımlar düzenlenir (minimum süre, adımlar arası boşluk ayarı, açıklama, fotoğraf/video), sonra hemen ya da ileri bir tarihte yayımlanır.
   - Yayımlanmış versiyon ve fazları/adımları model seviyesinde değiştirilemez (K-15). Açık kayıtlar açıldıkları versiyonla devam eder.
 - **Malzemeler ve iş emirleri:** Malzeme silinmez, kullanımdan kaldırılır; kaldırılan malzeme yeni kayıtlarda seçilemez. İş emri bir hatta ya da makineye bağlanabilir (K-19).

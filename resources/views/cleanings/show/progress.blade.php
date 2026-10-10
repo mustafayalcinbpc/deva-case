@@ -9,7 +9,7 @@
     kapandığı için yapılmayacaksa soluk.
 
     Adım bağlantısı Adımlar sekmesindeki adıma, güncel adımınki Şimdi sekmesine gider
-    (modules/detail-tabs.js). Veri controller'ın yüklediği ilişkilerden gelir; ek sorgu yapılmaz.
+    (modules/section-tabs.js). Veri controller'ın yüklediği ilişkilerden gelir; ek sorgu yapılmaz.
 --}}
 @use('App\Enums\CleaningStatus')
 @use('App\Enums\PhaseStatus')

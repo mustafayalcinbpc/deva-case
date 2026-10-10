@@ -62,7 +62,7 @@ class CleaningDetailTest extends TestCase
         // Operatör (sahip ya da yalnızca görüntüleyen) ve yönetici aynı sekmeleri görür.
         foreach ([$ahmet, $this->operator('İzleyici'), $this->manager()] as $viewer) {
             $page = $this->page($this->show($viewer, $cleaning));
-            $tabs = iterator_to_array($page->querySelectorAll('[data-module~="detail-tabs"] .cleaning-detail__nav [role="tab"]'));
+            $tabs = iterator_to_array($page->querySelectorAll('[data-module~="section-tabs"] .cleaning-detail__nav [role="tab"]'));
 
             $this->assertSame(array_values($sections), array_map(fn (Element $tab) => $this->text($tab), $tabs));
             $this->assertSame(
@@ -74,7 +74,7 @@ class CleaningDetailTest extends TestCase
             $this->assertSame(['true', 'false', 'false', 'false', 'false'], array_map(fn (Element $tab) => $tab->getAttribute('aria-selected'), $tabs));
             $this->assertSame(['pane-now'], array_map(
                 fn (Element $pane) => $pane->id,
-                iterator_to_array($page->querySelectorAll('[data-module~="detail-tabs"] .tab-pane.active')),
+                iterator_to_array($page->querySelectorAll('[data-module~="section-tabs"] .tab-pane.active')),
             ));
 
             foreach (array_keys($sections) as $section) {

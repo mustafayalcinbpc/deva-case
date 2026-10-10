@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin\Procedures;
 
 use App\Models\Machine;
 use App\Models\Procedure;
+use Dom\Element;
 
 /**
  * Prosedür listesi, ekleme, düzenleme ve prosedür sayfası (R-01, R-02, K-15, K-18).
@@ -123,5 +124,59 @@ class ProcedureManagementTest extends ProcedureTestCase
         $this->assertNull($this->page($response)->querySelector('form[action="'.route('admin.procedures.versions.store', $procedure).'"]'));
         $response->assertSee('v4 taslağını düzenle');
         $this->assertStringContainsString('H01 / M03', $this->text($this->one($response, '.procedure-machines')));
+    }
+
+    public function test_procedure_page_sections_are_tabs_and_each_pane_shows_only_its_own_section(): void
+    {
+        $machine = $this->makeMachine([['steps' => 2]], code: 'M03');
+        $procedure = $machine->procedure;
+        $v1 = $procedure->currentVersion();
+        $this->draft($procedure);
+        $sections = ['versions', 'summary', 'machines', 'history'];
+
+        $page = $this->page($this->get(route('admin.procedures.show', $procedure))->assertOk());
+        $tabs = iterator_to_array($page->querySelectorAll('[data-module~="section-tabs"] .procedure-tabs__nav [role="tab"]'));
+
+        // Sekme adı kartın başlığıdır; versiyon ve makine sayısı yanında yazılır.
+        $this->assertSame(['Versiyonlar 2', 'Özet', 'Kullanan makineler 1', 'Değişiklik geçmişi'], array_map(fn (Element $tab) => $this->text($tab), $tabs));
+        $this->assertSame(
+            array_map(fn (string $section) => "#pane-{$section}", $sections),
+            array_map(fn (Element $tab) => $tab->getAttribute('data-bs-target'), $tabs),
+        );
+
+        // Versiyonlar etkin gelir: yayımlama ve taslak silme bu sayfaya döner.
+        $this->assertSame(['true', 'false', 'false', 'false'], array_map(fn (Element $tab) => $tab->getAttribute('aria-selected'), $tabs));
+        $this->assertSame(['pane-versions'], array_map(
+            fn (Element $pane) => $pane->id,
+            iterator_to_array($page->querySelectorAll('[data-module~="section-tabs"] .tab-pane.active')),
+        ));
+
+        foreach ($sections as $section) {
+            $pane = $page->getElementById("pane-{$section}");
+            $this->assertNotNull($pane, "#pane-{$section} yok.");
+            $this->assertSame("tab-{$section}", $pane->getAttribute('aria-labelledby'));
+            $this->assertSame([$section], $this->childIds($pane), "#pane-{$section} yalnızca kendi bölümünü içermeli.");
+            $this->assertCount(1, $page->querySelectorAll("#{$section}"), "#{$section} sayfada bir kez olmalı.");
+        }
+
+        $this->assertNotNull($page->querySelector("#pane-versions #version-{$v1->id}"));
+        $this->assertNotNull($page->querySelector('#pane-summary .procedure-facts'));
+        $this->assertNotNull($page->querySelector('#pane-machines .procedure-machines__item'));
+        $this->assertNotNull($page->querySelector('#pane-history .definition-history'));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function childIds(?Element $element): array
+    {
+        $this->assertNotNull($element);
+        $ids = [];
+
+        for ($child = $element->firstElementChild; $child !== null; $child = $child->nextElementSibling) {
+            $ids[] = $child->id;
+        }
+
+        return $ids;
     }
 }

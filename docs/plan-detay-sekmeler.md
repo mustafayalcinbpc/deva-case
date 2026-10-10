@@ -6,6 +6,10 @@ adımların ilerlemesi kargo takip ekranlarındaki gibi noktadan noktaya göster
 devam eden ve gelecek fazlar/adımlar renkleriyle ayrılsın. Sayfa operatör ve yönetici için aynı
 şablondur; değişiklik iki role de uygulanır.
 
+> Not (10 Ekim 2026): sekme modülü prosedür sayfasında da kullanılmak üzere `section-tabs.js`
+> adını aldı; çubuk ve paneller `<x-section-tabs.nav>` / `<x-section-tabs.pane>` bileşenleri,
+> ortak stiller `theme/_components.scss` (`.section-tabs__*`).
+
 ## Yerleşim
 
 ```
