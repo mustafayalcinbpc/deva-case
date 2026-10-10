@@ -335,6 +335,75 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
     background-color: rgb(22 24 38 / 0.35);
 }
 
+// Mini sidebar (geniş ekran): yalnızca ikonlar görünür. Fare üzerine gelince ya da klavyeyle
+// içine girilince tam genişlikte, içeriği itmeden onun üstüne açılır; çıkınca ikonlara döner.
+// Açılıp kapanma AdminLTE'nin sidebar-mini sidebar-collapse davranışıdır; burada ızgara sütunu
+// mini genişlikte sabitlenir (açılan menü içeriğin üstüne taşar) ve tema boşluklarına uyulur.
+// Başlıktaki menü düğmesi menüyü kalıcı olarak açar (içerik yana kayar) ya da mini hale döndürür.
+@include media-breakpoint-up(lg) {
+    .sidebar-mini.sidebar-collapse {
+        // ikon + bağlantının yatay iç boşluğu + menünün yatay kenar boşluğu
+        --app-sidebar-mini-width: calc(18px + 24px + var(--nc-space-4) * 2);
+
+        .app-wrapper {
+            grid-template-columns: var(--app-sidebar-mini-width) minmax(0, 1fr);
+        }
+
+        .app-sidebar {
+            z-index: $zindex-fixed;
+        }
+
+        // AdminLTE'nin varsayılan boşluklarına göre verdiği sabit genişlik yerine
+        .sidebar-menu .nav-link {
+            width: auto;
+        }
+
+        // Dar hal; fare üzerindeyken ya da odak içerideyken aşağıdaki tam genişlik geçerlidir.
+        .app-sidebar:not(:hover, :focus-within) {
+            min-width: var(--app-sidebar-mini-width);
+            max-width: var(--app-sidebar-mini-width);
+
+            .sidebar-menu .nav-link {
+                gap: 0;
+            }
+
+            .app-brand__text,
+            .sidebar-user__text,
+            .sidebar-user__logout {
+                display: none;
+            }
+        }
+
+        .app-sidebar:hover,
+        .app-sidebar:focus-within {
+            min-width: var(--lte-sidebar-width);
+            max-width: var(--lte-sidebar-width);
+            box-shadow: var(--nc-shadow-lg);
+
+            .sidebar-menu .nav-header {
+                display: block;
+            }
+
+            .sidebar-menu .nav-link p {
+                width: auto;
+                padding-left: 0;
+                visibility: visible;
+            }
+        }
+
+        // AdminLTE hover'da başlıkları satır içi yapar ve etikete ek boşluk verir; tema düzeni korunur.
+        &:not(.sidebar-without-hover) .app-sidebar:hover {
+            .sidebar-menu .nav-header {
+                display: block;
+            }
+
+            .sidebar-menu .nav-link p {
+                padding-left: 0;
+            }
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Sayfa başlığı ve içerik
 // ---------------------------------------------------------------------------------------------
