@@ -193,8 +193,8 @@
                                         <td class="text-nowrap"><a href="{{ route('cleanings.show', $cleaning) }}" class="record-no">{{ $cleaning->record_no }}</a></td>
                                         <td>{{ $cleaning->type->label() }}</td>
                                         <td>{{ $cleaning->owner->name }}</td>
-                                        <td class="text-nowrap"><x-datetime :value="$cleaning->started_at" /></td>
-                                        <td class="text-nowrap"><x-datetime :value="$cleaning->closed_at" /></td>
+                                        <td class="text-nowrap"><x-datetime :value="$cleaning->started_at" format="list" /></td>
+                                        <td class="text-nowrap"><x-datetime :value="$cleaning->closed_at" format="list" /></td>
                                         <td class="text-end text-nowrap"><x-duration :seconds="$cleaning->net_seconds" /></td>
                                         <td class="text-end text-nowrap"><x-duration :seconds="$cleaning->gross_seconds" /></td>
                                         <td class="text-end text-nowrap"><x-duration :seconds="$cleaning->effort_seconds" /></td>

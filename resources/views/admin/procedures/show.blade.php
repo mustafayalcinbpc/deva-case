@@ -80,7 +80,7 @@
                                                     <a href="{{ route('admin.procedures.versions.show', [$procedure, $version]) }}" class="procedure-version">v{{ $version->version }}</a>
                                                 </td>
                                                 <td><x-status-badge :status="$statuses[$version->id]" /></td>
-                                                <td class="text-nowrap"><x-datetime :value="$version->published_at" /></td>
+                                                <td class="text-nowrap"><x-datetime :value="$version->published_at" format="list" /></td>
                                                 <td>{{ $version->material_required ? 'Zorunlu' : 'Zorunlu değil' }}</td>
                                                 <td class="text-end">{{ $version->phases_count }}</td>
                                                 <td class="text-end">{{ $version->steps_count }}</td>
@@ -132,7 +132,7 @@
                             <dt>Geçerli versiyon</dt>
                             <dd>
                                 @if ($current)
-                                    v{{ $current->version }} · <x-datetime :value="$current->published_at" />
+                                    v{{ $current->version }} · <x-datetime :value="$current->published_at" format="list" />
                                 @else
                                     Yok. Yayımlanmış versiyon olmadan bu prosedürü kullanan makinede kayıt açılamaz (K-18).
                                 @endif

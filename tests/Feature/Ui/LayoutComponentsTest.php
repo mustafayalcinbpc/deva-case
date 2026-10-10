@@ -46,6 +46,30 @@ class LayoutComponentsTest extends TestCase
         $this->blade('<x-datetime :value="null" />')->assertSee('—');
     }
 
+    public function test_list_format_is_day_month_and_time_with_the_year_only_when_it_differs(): void
+    {
+        // Listelerde "10 Ekim 16:34"; tam zaman üzerine gelince (title) görünür.
+        $this->travelTo(CarbonImmutable::parse('2026-10-10 12:00:00', 'UTC'));
+
+        $this->blade('<x-datetime :value="$value" format="list" />', ['value' => CarbonImmutable::parse('2026-10-10 13:34:07', 'UTC')])
+            ->assertSee('>10 Ekim 16:34</time>', false)
+            ->assertSee('title="10.10.2026 16:34:07"', false)
+            ->assertSee('datetime="2026-10-10T13:34:07+00:00"', false);
+
+        // Başka yıldan: yıl yazılır. Yerel saatle yılbaşı geçmiş olabilir (UTC 31 Aralık 22:30 = İstanbul 1 Ocak).
+        $this->blade('<x-datetime :value="$value" format="list" />', ['value' => CarbonImmutable::parse('2025-03-03 06:12:00', 'UTC')])
+            ->assertSee('>3 Mart 2025 09:12</time>', false);
+        $this->blade('<x-datetime :value="$value" format="list" />', ['value' => CarbonImmutable::parse('2025-12-31 22:30:00', 'UTC')])
+            ->assertSee('>1 Ocak 01:30</time>', false);
+
+        // Yalnızca tarih (SKT gibi).
+        $this->blade('<x-datetime :value="$value" format="list-date" />', ['value' => CarbonImmutable::parse('2026-12-31')])
+            ->assertSee('>31 Aralık</time>', false)
+            ->assertSee('title="31.12.2026"', false);
+        $this->blade('<x-datetime :value="$value" format="list-date" />', ['value' => CarbonImmutable::parse('2027-05-31')])
+            ->assertSee('>31 Mayıs 2027</time>', false);
+    }
+
     public function test_duration_is_human_readable(): void
     {
         $this->blade('<x-duration :seconds="45" />')->assertSee('45 sn');

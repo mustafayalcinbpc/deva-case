@@ -16,7 +16,7 @@
             @foreach ($changes as $change)
                 <li class="list-group-item definition-history__item" id="definition-history-{{ $change->id }}">
                     <div class="definition-history__meta">
-                        <x-datetime :value="$change->occurred_at" format="d.m.Y H:i" />
+                        <x-datetime :value="$change->occurred_at" format="list" />
                         ·
                         <span @class(['definition-change__actor', 'definition-change__actor--system' => $change->actor_id === null])>{{ $change->actorName() }}</span>
                     </div>

@@ -69,7 +69,7 @@
                                     @endif
                                 </td>
                                 <td class="text-nowrap">
-                                    <x-datetime :value="$task->due_at" />
+                                    <x-datetime :value="$task->due_at" format="list" />
                                     @if ($overdue)
                                         <span class="status-badge status-badge--overdue due-tasks__overdue">Gecikti</span>
                                     @endif

@@ -359,6 +359,7 @@ Arayüz AdminLTE 4 (Bootstrap 5.3) üzerine kuruludur ve Vite + Sass ile derleni
 - Üst barda breadcrumb, tema düğmesi ve bildirim zili.
 - KPI kartları, etiket rozetleri, kenarlara doğru solan tablo ayırıcıları.
 - Inter yazı tipi.
+- Listelerde tarihler kısa biçimdedir: "10 Ekim 16:34" (SKT gibi saatsiz tarihler "31 Mayıs 2027"); yıl yalnızca bu yıldan değilse yazılır, tam zaman üzerine gelince görünür (`<x-datetime format="list">`). Kayıt detayı, olay geçmişi ve denetim raporu saniyeli tam zamanı gösterir.
 
 **Açık ve koyu tema.** İkisi de yalnızca token değerleriyle değişir. Seçim tarayıcıda saklanır; ilk açılışta işletim sisteminin tercihi kullanılır. Tema, sayfa çizilmeden önce uygulandığı için yanıp sönme olmaz.
 

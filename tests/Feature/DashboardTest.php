@@ -135,14 +135,14 @@ class DashboardTest extends TestCase
         $this->assertStringContainsString('Plansız müdahale', $row);
         $this->assertStringContainsString('Ayşe Demir', $row);
         $this->assertStringContainsString('Başlamadı', $row);
-        $this->assertStringContainsString('09.10.2026 11:30', $row, 'Açılış zamanı İstanbul saatiyle gösterilmeli.');
+        $this->assertStringContainsString('9 Ekim 11:30', $row, 'Açılış zamanı İstanbul saatiyle gösterilmeli.');
 
         $row = $this->rowText($this->rowOf($response, $inProgress));
         $this->assertStringContainsString('IST / H01 / M04', $row);
         $this->assertStringContainsString('Planlı temizlik', $row);
         $this->assertStringContainsString('Ahmet Yılmaz', $row);
         $this->assertStringContainsString('Devam ediyor', $row);
-        $this->assertStringContainsString('09.10.2026 11:40', $row, 'Başlangıç zamanı gösterilmeli.');
+        $this->assertStringContainsString('9 Ekim 11:40', $row, 'Başlangıç zamanı gösterilmeli.');
     }
 
     public function test_records_with_the_newest_activity_come_first(): void

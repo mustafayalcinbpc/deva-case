@@ -61,7 +61,7 @@
                                     <td class="text-end text-nowrap"><x-duration :seconds="max(0, $minimum - $measured)" /></td>
                                     <td>{{ $phase->deviation_reason }}</td>
                                     <td>{{ $phase->closedBy?->name ?? '—' }}</td>
-                                    <td class="text-nowrap"><x-datetime :value="$phase->completed_at" format="d.m.Y H:i:s" /></td>
+                                    <td class="text-nowrap"><x-datetime :value="$phase->completed_at" format="list" /></td>
                                     <td class="text-end text-nowrap">
                                         <a href="{{ route('reports.audit', $cleaning) }}">
                                             <i class="bi bi-file-earmark-text" aria-hidden="true"></i> Denetim raporu
@@ -123,10 +123,10 @@
                                     <td class="text-nowrap"><a href="{{ route('cleanings.show', $cleaning) }}" class="record-no">{{ $cleaning->record_no }}</a></td>
                                     <td class="text-nowrap" title="{{ $cleaning->facility->name }} / {{ $cleaning->line->name }} / {{ $cleaning->machine->name }}">{{ $cleaning->facility->code }} / {{ $cleaning->line->code }} / {{ $cleaning->machine->code }}</td>
                                     <td>{{ $slice->step->sequence }}. {{ $slice->step->procedureStep->title }}</td>
-                                    <td class="text-nowrap"><x-datetime :value="$slice->started_at" format="d.m.Y H:i:s" /></td>
+                                    <td class="text-nowrap"><x-datetime :value="$slice->started_at" format="list" /></td>
                                     <td class="text-nowrap">
                                         @if ($slice->ended_at)
-                                            <x-datetime :value="$slice->ended_at" format="d.m.Y H:i:s" />
+                                            <x-datetime :value="$slice->ended_at" format="list" />
                                         @else
                                             <strong>Devam ediyor</strong>
                                         @endif

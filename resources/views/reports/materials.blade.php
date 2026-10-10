@@ -85,8 +85,8 @@
                                         <td class="text-nowrap"><a href="{{ route('cleanings.show', $cleaning) }}" class="record-no">{{ $cleaning->record_no }}</a></td>
                                         <td class="text-nowrap" title="{{ $cleaning->facility->name }} / {{ $cleaning->line->name }} / {{ $cleaning->machine->name }}">{{ $cleaning->facility->code }} / {{ $cleaning->line->code }} / {{ $cleaning->machine->code }}</td>
                                         <td><x-status-badge :status="$cleaning->status" /></td>
-                                        <td class="text-nowrap"><x-datetime :value="$cleaning->created_at" /></td>
-                                        <td class="text-nowrap"><x-datetime :value="$cleaning->closed_at" /></td>
+                                        <td class="text-nowrap"><x-datetime :value="$cleaning->created_at" format="list" /></td>
+                                        <td class="text-nowrap"><x-datetime :value="$cleaning->closed_at" format="list" /></td>
                                         <td>{{ $item->material->code }} — {{ $item->material->name }}</td>
                                         <td class="material-trace__lot">
                                             <span class="text-nowrap">{{ $item->lot_no }}</span>
@@ -101,17 +101,17 @@
                                                 @endif
                                             @endif
                                         </td>
-                                        <td class="text-nowrap"><time datetime="{{ $item->expiry_date->toDateString() }}">{{ $item->expiry_date->format('d.m.Y') }}</time></td>
+                                        <td class="text-nowrap"><x-datetime :value="$item->expiry_date" format="list-date" /></td>
                                         <td>
                                             {{ $item->addedBy?->name ?? '—' }}<br>
-                                            <small><x-datetime :value="$item->created_at" format="d.m.Y H:i:s" /></small>
+                                            <small><x-datetime :value="$item->created_at" format="list" /></small>
                                         </td>
                                         <td>
                                             @if ($item->voided_at === null)
                                                 Geçerli
                                             @else
                                                 <strong>Geçersiz kılındı</strong>: {{ $item->void_reason }}<br>
-                                                <small>{{ $item->voidedBy?->name ?? '—' }}, <x-datetime :value="$item->voided_at" format="d.m.Y H:i:s" /></small>
+                                                <small>{{ $item->voidedBy?->name ?? '—' }}, <x-datetime :value="$item->voided_at" format="list" /></small>
                                             @endif
                                         </td>
                                         <td class="text-end text-nowrap">

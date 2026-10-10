@@ -33,10 +33,10 @@
                                 'admin-list__row--inactive' => ! $lot->is_active || $lot->isExpiredOn(now()),
                             ])>
                                 <td class="text-nowrap"><span class="record-no">{{ $lot->lot_no }}</span></td>
-                                <td class="text-nowrap"><time datetime="{{ $lot->expiry_date->toDateString() }}">{{ $lot->expiry_date->format('d.m.Y') }}</time></td>
+                                <td class="text-nowrap"><x-datetime :value="$lot->expiry_date" format="list-date" /></td>
                                 <td class="text-nowrap">
                                     @if ($lot->received_at)
-                                        <time datetime="{{ $lot->received_at->toDateString() }}">{{ $lot->received_at->format('d.m.Y') }}</time>
+                                        <x-datetime :value="$lot->received_at" format="list-date" />
                                     @else
                                         —
                                     @endif

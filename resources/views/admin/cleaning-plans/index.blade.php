@@ -52,7 +52,7 @@
                                     </td>
                                     <td>@include('admin.cleaning-plans.rule', ['plan' => $plan])</td>
                                     <td>@include('admin.cleaning-plans.active-task', ['plan' => $plan])</td>
-                                    <td class="text-nowrap"><x-datetime :value="$plan->last_task_at" /></td>
+                                    <td class="text-nowrap"><x-datetime :value="$plan->last_task_at" format="list" /></td>
                                     <td class="text-nowrap">
                                         @if ($plan->is_active)
                                             <span class="status-badge status-badge--active">Kullanımda</span>

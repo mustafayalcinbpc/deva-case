@@ -49,13 +49,13 @@
                                     <td class="procedure-list__current">
                                         @if ($current = $procedure->currentPublishedVersion)
                                             <a href="{{ route('admin.procedures.versions.show', [$procedure, $current]) }}" class="procedure-version">v{{ $current->version }}</a>
-                                            <small class="procedure-list__meta"><x-datetime :value="$current->published_at" /></small>
+                                            <small class="procedure-list__meta"><x-datetime :value="$current->published_at" format="list" /></small>
                                         @else
                                             <span class="procedure-list__meta">Yayında versiyon yok</span>
                                         @endif
                                         @if ($upcoming = $procedure->upcomingVersion)
                                             <small class="procedure-list__meta d-block">
-                                                v{{ $upcoming->version }}: <x-datetime :value="$upcoming->published_at" /> itibarıyla
+                                                v{{ $upcoming->version }}: <x-datetime :value="$upcoming->published_at" format="list" /> itibarıyla
                                             </small>
                                         @endif
                                     </td>
