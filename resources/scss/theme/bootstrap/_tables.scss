@@ -1,11 +1,12 @@
-// Tablolar: küçük, büyük harfli, aralıklı başlıklar; hücre kenarlığı yerine satır altında
-// kenarları solan çizgi; üzerine gelince hafif zemin.
+// Tablolar: zeminli başlık satırında küçük, büyük harfli, aralıklı başlıklar; satırlar arasında
+// tam genişlikte ince çizgi; üzerine gelince vurgu tonunda zemin. Hücrede ikincil bilgi
+// (.cell-sub) ana bilginin altında soluk ve küçük yazılır.
 
 .table {
     --bs-table-bg: transparent;
     --bs-table-color: var(--nc-text);
-    --bs-table-border-color: var(--nc-row-divider);
-    --bs-table-hover-bg: var(--nc-row-hover);
+    --bs-table-border-color: var(--app-table-divider);
+    --bs-table-hover-bg: var(--app-table-hover-bg);
     --bs-table-hover-color: var(--nc-text);
     --bs-table-striped-bg: color-mix(in srgb, var(--nc-text) 3%, transparent);
     --bs-table-striped-color: var(--nc-text);
@@ -15,16 +16,12 @@
     font-size: .875rem;
 
     > :not(caption) > * > * {
-        padding: var(--nc-space-3) var(--nc-space-2);
+        padding: var(--nc-space-4) var(--nc-space-3);
         border-bottom-width: 0;
     }
 
-    > thead > tr {
-        background: var(--nc-fade-line) no-repeat bottom / 100% 1px;
-    }
-
-    > tbody > tr {
-        background: var(--nc-fade-line-soft) no-repeat bottom / 100% 1px;
+    > tbody > tr:not(:last-child) > * {
+        border-bottom: 1px solid var(--app-table-divider);
     }
 
     > tfoot > tr {
@@ -33,13 +30,17 @@
 
     > thead th,
     > thead td {
+        --bs-table-bg: var(--app-table-head-bg);
+
+        padding-block: var(--nc-space-3);
         font-size: .6875rem;
-        font-weight: 500;
-        color: color-mix(in srgb, var(--nc-text) 62%, transparent);
+        font-weight: 600;
+        color: var(--app-table-head-fg);
         text-transform: uppercase;
         letter-spacing: .08em;
         white-space: nowrap;
         vertical-align: bottom;
+        border-bottom: 1px solid var(--nc-divider);
     }
 
     > tbody > tr > th {
@@ -67,9 +68,14 @@
         }
     }
 
-    .card-header + .card-body.p-0 & > thead > tr > * {
-        padding-top: var(--nc-space-1);
-    }
+}
+
+// Hücrede ana bilginin altındaki ikincil bilgi (ör. kayıt no altında tür ve saha referansı).
+.cell-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: .8125rem;
+    color: var(--nc-text-muted);
 }
 
 .table-sm > :not(caption) > * > * {

@@ -2,11 +2,17 @@
     Üretim iş emrinin durum düğmeleri (K-19, K-20): gerçekte ERP bildirir, demoda yönetici yapar.
     "Tamamlandı" makinedeki "üretim iş emri tamamlanınca" kurallı planların görevine vakit verir
     (K-24); onay ortak pencerede sorulur (<x-confirm-modal>).
-    $size: isteğe bağlı buton boyutu sınıfı (ör. btn-sm).
+    $size: isteğe bağlı buton boyutu sınıfı (ör. btn-sm). $nextOnly: yalnızca sıradaki adım (liste
+    satırı); planlanmış emir için "Üretime al", üretimdeki için "Tamamla".
 --}}
 @use('App\Enums\WorkOrderStatus')
 
-@if ($workOrder->status->canTransitionTo(WorkOrderStatus::InProduction))
+@php
+    $canStart = $workOrder->status->canTransitionTo(WorkOrderStatus::InProduction);
+    $canComplete = $workOrder->status->canTransitionTo(WorkOrderStatus::Completed) && ! (($nextOnly ?? false) && $canStart);
+@endphp
+
+@if ($canStart)
     <form method="POST" action="{{ route('admin.work-orders.start', $workOrder) }}" class="d-inline work-order-status-action work-order-status-action--start" data-module="submit-once">
         @csrf
         <button type="submit" @class(['btn', 'btn-outline-secondary', $size ?? null])>
@@ -15,7 +21,7 @@
         </button>
     </form>
 @endif
-@if ($workOrder->status->canTransitionTo(WorkOrderStatus::Completed))
+@if ($canComplete)
     <form method="POST" action="{{ route('admin.work-orders.complete', $workOrder) }}" class="d-inline work-order-status-action work-order-status-action--complete"
           data-module="confirm-submit submit-once"
           data-confirm-title="Üretim iş emrini tamamla"
@@ -23,7 +29,7 @@
           data-confirm-accept="Tamamla">
         @csrf
         <button type="submit" @class(['btn', 'btn-outline-primary', $size ?? null])>
-            <i class="bi bi-check2-square" aria-hidden="true"></i> Tamamlandı
+            <i class="bi bi-check2-square" aria-hidden="true"></i> Tamamla
             <span class="visually-hidden">{{ $workOrder->code }}</span>
         </button>
     </form>

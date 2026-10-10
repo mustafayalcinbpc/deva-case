@@ -13,7 +13,10 @@
 {{--
     K-19: üretim iş emri bir makineye, bir hatta ya da hiçbirine bağlıdır. Hat filtresi o hatta bağlı
     üretim iş emirlerini ve hattın makinelerine bağlı olanları gösterir. Durum ERP yerine satırdaki
-    düğmelerle değişir; tamamlanma temizlik planlarını tetikler (K-20).
+    düğmeyle değişir: satırda yalnızca sıradaki adım (Üretime al / Tamamla) görünür, planlanmış
+    emri doğrudan tamamlamak düzenleme ekranındadır; tamamlanma temizlik planlarını tetikler (K-20).
+    Liste sade tutulur: açıklama kodun, tamamlanma anı durumun altında; kullanıldığı kayıt sayısı
+    düzenleme ekranındadır.
 --}}
 @section('content')
     @if ($errors->has('status'))
@@ -96,44 +99,44 @@
         @else
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0 admin-list__table">
+                    <table class="table table-hover align-middle mb-0 admin-list__table work-order-list__table">
                         <thead>
                             <tr>
-                                <th scope="col">Kod</th>
-                                <th scope="col">Açıklama</th>
-                                <th scope="col">Bağlantı</th>
+                                <th scope="col">Üretim iş emri</th>
+                                <th scope="col">Makine / hat</th>
                                 <th scope="col">Durum</th>
-                                <th scope="col">Planlanan zaman</th>
-                                <th scope="col" class="text-end" title="Üretim iş emrinin seçildiği temizlik kaydı sayısı">Kullanıldığı kayıt</th>
+                                <th scope="col">Plan</th>
                                 <th scope="col"><span class="visually-hidden">İşlemler</span></th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($workOrders as $workOrder)
+                                @php
+                                    $summary = filled($workOrder->description) ? $workOrder->description : $workOrder->product;
+                                @endphp
                                 <tr id="work-order-{{ $workOrder->id }}" class="admin-list__row">
-                                    <td class="text-nowrap">
-                                        <a href="{{ route('admin.work-orders.edit', $workOrder) }}" class="record-no">{{ $workOrder->code }}</a>
-                                    </td>
                                     <td>
-                                        @if (filled($workOrder->description))
-                                            {{ $workOrder->description }}
-                                        @else
-                                            —
-                                        @endif
-                                        @if (filled($workOrder->product))
-                                            <span class="work-order-list__product d-block">Ürün: {{ $workOrder->product }}</span>
+                                        <a href="{{ route('admin.work-orders.edit', $workOrder) }}" class="record-no text-nowrap">{{ $workOrder->code }}</a>
+                                        @if (filled($summary))
+                                            <span class="cell-sub work-order-list__summary" @if (filled($workOrder->product)) title="Ürün: {{ $workOrder->product }}" @endif>{{ $summary }}</span>
                                         @endif
                                     </td>
                                     <td class="text-nowrap">@include('admin.work-orders.binding', ['workOrder' => $workOrder])</td>
-                                    <td class="text-nowrap"><x-status-badge :status="$workOrder->status" /></td>
+                                    <td class="text-nowrap">
+                                        <x-status-badge :status="$workOrder->status" />
+                                        @if ($workOrder->completed_at)
+                                            <span class="cell-sub work-order-list__completed"><x-datetime :value="$workOrder->completed_at" format="list" /></span>
+                                        @endif
+                                    </td>
                                     <td class="text-nowrap">@include('admin.work-orders.schedule', ['workOrder' => $workOrder])</td>
-                                    <td class="text-end">{{ $workOrder->cleanings_count }}</td>
-                                    <td class="text-end text-nowrap admin-list__actions">
-                                        @include('admin.work-orders.status-actions', ['workOrder' => $workOrder, 'size' => 'btn-sm'])
-                                        <a href="{{ route('admin.work-orders.edit', $workOrder) }}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="bi bi-pencil" aria-hidden="true"></i> Düzenle
-                                            <span class="visually-hidden">{{ $workOrder->code }}</span>
-                                        </a>
+                                    <td class="text-end text-nowrap">
+                                        <span class="admin-list__actions">
+                                            @include('admin.work-orders.status-actions', ['workOrder' => $workOrder, 'size' => 'btn-sm', 'nextOnly' => true])
+                                            <a href="{{ route('admin.work-orders.edit', $workOrder) }}" class="btn btn-sm btn-outline-secondary" title="Düzenle">
+                                                <i class="bi bi-pencil" aria-hidden="true"></i>
+                                                <span class="visually-hidden">{{ $workOrder->code }} düzenle</span>
+                                            </a>
+                                        </span>
                                     </td>
                                 </tr>
                             @endforeach
