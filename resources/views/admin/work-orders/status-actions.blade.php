@@ -1,6 +1,7 @@
 {{--
     Üretim iş emrinin durum düğmeleri (K-19, K-20): gerçekte ERP bildirir, demoda yönetici yapar.
-    "Tamamlandı" makinedeki "üretim iş emri tamamlanınca" kurallı planlara görev açtırır.
+    "Tamamlandı" makinedeki "üretim iş emri tamamlanınca" kurallı planların görevine vakit verir
+    (K-24); onay ortak pencerede sorulur (<x-confirm-modal>).
     $size: isteğe bağlı buton boyutu sınıfı (ör. btn-sm).
 --}}
 @use('App\Enums\WorkOrderStatus')
@@ -17,7 +18,9 @@
 @if ($workOrder->status->canTransitionTo(WorkOrderStatus::Completed))
     <form method="POST" action="{{ route('admin.work-orders.complete', $workOrder) }}" class="d-inline work-order-status-action work-order-status-action--complete"
           data-module="confirm-submit submit-once"
-          data-confirm="{{ $workOrder->code }} tamamlandı olarak işaretlenecek; bu geri alınamaz. Makinede bu tetiğe bağlı temizlik planı varsa yapılması gereken temizlik görevi açılır. Devam edilsin mi?">
+          data-confirm-title="Üretim iş emrini tamamla"
+          data-confirm="{{ $workOrder->code }} tamamlandı olarak işaretlenecek; bu geri alınamaz. Makinede bu tetiğe bağlı temizlik planı varsa temizlik görevinin vakti gelir ve personel görevden kayıt açabilir. Devam edilsin mi?"
+          data-confirm-accept="Tamamla">
         @csrf
         <button type="submit" @class(['btn', 'btn-outline-primary', $size ?? null])>
             <i class="bi bi-check2-square" aria-hidden="true"></i> Tamamlandı
