@@ -279,9 +279,11 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
         font-size: 1.0625rem;
     }
 
-    // Açılır grup: başlığı tam genişlikte bir düğme; ok açıkken döner (AdminLTE).
-    .nav-group__toggle {
+    // Açılır grup: başlığı tam genişlikte bir düğme; ok açıkken döner (AdminLTE). Ok sağda mutlak
+    // konumlu olduğundan yazı okun altına girmesin diye sağda ok kadar yer bırakılır.
+    .nav-item > .nav-group__toggle {
         width: 100%;
+        padding-right: calc(1rem + 1em + 4px);
         text-align: start;
     }
 
@@ -369,9 +371,12 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
             z-index: $zindex-fixed;
         }
 
-        // AdminLTE'nin varsayılan boşluklarına göre verdiği sabit genişlik yerine
-        .sidebar-menu .nav-link {
-            width: auto;
+        // AdminLTE dar halde bağlantıya varsayılan boşluklarına göre sabit, hover'da auto genişlik
+        // verir; <button> olan grup başlığı auto'da yazısı kadar daralır ve sağdaki ok yazının üstüne
+        // biner. Bağlantılar her durumda menünün iç genişliğini doldurur.
+        .sidebar-menu .nav-link,
+        &:not(.sidebar-without-hover) .app-sidebar:hover .sidebar-menu .nav-link {
+            width: 100%;
         }
 
         // Dar hal; fare üzerindeyken ya da odak içerideyken aşağıdaki tam genişlik geçerlidir.
@@ -381,6 +386,11 @@ $app-header-height: 3.5625rem; // 57px: 36px buton + 2 × 10.5px
 
             .sidebar-menu .nav-link {
                 gap: 0;
+            }
+
+            // Dar halde ok gizli; grup ikonu diğer ikonlarla aynı hizada.
+            .sidebar-menu .nav-item > .nav-group__toggle {
+                padding-right: 12px;
             }
 
             // Dar halde yalnızca ana ikonlar; açık grubun öğeleri de (treeview satır içi
