@@ -198,7 +198,7 @@ class RecordingTest extends DefinitionChangesTestCase
         $this->assertChange('updated', ['code' => ['DET-09', 'DET-10']], $updated);
         $this->assertSame('DET-10', $updated->subject_label);
 
-        // Makineye bağlanan iş emrinin hattı makineden gelir; ikisinin kısa adı da saklanır.
+        // Makineye bağlanan üretim iş emrinin hattı makineden gelir; ikisinin kısa adı da saklanır.
         $this->post(route('admin.work-orders.store'), ['code' => 'IE-1', 'machine_id' => $machine->id, 'description' => 'Parti 1'])->assertRedirect();
         $workOrder = WorkOrder::where('code', 'IE-1')->firstOrFail();
         $this->put(route('admin.work-orders.update', $workOrder), ['code' => 'IE-1', 'description' => 'Parti 2'])->assertRedirect();
@@ -209,6 +209,7 @@ class RecordingTest extends DefinitionChangesTestCase
             'description' => [null, 'Parti 1'],
             'line_id' => [null, $machine->line_id],
             'machine_id' => [null, $machine->id],
+            'status' => [null, 'planned'],
         ], $created);
         $this->assertSame('IST / H01', $created->fields['line_id']['new_label']);
         $this->assertSame('IST / H01 / M01', $created->fields['machine_id']['new_label']);

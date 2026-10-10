@@ -1,27 +1,27 @@
 @extends('layouts.app')
 
-@section('title', 'İş Emirleri')
-@section('page-title', 'İş Emirleri')
-@section('page-subtitle', 'Üretim iş emirleri kayıt açılırken isteğe bağlı olarak seçilir; makineye ya da hatta bağlı iş emri yalnızca orada kullanılabilir.')
+@section('title', 'Üretim İş Emirleri')
+@section('page-title', 'Üretim İş Emirleri')
+@section('page-subtitle', 'Üretim iş emirleri kayıt açılırken isteğe bağlı olarak seçilir; makineye ya da hatta bağlı üretim iş emri yalnızca orada kullanılabilir.')
 
 @section('page-actions')
     <a href="{{ route('admin.work-orders.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-circle" aria-hidden="true"></i> Yeni iş emri
+        <i class="bi bi-plus-circle" aria-hidden="true"></i> Yeni üretim iş emri
     </a>
 @endsection
 
 {{--
-    K-19: iş emri bir makineye, bir hatta ya da hiçbirine bağlıdır. Hat filtresi o hatta bağlı
-    iş emirlerini ve hattın makinelerine bağlı olanları gösterir.
+    K-19: üretim iş emri bir makineye, bir hatta ya da hiçbirine bağlıdır. Hat filtresi o hatta bağlı
+    üretim iş emirlerini ve hattın makinelerine bağlı olanları gösterir.
 --}}
 @section('content')
     <section class="card admin-list work-order-list" aria-labelledby="work-order-list-title">
         <div class="card-header">
-            <h2 class="card-title" id="work-order-list-title">İş emirleri</h2>
+            <h2 class="card-title" id="work-order-list-title">Üretim iş emirleri</h2>
         </div>
 
         <div class="card-body border-bottom admin-list__filters">
-            <form method="GET" action="{{ route('admin.work-orders.index') }}" class="row g-3 align-items-end admin-filters" role="search" aria-label="İş emirlerini filtrele">
+            <form method="GET" action="{{ route('admin.work-orders.index') }}" class="row g-3 align-items-end admin-filters" role="search" aria-label="Üretim iş emirlerini filtrele">
                 <div class="col-12 col-md-4">
                     <label for="filter-q" class="form-label">Ara</label>
                     <input type="search" id="filter-q" name="q" value="{{ $filters['q'] }}" class="form-control" placeholder="Kod ya da açıklama">
@@ -72,9 +72,9 @@
             <div class="card-body">
                 <p class="empty-state mb-0">
                     @if ($isFiltered)
-                        Filtreye uyan iş emri yok.
+                        Filtreye uyan üretim iş emri yok.
                     @else
-                        Henüz iş emri tanımlanmadı.
+                        Henüz üretim iş emri tanımlanmadı.
                     @endif
                 </p>
             </div>
@@ -87,7 +87,7 @@
                                 <th scope="col">Kod</th>
                                 <th scope="col">Açıklama</th>
                                 <th scope="col">Bağlantı</th>
-                                <th scope="col" class="text-end" title="İş emrinin seçildiği temizlik kaydı sayısı">Kullanıldığı kayıt</th>
+                                <th scope="col" class="text-end" title="Üretim iş emrinin seçildiği temizlik kaydı sayısı">Kullanıldığı kayıt</th>
                                 <th scope="col"><span class="visually-hidden">İşlemler</span></th>
                             </tr>
                         </thead>

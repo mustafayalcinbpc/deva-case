@@ -21,14 +21,15 @@ trait BuildsCleaningFixtures
      * IST tesisi / H01 hattında bir makine ve ona bağlı, yayımlanmış v1 prosedürü oluşturur.
      *
      * @param  list<array{steps?: int, min_seconds?: int, include_gaps?: bool}>  $phases
+     * @param  list<array{0: Material, 1: bool}>  $materials  beklenen malzemeler: [malzeme, zorunlu mu] (K-13)
      */
-    protected function makeMachine(array $phases = [['steps' => 2]], bool $materialRequired = false, string $code = 'M03'): Machine
+    protected function makeMachine(array $phases = [['steps' => 2]], bool $materialRequired = false, string $code = 'M03', array $materials = []): Machine
     {
         $facility = Facility::firstOrCreate(['code' => 'IST'], ['name' => 'İstanbul Tesisi']);
         $line = Line::firstOrCreate(['facility_id' => $facility->id, 'code' => 'H01'], ['name' => 'Hat 1']);
         $procedure = Procedure::create(['code' => "PRC-{$code}", 'name' => "{$code} temizlik prosedürü"]);
 
-        $this->publishVersion($procedure, $phases, $materialRequired);
+        $this->publishVersion($procedure, $phases, $materialRequired, materials: $materials);
 
         return Machine::create([
             'line_id' => $line->id,
@@ -45,14 +46,26 @@ trait BuildsCleaningFixtures
      * `step_attributes` adım sırasına (1..N) göre adımın alanlarını verir, ör.
      * `[1 => ['media_path' => 'procedures/sokme.jpg', 'description' => '...']]`.
      *
+     * `$materials` beklenen malzemelerdir ([malzeme, zorunlu mu]); zorunlu biri varsa
+     * material_required da açılır (K-13).
+     *
      * @param  list<array{steps?: int, min_seconds?: int, include_gaps?: bool, step_attributes?: array<int, array<string, mixed>>}>  $phases
+     * @param  list<array{0: Material, 1: bool}>  $materials
      */
-    protected function publishVersion(Procedure $procedure, array $phases, bool $materialRequired = false, ?CarbonInterface $publishedAt = null): ProcedureVersion
+    protected function publishVersion(Procedure $procedure, array $phases, bool $materialRequired = false, ?CarbonInterface $publishedAt = null, array $materials = []): ProcedureVersion
     {
         $version = $procedure->versions()->create([
             'version' => ($procedure->versions()->max('version') ?? 0) + 1,
-            'material_required' => $materialRequired,
+            'material_required' => $materialRequired || in_array(true, array_column($materials, 1), true),
         ]);
+
+        foreach ($materials as $index => [$material, $required]) {
+            $version->materials()->create([
+                'material_id' => $material->id,
+                'sequence' => $index + 1,
+                'is_required' => $required,
+            ]);
+        }
 
         foreach (array_values($phases) as $index => $phase) {
             $procedurePhase = $version->phases()->create([

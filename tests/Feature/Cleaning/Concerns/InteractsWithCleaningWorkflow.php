@@ -11,6 +11,7 @@ use App\Models\CleaningPhase;
 use App\Models\CleaningStep;
 use App\Models\Machine;
 use App\Models\Material;
+use App\Models\MaterialLot;
 use App\Models\User;
 use App\Models\WorkSlice;
 use App\Services\Cleaning\CleaningEventRecorder;
@@ -55,9 +56,20 @@ trait InteractsWithCleaningWorkflow
         return $this->workflow()->open($owner, $machine, $type, $this->ids(...$helpers), $materials);
     }
 
+    /**
+     * Malzemenin lotu (yoksa tanımlanır) ve onu seçen giriş (K-14).
+     */
     protected function entry(Material $material, string $lotNo = 'LOT-001', string $expiryDate = '2027-12-31'): MaterialEntry
     {
-        return new MaterialEntry($material->id, $lotNo, $expiryDate);
+        return new MaterialEntry($this->lot($material, $lotNo, $expiryDate)->id);
+    }
+
+    protected function lot(Material $material, string $lotNo = 'LOT-001', string $expiryDate = '2027-12-31'): MaterialLot
+    {
+        return MaterialLot::query()->firstOrCreate(
+            ['material_id' => $material->id, 'lot_no' => $lotNo],
+            ['expiry_date' => $expiryDate],
+        );
     }
 
     /**

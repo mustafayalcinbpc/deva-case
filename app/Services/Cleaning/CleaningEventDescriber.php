@@ -48,7 +48,7 @@ final class CleaningEventDescriber
                 $text('Tür', CleaningType::tryFrom((string) ($payload['type'] ?? ''))?->label()),
                 $text('Prosedür', "{$version->procedure->code} — {$version->procedure->name} (versiyon {$version->version})"),
                 $text('Yardımcı personel', $people('helper_ids')),
-                $text('İş emri', ($payload['work_order_id'] ?? null) !== null ? $cleaning->workOrder?->code : null),
+                $text('Üretim iş emri', ($payload['work_order_id'] ?? null) !== null ? $cleaning->workOrder?->code : null),
             ]],
             'cleaning.started' => ['Temizlik başladı (ilk adım başlatıldı)', [
                 $text('Saha defteri referansı', $payload['field_ref'] ?? null),

@@ -19,7 +19,7 @@ use Tests\TestCase;
 
 /**
  * Üretim iş emirleri (K-19): bir hatta, bir makineye ya da hiçbirine bağlıdır. Makineye bağlı iş
- * emri o makinenin hattına da bağlıdır. Kayıtlarda kullanılan iş emrinin kodu ve bağlantısı değişmez.
+ * emri o makinenin hattına da bağlıdır. Kayıtlarda kullanılan üretim iş emrinin kodu ve bağlantısı değişmez.
  */
 class WorkOrderManagementTest extends TestCase
 {
@@ -83,7 +83,7 @@ class WorkOrderManagementTest extends TestCase
 
         $page = $this->page($this->actingAs($this->manager)->get(route('admin.work-orders.index'))
             ->assertOk()
-            ->assertSee('<title>İş Emirleri', false));
+            ->assertSee('<title>Üretim İş Emirleri', false));
 
         $this->assertSame([
             ['IE-1', 'Şurup dolum', 'Makine IST / H01 / M01', '1'],
@@ -105,7 +105,7 @@ class WorkOrderManagementTest extends TestCase
 
         $this->actingAs($this->manager)->get(route('admin.work-orders.index', ['q' => 'yok']))
             ->assertOk()
-            ->assertSee('Filtreye uyan iş emri yok.');
+            ->assertSee('Filtreye uyan üretim iş emri yok.');
     }
 
     public function test_work_order_is_created_bound_to_a_machine_a_line_or_nothing(): void
@@ -123,7 +123,7 @@ class WorkOrderManagementTest extends TestCase
         // Makine seçilince hat makineden gelir.
         $this->actingAs($this->manager)->post(route('admin.work-orders.store'), [
             'code' => 'IE-10', 'description' => 'Şurup dolum', 'line_id' => '', 'machine_id' => $this->m01->id,
-        ])->assertRedirect(route('admin.work-orders.index'))->assertSessionHas('status', 'İş emri eklendi: IE-10');
+        ])->assertRedirect(route('admin.work-orders.index'))->assertSessionHas('status', 'Üretim iş emri eklendi: IE-10');
 
         // Makine ve kendi hattı birlikte seçilebilir.
         $this->actingAs($this->manager)->post(route('admin.work-orders.store'), [
@@ -167,7 +167,7 @@ class WorkOrderManagementTest extends TestCase
         WorkOrder::create(['code' => 'IE-1']);
 
         $this->actingAs($this->manager)->from(route('admin.work-orders.create'))->post(route('admin.work-orders.store'), [])
-            ->assertSessionHasErrors(['code' => 'iş emri kodu zorunludur.']);
+            ->assertSessionHasErrors(['code' => 'üretim iş emri kodu zorunludur.']);
 
         $this->actingAs($this->manager)->from(route('admin.work-orders.create'))->post(route('admin.work-orders.store'), [
             'code' => 'IE-1',
@@ -175,7 +175,7 @@ class WorkOrderManagementTest extends TestCase
             'line_id' => 999999,
             'machine_id' => 999999,
         ])->assertSessionHasErrors([
-            'code' => 'iş emri kodu zaten kullanılıyor.',
+            'code' => 'üretim iş emri kodu zaten kullanılıyor.',
             'description' => 'açıklama en fazla 255 karakter olabilir.',
             'line_id' => 'Seçilen hat geçersiz.',
             'machine_id' => 'Seçilen makine geçersiz.',
@@ -186,7 +186,7 @@ class WorkOrderManagementTest extends TestCase
         $page = $this->page($this->actingAs($this->manager)->from(route('admin.work-orders.create'))->followingRedirects()
             ->post(route('admin.work-orders.store'), ['code' => 'IE-1', 'line_id' => $this->h02->id, 'machine_id' => $this->m01->id])
             ->assertOk());
-        $this->assertSame('iş emri kodu zaten kullanılıyor.', $this->text($page->getElementById('code-error')));
+        $this->assertSame('üretim iş emri kodu zaten kullanılıyor.', $this->text($page->getElementById('code-error')));
         $this->assertSame('Seçilen makine, seçilen hatta değil.', $this->text($page->getElementById('machine_id-error')));
         $this->assertSame((string) $this->h02->id, $page->querySelector('#line_id option[selected]')->getAttribute('value'));
         $this->assertSame((string) $this->m01->id, $page->querySelector('#machine_id option[selected]')->getAttribute('value'));
@@ -221,7 +221,7 @@ class WorkOrderManagementTest extends TestCase
 
         $this->actingAs($this->manager)->from(route('admin.work-orders.edit', $order))->put(route('admin.work-orders.update', $order), [
             'code' => 'IE-1', 'line_id' => $this->m02->line_id, 'machine_id' => $this->m02->id,
-        ])->assertSessionHasErrors(['machine_id' => 'Bu iş emri kayıtlarda kullanıldığı için kodu ve bağlantısı değiştirilemez; yalnızca açıklaması düzeltilebilir.']);
+        ])->assertSessionHasErrors(['machine_id' => 'Bu üretim iş emri kayıtlarda kullanıldığı için kodu ve bağlantısı değiştirilemez; yalnızca açıklaması düzeltilebilir.']);
 
         $this->actingAs($this->manager)->from(route('admin.work-orders.edit', $order))->put(route('admin.work-orders.update', $order), [
             'code' => 'IE-9', 'line_id' => $this->m01->line_id, 'machine_id' => $this->m01->id,
@@ -237,7 +237,7 @@ class WorkOrderManagementTest extends TestCase
 
     public function test_used_legacy_work_order_without_line_can_still_be_described(): void
     {
-        // Eski veride makineye bağlı iş emrinin hattı boş olabilir; formun gönderdiği aynı bağlantıdır.
+        // Eski veride makineye bağlı üretim iş emrinin hattı boş olabilir; formun gönderdiği aynı bağlantıdır.
         $order = WorkOrder::create(['code' => 'IE-1', 'machine_id' => $this->m01->id]);
         $this->workflow()->open($this->operator(), $this->m01, CleaningType::Planned, workOrder: $order);
 
@@ -266,7 +266,7 @@ class WorkOrderManagementTest extends TestCase
         );
 
         $this->assertSame([
-            ['İş emri yok', null, null],
+            ['Üretim iş emri yok', null, null],
             ['IE-1 — Şurup dolum (IST / H01 / M01)', (string) $this->m01->id, (string) $this->m01->line_id],
             ['IE-2 (ANK / H01)', '', (string) $ankaraLine->id],
             ['IE-3 — Eski kayıt (IST / H01 / M02)', (string) $this->m02->id, ''],
@@ -301,7 +301,7 @@ class WorkOrderManagementTest extends TestCase
             ]);
         }
 
-        $this->assertSame($before, $measure(), 'İş emirleri ilişkileriyle birlikte sabit sayıda sorguyla yüklenir.');
+        $this->assertSame($before, $measure(), 'Üretim iş emirleri ilişkileriyle birlikte sabit sayıda sorguyla yüklenir.');
     }
 
     // ---------------------------------------------------------------------------------------

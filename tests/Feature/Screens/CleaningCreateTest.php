@@ -165,13 +165,13 @@ class CleaningCreateTest extends TestCase
         ));
         $this->assertStringContainsString('Sorumlu: Ahmet (siz)', $this->text($page->querySelector('.cleaning-form__owner')));
 
-        // İş emirleri: hepsi listelenir, makine/hat bilgisi etiket ve data-* özniteliklerinde.
+        // Üretim iş emirleri: hepsi listelenir, makine/hat bilgisi etiket ve data-* özniteliklerinde.
         $workOrders = [];
         foreach ($page->querySelectorAll('#work_order_id option') as $option) {
             $workOrders[] = [$this->text($option), $option->getAttribute('data-machine-id'), $option->getAttribute('data-line-id')];
         }
         $this->assertSame([
-            ['İş emri yok', null, null],
+            ['Üretim iş emri yok', null, null],
             ['IE-1 — Şurup dolum (IST / H01 / M01)', (string) $machine->id, (string) $machine->line_id],
             ['IE-2 — Şurup hazırlama (IST / H01)', '', (string) $machine->line_id],
             ['IE-3 (bütün makineler)', '', ''],
@@ -325,7 +325,7 @@ class CleaningCreateTest extends TestCase
                 'machine_id' => 'Seçilen makine geçersiz.',
                 'type' => 'Seçilen tür geçersiz.',
                 'helper_ids.1' => 'Seçilen yardımcı personel geçersiz.',
-                'work_order_id' => 'Seçilen iş emri geçersiz.',
+                'work_order_id' => 'Seçilen üretim iş emri geçersiz.',
                 'notes' => 'açıklama en fazla 2000 karakter olabilir.',
                 'materials.1.lot_no' => 'lot numarası zorunludur.',
                 'materials.1.expiry_date' => 'son kullanma tarihi Y-m-d biçiminde olmalıdır.',
@@ -393,14 +393,14 @@ class CleaningCreateTest extends TestCase
         $other = $this->makeMachine(code: 'M04');
         $workOrder = WorkOrder::create(['code' => 'IE-9', 'line_id' => $other->line_id, 'machine_id' => $other->id]);
 
-        // K-19: form uygun olmayan iş emrini gizler, ama asıl kontrol workflow'dadır.
+        // K-19: form uygun olmayan üretim iş emrini gizler, ama asıl kontrol workflow'dadır.
         $this->actingAs($this->operator())->from(route('cleanings.create'))->post(route('cleanings.store'), [
             'machine_id' => $machine->id,
             'type' => 'planned',
             'work_order_id' => $workOrder->id,
         ])
             ->assertRedirect(route('cleanings.create'))
-            ->assertSessionHasErrors(['workflow' => 'Seçilen iş emri bu makineye ait değil.'])
+            ->assertSessionHasErrors(['workflow' => 'Seçilen üretim iş emri bu makineye ait değil.'])
             ->assertSessionHasInput('work_order_id', $workOrder->id);
 
         $this->assertSame(0, Cleaning::count());

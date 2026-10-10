@@ -4,6 +4,7 @@ namespace App\Services\Cleaning;
 
 use App\Enums\CancelReason;
 use App\Enums\CleaningStatus;
+use App\Enums\CleaningTaskStatus;
 use App\Enums\CleaningType;
 use App\Enums\PhaseStatus;
 use App\Enums\SliceEndReason;
@@ -17,7 +18,9 @@ use App\Models\Cleaning;
 use App\Models\CleaningMaterial;
 use App\Models\CleaningPhase;
 use App\Models\CleaningStep;
+use App\Models\CleaningTask;
 use App\Models\Machine;
+use App\Models\MaterialLot;
 use App\Models\ProcedureVersion;
 use App\Models\User;
 use App\Models\WorkOrder;
@@ -60,7 +63,8 @@ final class CleaningWorkflow
 
     /**
      * Yeni kayıt açar (R-14–R-20). Kayıt açmak işe başlamak değildir ve makineyi kilitlemez
-     * (K-05); süre ve makine kilidi ilk adımla başlar.
+     * (K-05); süre ve makine kilidi ilk adımla başlar. Görevden açılan kayıt planlıdır ve görev
+     * "kayıt açıldı" olur (K-21, K-23); kaydı açan sorumludur (R-15).
      *
      * @param  list<int>  $helperIds
      * @param  list<MaterialEntry>  $materials
@@ -73,8 +77,9 @@ final class CleaningWorkflow
         array $materials = [],
         ?WorkOrder $workOrder = null,
         ?string $notes = null,
+        ?CleaningTask $task = null,
     ): Cleaning {
-        return $this->transaction(function () use ($actor, $machine, $type, $helperIds, $materials, $workOrder, $notes) {
+        return $this->transaction(function () use ($actor, $machine, $type, $helperIds, $materials, $workOrder, $notes, $task) {
             $machine = $this->lockMachine($machine);
             $now = $this->serverTime();
 
@@ -92,12 +97,15 @@ final class CleaningWorkflow
                 throw CleaningRuleViolation::invalidWorkOrder(); // K-19
             }
 
+            if ($task !== null) {
+                $task = $this->lockTask($task->id);
+                $this->assertTaskOpenable($task, $machine, $type);
+            }
+
             $helperIds = array_values(array_diff($this->uniqueIds($helperIds), [$actor->id]));
             $this->assertUsersActive($helperIds);
 
-            foreach ($materials as $entry) {
-                $this->assertNotExpired($entry, $now);
-            }
+            $lots = array_map(fn (MaterialEntry $entry) => $this->usableLot($entry, $now), $materials);
 
             $cleaning = Cleaning::create([
                 'record_no' => $this->numbers->recordNo($machine, $type, $now),
@@ -109,8 +117,15 @@ final class CleaningWorkflow
                 'procedure_version_id' => $version->id,
                 'owner_id' => $actor->id,
                 'work_order_id' => $workOrder?->id,
+                'cleaning_task_id' => $task?->id,
                 'notes' => $notes,
             ]);
+
+            if ($task !== null) {
+                $task->transitionTo(CleaningTaskStatus::InRecord);
+                $task->cleaning_id = $cleaning->id;
+                $task->save();
+            }
 
             // R-23: sahibi her adıma varsayılan görevli gelir, yardımcılar da eklenir.
             $this->copyProcedure($cleaning, $version, [$actor->id, ...$helperIds], $actor, $now);
@@ -121,11 +136,12 @@ final class CleaningWorkflow
                 'machine_id' => $machine->id,
                 'procedure_version_id' => $version->id,
                 'work_order_id' => $workOrder?->id,
+                'cleaning_task_id' => $task?->id,
                 'helper_ids' => $helperIds,
             ]);
 
-            foreach ($materials as $entry) {
-                $this->recordMaterial($cleaning, $entry, $actor, $now);
+            foreach ($lots as $lot) {
+                $this->recordMaterial($cleaning, $lot, $actor, $now);
             }
 
             return $cleaning;
@@ -145,9 +161,8 @@ final class CleaningWorkflow
             $this->assertOpen($cleaning);
             $this->assertActive($actor);
             $this->assertCanHandleMaterials($actor, $cleaning, 'malzeme ekleme');
-            $this->assertNotExpired($entry, $now);
 
-            return $this->recordMaterial($cleaning, $entry, $actor, $now);
+            return $this->recordMaterial($cleaning, $this->usableLot($entry, $now), $actor, $now);
         }, $cleaning);
     }
 
@@ -381,6 +396,8 @@ final class CleaningWorkflow
                 'note' => $note,
             ]);
 
+            $this->reopenTask($cleaning);
+
             CleaningCancelled::dispatch($cleaning->id, $cleaning->owner_id, $actor->id, $reason, $note);
         }, $cleaning);
     }
@@ -420,6 +437,8 @@ final class CleaningWorkflow
                 // actor = null: işlemi sistem yaptı.
                 $this->events->record($cleaning, 'cleaning.expired', null, $now, ['stale_after_minutes' => $minutes]);
 
+                $this->reopenTask($cleaning);
+
                 CleaningExpired::dispatch($cleaning->id, $cleaning->owner_id, $minutes);
 
                 return 1;
@@ -439,10 +458,7 @@ final class CleaningWorkflow
      */
     private function startCleaning(Cleaning $cleaning, User $actor, CarbonImmutable $now): void
     {
-        // K-12: prosedür malzeme istiyorsa en az bir geçerli malzeme olmadan başlanamaz.
-        if ($cleaning->procedureVersion->material_required && $cleaning->materials()->valid()->doesntExist()) {
-            throw CleaningRuleViolation::materialRequired();
-        }
+        $this->assertRequiredMaterials($cleaning);
 
         $cleaning->transitionTo(CleaningStatus::InProgress);
         $cleaning->started_at = $now;
@@ -531,6 +547,13 @@ final class CleaningWorkflow
             'effort_seconds' => $cleaning->effortSeconds(),
         ]);
 
+        if ($cleaning->cleaning_task_id !== null) {
+            $task = $this->lockTask($cleaning->cleaning_task_id);
+            $task->transitionTo(CleaningTaskStatus::Done);
+            $task->closed_at = $now;
+            $task->save();
+        }
+
         CleaningCompleted::dispatch($cleaning->id, $cleaning->owner_id, $actor->id);
     }
 
@@ -601,18 +624,24 @@ final class CleaningWorkflow
         }
     }
 
-    private function recordMaterial(Cleaning $cleaning, MaterialEntry $entry, User $actor, CarbonImmutable $now): CleaningMaterial
+    /**
+     * K-14: satır lotun o anki lot no ve SKT'sinin kopyasını taşır; lot sonradan düzeltilse de
+     * kayıt değişmez.
+     */
+    private function recordMaterial(Cleaning $cleaning, MaterialLot $lot, User $actor, CarbonImmutable $now): CleaningMaterial
     {
         $item = $cleaning->materials()->create([
-            'material_id' => $entry->materialId,
-            'lot_no' => $entry->lotNo,
-            'expiry_date' => $entry->expiryDate,
+            'material_id' => $lot->material_id,
+            'material_lot_id' => $lot->id,
+            'lot_no' => $lot->lot_no,
+            'expiry_date' => $lot->expiry_date->toDateString(),
             'added_by' => $actor->id,
         ]);
 
         $this->events->record($cleaning, 'material.added', $actor, $now, [
             'cleaning_material_id' => $item->id,
             'material_id' => $item->material_id,
+            'material_lot_id' => $lot->id,
             'lot_no' => $item->lot_no,
             'expiry_date' => $item->expiry_date->toDateString(),
         ]);
@@ -647,6 +676,14 @@ final class CleaningWorkflow
     private function lockCleaning(int $cleaningId): Cleaning
     {
         return Cleaning::query()->lockForUpdate()->findOrFail($cleaningId);
+    }
+
+    /**
+     * Görev satırı kilitlenir: aynı görevden eşzamanlı iki kayıt açılamaz (K-21).
+     */
+    private function lockTask(int $taskId): CleaningTask
+    {
+        return CleaningTask::query()->lockForUpdate()->findOrFail($taskId);
     }
 
     /**
@@ -753,11 +790,91 @@ final class CleaningWorkflow
         return $workerIds;
     }
 
-    private function assertNotExpired(MaterialEntry $entry, CarbonImmutable $now): void
+    /**
+     * Seçilen lot yeni girişte kullanılabilir mi (K-13, K-14): lot ve malzemesi kullanımda, SKT
+     * sunucu tarihine göre geçmemiş.
+     */
+    private function usableLot(MaterialEntry $entry, CarbonImmutable $now): MaterialLot
     {
-        if ($entry->isExpiredOn($now)) {
-            throw CleaningRuleViolation::materialExpired($entry->lotNo, $entry->expiryDate); // K-14
+        $lot = MaterialLot::query()->with('material')->findOrFail($entry->materialLotId);
+
+        if (! $lot->is_active || ! $lot->material->is_active) {
+            throw CleaningRuleViolation::materialLotUnavailable($lot->lot_no);
         }
+
+        if ($lot->isExpiredOn($now)) {
+            throw CleaningRuleViolation::materialExpired($lot->lot_no, $lot->expiry_date->toDateString()); // K-14
+        }
+
+        return $lot;
+    }
+
+    /**
+     * K-12, R-09: prosedürün zorunlu malzemelerinin her biri için geçerli bir giriş olmalı.
+     * Malzeme listesi olmayan eski versiyonda material_required en az bir geçerli giriş ister.
+     */
+    private function assertRequiredMaterials(Cleaning $cleaning): void
+    {
+        $version = $cleaning->procedureVersion;
+        $required = $version->materials()->where('is_required', true)->with('material')->get();
+
+        if ($required->isEmpty()) {
+            if ($version->material_required && $cleaning->materials()->valid()->doesntExist()) {
+                throw CleaningRuleViolation::materialRequired();
+            }
+
+            return;
+        }
+
+        $present = $cleaning->materials()->valid()->pluck('material_id')->map(fn ($id) => (int) $id)->all();
+        $missing = $required
+            ->reject(fn ($item) => in_array((int) $item->material_id, $present, true))
+            ->map(fn ($item) => $item->material->code)
+            ->values()
+            ->all();
+
+        if ($missing !== []) {
+            throw CleaningRuleViolation::requiredMaterialsMissing($missing);
+        }
+    }
+
+    /**
+     * K-21: görevden yalnızca açık görevde, görevin makinesinde ve planlı kayıt açılır.
+     */
+    private function assertTaskOpenable(CleaningTask $task, Machine $machine, CleaningType $type): void
+    {
+        if ($task->status !== CleaningTaskStatus::Open) {
+            throw CleaningRuleViolation::taskNotOpen();
+        }
+
+        if ($task->machine_id !== $machine->id) {
+            throw CleaningRuleViolation::taskMachineMismatch();
+        }
+
+        if ($type !== CleaningType::Planned) {
+            throw CleaningRuleViolation::taskRequiresPlanned();
+        }
+    }
+
+    /**
+     * K-23: kayıt iptal edilir ya da süresi dolarsa görevi yeniden açılır; yapılması gereken
+     * temizlik hâlâ yapılmamıştır.
+     */
+    private function reopenTask(Cleaning $cleaning): void
+    {
+        if ($cleaning->cleaning_task_id === null) {
+            return;
+        }
+
+        $task = $this->lockTask($cleaning->cleaning_task_id);
+
+        if ($task->cleaning_id !== $cleaning->id) {
+            return;
+        }
+
+        $task->transitionTo(CleaningTaskStatus::Open);
+        $task->cleaning_id = null;
+        $task->save();
     }
 
     private function requireText(string $text): string

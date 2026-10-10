@@ -13,7 +13,7 @@
 
 {{--
     Kayıt açma formu (R-14–R-20). JS olmadan da çalışır; cleaning-form.js yalnızca seçilen
-    makinenin özetini gösterir, iş emirlerini makineye göre süzer ve malzeme satırı ekler/çıkarır.
+    makinenin özetini gösterir, üretim iş emirlerini makineye göre süzer ve malzeme satırı ekler/çıkarır.
     Başlıktaki "Kaydı aç" düğmesi form="cleaning-form" ile aynı formu gönderir; telefonda ve
     uzun formda sağ sütundaki (dar ekranda en alttaki) düğme kullanılır.
 --}}
@@ -23,7 +23,7 @@
 
         @include('cleanings.form.errors')
 
-        {{-- Geniş ekranda iki sütun: solda zorunlu bölümler, sağda iş emri ve gönder. --}}
+        {{-- Geniş ekranda iki sütun: solda zorunlu bölümler, sağda üretim iş emri ve gönder. --}}
         <div class="cleaning-form__layout">
             <div class="cleaning-form__main">
                 @include('cleanings.form.machine')

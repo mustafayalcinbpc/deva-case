@@ -62,7 +62,7 @@ return [
         'type' => 'tür',
         'helper_ids' => 'yardımcı personel',
         'helper_ids.*' => 'yardımcı personel',
-        'work_order_id' => 'iş emri',
+        'work_order_id' => 'üretim iş emri',
         'notes' => 'açıklama',
         'materials' => 'malzemeler',
         'materials.*.material_id' => 'malzeme',

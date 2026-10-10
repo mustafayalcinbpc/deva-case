@@ -16,8 +16,8 @@ use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Üretim iş emirleri (K-19). Demoda elle girilir, gerçekte ERP'den gelir. İş emri bir hatta, bir
- * makineye ya da hiçbirine bağlıdır. Kayıtlarda kullanılan iş emrinin kodu ve bağlantısı
+ * Üretim iş emirleri (K-19). Demoda elle girilir, gerçekte ERP'den gelir. Üretim iş emri bir hatta, bir
+ * makineye ya da hiçbirine bağlıdır. Kayıtlarda kullanılan üretim iş emrinin kodu ve bağlantısı
  * değişmez; yalnızca açıklaması düzeltilebilir.
  */
 class WorkOrderController extends Controller
@@ -34,7 +34,7 @@ class WorkOrderController extends Controller
             ->when($filters['q'], fn (Builder $query, string $term) => $query->where(fn (Builder $query) => $query
                 ->whereLike('code', '%'.$this->escapeLike($term).'%')
                 ->orWhereLike('description', '%'.$this->escapeLike($term).'%')))
-            // Hatta göre: hatta bağlı iş emirleri ve o hattın makinelerine bağlı olanlar.
+            // Hatta göre: hatta bağlı üretim iş emirleri ve o hattın makinelerine bağlı olanlar.
             ->when($filters['line_id'], fn (Builder $query, int $lineId) => $query->where(fn (Builder $query) => $query
                 ->where('line_id', $lineId)
                 ->orWhereIn('machine_id', Machine::query()->select('id')->where('line_id', $lineId))))
@@ -63,7 +63,7 @@ class WorkOrderController extends Controller
 
         return redirect()
             ->route('admin.work-orders.index')
-            ->with('status', "İş emri eklendi: {$workOrder->code}");
+            ->with('status', "Üretim iş emri eklendi: {$workOrder->code}");
     }
 
     public function edit(WorkOrder $workOrder): View
@@ -73,18 +73,18 @@ class WorkOrderController extends Controller
 
     public function update(SaveWorkOrderRequest $request, WorkOrder $workOrder): RedirectResponse
     {
-        // Eski verilerde makineye bağlı iş emrinin hattı boş olabilir; bağlantı, makinenin hattıyla karşılaştırılır.
+        // Eski verilerde makineye bağlı üretim iş emrinin hattı boş olabilir; bağlantı, makinenin hattıyla karşılaştırılır.
         $binding = [$workOrder->machine_id, $workOrder->line_id ?? $workOrder->machine?->line_id];
 
         $workOrder->fill($request->attributesToSave());
 
-        // Kayıt, açıldığı andaki iş emrine bağlıdır; kullanılmış iş emrinin kimliği değişmez.
+        // Kayıt, açıldığı andaki üretim iş emrine bağlıdır; kullanılmış üretim iş emrinin kimliği değişmez.
         $codeChanged = $workOrder->isDirty('code');
         $bindingChanged = $binding !== [$workOrder->machine_id, $workOrder->line_id];
 
         if (($codeChanged || $bindingChanged) && $workOrder->cleanings()->exists()) {
             throw ValidationException::withMessages([
-                $codeChanged ? 'code' : 'machine_id' => 'Bu iş emri kayıtlarda kullanıldığı için kodu ve bağlantısı değiştirilemez; yalnızca açıklaması düzeltilebilir.',
+                $codeChanged ? 'code' : 'machine_id' => 'Bu üretim iş emri kayıtlarda kullanıldığı için kodu ve bağlantısı değiştirilemez; yalnızca açıklaması düzeltilebilir.',
             ]);
         }
 
@@ -92,7 +92,7 @@ class WorkOrderController extends Controller
 
         return redirect()
             ->route('admin.work-orders.index')
-            ->with('status', "İş emri güncellendi: {$workOrder->code}");
+            ->with('status', "Üretim iş emri güncellendi: {$workOrder->code}");
     }
 
     private function form(WorkOrder $workOrder, int $usage): View

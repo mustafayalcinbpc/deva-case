@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
 /**
  * Kayıt bazında denetim raporu (R-45–R-49). R-45'teki her sorunun cevabı (nerede, kim, kimler
  * hangi adımda, ne zaman, ne kadar sürede, ne kadar eforla, hangi malzeme ve lotla, hangi
- * prosedür versiyonuyla, hangi iş emriyle, ne zaman tamamlandı) ve olay zincirinin tamamı
+ * prosedür versiyonuyla, hangi üretim iş emriyle, ne zaman tamamlandı) ve olay zincirinin tamamı
  * hash'leriyle; zincir baştan hesaplanarak doğrulanır (R-46).
  *
  * Aynı veri hem yazdırılabilir sayfada hem kuyrukta üretilen PDF'te kullanılır.

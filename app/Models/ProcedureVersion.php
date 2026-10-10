@@ -102,6 +102,14 @@ class ProcedureVersion extends Model
         return $this->hasMany(ProcedurePhase::class)->orderBy('sequence');
     }
 
+    /**
+     * Versiyonun beklediği malzemeler, sırasıyla (K-13).
+     */
+    public function materials(): HasMany
+    {
+        return $this->hasMany(ProcedureVersionMaterial::class)->orderBy('sequence');
+    }
+
     public function steps(): HasManyThrough
     {
         return $this->hasManyThrough(ProcedureStep::class, ProcedurePhase::class);

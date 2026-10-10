@@ -19,7 +19,7 @@
     border: 1px solid var(--status-border, transparent);
     border-radius: var(--app-badge-radius);
 
-    @each $status in created, in-progress, completed, expired, cancelled, pending, running, paused {
+    @each $status in created, in-progress, completed, expired, cancelled, pending, running, paused, planned, in-production, open, in-record, done, overdue {
         &--#{$status} {
             --status-bg: var(--app-status-#{$status}-bg);
             --status-fg: var(--app-status-#{$status}-fg);

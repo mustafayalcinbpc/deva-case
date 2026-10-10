@@ -3,14 +3,19 @@
 namespace Database\Seeders;
 
 use App\Enums\CancelReason;
+use App\Enums\CleaningPlanKind;
 use App\Enums\CleaningType;
 use App\Enums\UserRole;
+use App\Enums\WorkOrderStatus;
 use App\Models\Cleaning;
+use App\Models\CleaningPlan;
 use App\Models\CleaningStep;
+use App\Models\CleaningTask;
 use App\Models\Facility;
 use App\Models\Line;
 use App\Models\Machine;
 use App\Models\Material;
+use App\Models\MaterialLot;
 use App\Models\Procedure;
 use App\Models\User;
 use App\Models\WorkOrder;
@@ -56,11 +61,28 @@ class DemoSeeder extends Seeder
     /** @var array<string, Material> */
     private array $materials = [];
 
+    /** @var array<string, MaterialLot> "KOD/LOT" => lot */
+    private array $lots = [];
+
     /** @var array<string, WorkOrder> */
     private array $workOrders = [];
 
+    /**
+     * Prosedürlerin beklediği malzemeler: kod => zorunlu mu (K-12, K-13). Dolumda durulama asidi
+     * isteğe bağlıdır; temizlik sürerken de eklenebilir.
+     */
+    private const PROCEDURE_MATERIALS = [
+        'PRC-DOL' => ['DET-01' => true, 'DEZ-02' => true, 'DUR-03' => false],
+        'PRC-TNK' => ['DET-01' => true, 'DUR-03' => true],
+        'PRC-BLS' => ['ALK-04' => false],
+        'PRC-PKT' => [],
+    ];
+
     /** @var array<string, Procedure> */
     private array $procedures = [];
+
+    /** @var array<string, CleaningPlan> makine anahtarı => plan */
+    private array $plans = [];
 
     public function run(CleaningWorkflow $workflow): void
     {
@@ -86,10 +108,34 @@ class DemoSeeder extends Seeder
         $this->travelTo($this->day(45, '09:00'));
 
         $this->seedUsers();
+        $this->seedMaterials();
         $this->seedProcedures();
         $this->seedLocations();
-        $this->seedMaterials();
         $this->seedWorkOrders();
+        $this->seedPlans();
+    }
+
+    /**
+     * K-20: temizlik planları. Görevleri seedToday üretir; gerçekte cleaning:generate-tasks ve
+     * üretim iş emri tamamlanma tetiği üretir.
+     */
+    private function seedPlans(): void
+    {
+        $plans = [
+            'H01-M01' => [CleaningPlanKind::Periodic, 7],
+            'H01-M02' => [CleaningPlanKind::Periodic, 14],
+            'H01-M03' => [CleaningPlanKind::WorkOrderCompleted, null],
+            'H02-M01' => [CleaningPlanKind::WorkOrderCompleted, null],
+            'H02-M03' => [CleaningPlanKind::Periodic, 7],
+        ];
+
+        foreach ($plans as $machine => [$kind, $intervalDays]) {
+            $this->plans[$machine] = CleaningPlan::create([
+                'machine_id' => $this->machines[$machine]->id,
+                'kind' => $kind,
+                'interval_days' => $intervalDays,
+            ]);
+        }
     }
 
     /**
@@ -114,15 +160,15 @@ class DemoSeeder extends Seeder
     private function seedProcedures(): void
     {
         $definitions = [
-            'PRC-DOL' => ['Sıvı dolum makinesi temizliği', true, $this->fillingPhases(version: 1)],
-            'PRC-TNK' => ['Hazırlama tankı temizliği (CIP)', true, $this->tankPhases()],
-            'PRC-BLS' => ['Blister makinesi temizliği', false, $this->blisterPhases()],
-            'PRC-PKT' => ['Paketleme makinesi temizliği', false, $this->packagingPhases()],
+            'PRC-DOL' => ['Sıvı dolum makinesi temizliği', $this->fillingPhases(version: 1)],
+            'PRC-TNK' => ['Hazırlama tankı temizliği (CIP)', $this->tankPhases()],
+            'PRC-BLS' => ['Blister makinesi temizliği', $this->blisterPhases()],
+            'PRC-PKT' => ['Paketleme makinesi temizliği', $this->packagingPhases()],
         ];
 
-        foreach ($definitions as $code => [$name, $materialRequired, $phases]) {
+        foreach ($definitions as $code => [$name, $phases]) {
             $procedure = Procedure::create(['code' => $code, 'name' => $name]);
-            $this->publishVersion($procedure, 1, $materialRequired, $phases);
+            $this->publishVersion($procedure, 1, $phases);
             $this->procedures[$code] = $procedure;
         }
     }
@@ -173,31 +219,62 @@ class DemoSeeder extends Seeder
         foreach ($materials as $code => $name) {
             $this->materials[$code] = Material::create(['code' => $code, 'name' => $name]);
         }
+
+        // K-14: lotlar depoya girişte bir kez tanımlanır (gerçekte depo/ERP). SKT çalıştırma
+        // anına göre ay olarak verilir; biri geçmiş, biri kullanımdan kaldırılmış (geri çağrılan parti).
+        $lots = [
+            ['DET-01', 'DT-24118', 10, true],
+            ['DET-01', 'DT-23090', -1, true],
+            ['DEZ-02', 'DZ-11207', 6, true],
+            ['DEZ-02', 'DZ-11270', 8, true],
+            ['DUR-03', 'DR-00931', 12, true],
+            ['ALK-04', 'AL-33051', 4, true],
+            ['ALK-04', 'AL-32990', 5, false],
+        ];
+
+        foreach ($lots as [$code, $lotNo, $months, $active]) {
+            $this->lots["{$code}/{$lotNo}"] = MaterialLot::create([
+                'material_id' => $this->materials[$code]->id,
+                'lot_no' => $lotNo,
+                'expiry_date' => $this->today->addMonthsNoOverflow($months)->endOfMonth()->toDateString(),
+                'received_at' => $this->today->subDays(60)->toDateString(),
+                'is_active' => $active,
+            ]);
+        }
     }
 
     private function seedWorkOrders(): void
     {
-        // K-19: gerçekte ERP'den gelir. Kimi makineye, kimi yalnızca hatta bağlı.
+        // K-19: gerçekte ERP'den gelir. Kimi makineye, kimi yalnızca hatta bağlı. Durum ve zamanlar
+        // bugüne göredir: [başlangıç günü, süre (gün), durum]; negatif gün gelecektir.
         $workOrders = [
-            'IE-2026-1041' => ['H01-M02', null, 'Parasetamol şurup 150 ml — dolum'],
-            'IE-2026-1042' => ['H01-M03', null, 'İbuprofen süspansiyon 100 ml — dolum'],
-            'IE-2026-1043' => [null, 'H01', 'Öksürük şurubu çözelti hazırlama — 500 L parti'],
-            'IE-2026-1048' => ['H01-M02', null, 'Parasetamol şurup 150 ml — dolum (2. parti)'],
-            'IE-2026-1050' => [null, 'H02', 'C vitamini 1000 mg efervesan tablet — paketleme'],
-            'IE-2026-1051' => ['H02-M01', null, 'Amoksisilin 500 mg film tablet — blister'],
-            'IE-2026-1055' => ['H01-M02', null, 'Çinko şurup 100 ml — dolum'],
-            'IE-2026-1056' => ['H02-M01', null, 'Parasetamol 500 mg tablet — blister'],
-            'IE-2026-1058' => ['H01-M03', null, 'İbuprofen süspansiyon 200 ml — dolum'],
+            'IE-2026-1041' => ['H01-M02', null, 'Parasetamol şurup 150 ml — dolum', 'Parasetamol şurup 150 ml', [40, 3, WorkOrderStatus::Completed]],
+            'IE-2026-1042' => ['H01-M03', null, 'İbuprofen süspansiyon 100 ml — dolum', 'İbuprofen süspansiyon 100 ml', [16, 3, WorkOrderStatus::Completed]],
+            'IE-2026-1043' => [null, 'H01', 'Öksürük şurubu çözelti hazırlama — 500 L parti', 'Öksürük şurubu', [9, 2, WorkOrderStatus::Completed]],
+            'IE-2026-1048' => ['H01-M02', null, 'Parasetamol şurup 150 ml — dolum (2. parti)', 'Parasetamol şurup 150 ml', [7, 3, WorkOrderStatus::Completed]],
+            'IE-2026-1050' => [null, 'H02', 'C vitamini 1000 mg efervesan tablet — paketleme', 'C vitamini 1000 mg efervesan tablet', [5, 4, WorkOrderStatus::Completed]],
+            'IE-2026-1051' => ['H02-M01', null, 'Amoksisilin 500 mg film tablet — blister', 'Amoksisilin 500 mg film tablet', [3, 3, WorkOrderStatus::Completed]],
+            'IE-2026-1055' => ['H01-M02', null, 'Çinko şurup 100 ml — dolum', 'Çinko şurup 100 ml', [-1, 2, WorkOrderStatus::Planned]],
+            'IE-2026-1056' => ['H02-M01', null, 'Parasetamol 500 mg tablet — blister', 'Parasetamol 500 mg tablet', [-1, 3, WorkOrderStatus::Planned]],
+            'IE-2026-1058' => ['H01-M03', null, 'İbuprofen süspansiyon 200 ml — dolum', 'İbuprofen süspansiyon 200 ml', [1, 3, WorkOrderStatus::InProduction]],
         ];
 
-        foreach ($workOrders as $code => [$machineKey, $lineCode, $description]) {
+        foreach ($workOrders as $code => [$machineKey, $lineCode, $description, $product, [$startDaysAgo, $days, $status]]) {
             $machine = $machineKey !== null ? $this->machines[$machineKey] : null;
+            $start = $this->today->subDays($startDaysAgo)->setTime(6, 0)->utc();
+            $end = $start->addDays($days);
 
             $this->workOrders[$code] = WorkOrder::create([
                 'code' => $code,
                 'line_id' => $machine?->line_id ?? $this->lines[$lineCode]->id,
                 'machine_id' => $machine?->id,
                 'description' => $description,
+                'product' => $product,
+                'status' => $status,
+                'planned_start_at' => $start,
+                'planned_end_at' => $end,
+                // Bugün biten iş emri sabah 08:00'de tamamlanmış sayılır (blister planının tetiği).
+                'completed_at' => $status === WorkOrderStatus::Completed ? min($end, $this->today->setTime(8, 0)->utc()) : null,
             ]);
         }
     }
@@ -206,14 +283,26 @@ class DemoSeeder extends Seeder
      * Versiyon taslak olarak kurulur ve en son, o anki saatle yayımlanır: yayımlanmış versiyona
      * faz ya da adım eklenemez (K-15).
      *
+     * Beklenen malzemeler PROCEDURE_MATERIALS'tan gelir; material_required listeden türetilir (K-13).
+     *
      * @param  list<array{name: string, min_minutes: int, include_gaps: bool, steps: list<array{0: string, 1: string}>}>  $phases
      */
-    private function publishVersion(Procedure $procedure, int $version, bool $materialRequired, array $phases): void
+    private function publishVersion(Procedure $procedure, int $version, array $phases): void
     {
+        $materials = self::PROCEDURE_MATERIALS[$procedure->code];
+
         $procedureVersion = $procedure->versions()->create([
             'version' => $version,
-            'material_required' => $materialRequired,
+            'material_required' => in_array(true, $materials, true),
         ]);
+
+        foreach (array_keys($materials) as $index => $code) {
+            $procedureVersion->materials()->create([
+                'material_id' => $this->materials[$code]->id,
+                'sequence' => $index + 1,
+                'is_required' => $materials[$code],
+            ]);
+        }
 
         foreach ($phases as $phaseIndex => $phase) {
             $procedurePhase = $procedureVersion->phases()->create([
@@ -461,7 +550,7 @@ class DemoSeeder extends Seeder
         // yürür, önceki kayıtlar v1'de kalır. (Geçerli versiyon yayım tarihine değil versiyon
         // numarasına bakar; bu yüzden v2 zaman çizelgesinde tam yerinde yayımlanır.)
         $this->travelTo($this->day(10, '09:00'));
-        $this->publishVersion($this->procedures['PRC-DOL'], 2, true, $this->fillingPhases(version: 2));
+        $this->publishVersion($this->procedures['PRC-DOL'], 2, $this->fillingPhases(version: 2));
 
         // R-31, K-08: kaydın sahibi vardiya sonunda adımı duraklatır, sonra işten ayrılır.
         // Yönetici yarım kalan kaydı "personel ayrıldı" gerekçesiyle iptal eder; yapılan adımlar
@@ -543,10 +632,19 @@ class DemoSeeder extends Seeder
     {
         ['ahmet' => $ahmet, 'mehmet' => $mehmet, 'ayse' => $ayse] = $this->users;
 
-        // Bugün sabah tamamlanmış kayıt ("Bugün tamamlanan" sayacı). Çalıştırma saati gece 04:00'ten
-        // önceyse bu kayıt bir önceki güne düşer.
+        // K-21, K-23: yapılması gereken temizlikler. Etiketleme makinesinin haftalık görevi dünden
+        // beri bekliyor (gecikti); dolum makinesi 1'in iki haftalık görevi üç gün sonra.
+        $this->travelTo($this->day(1, '06:00'));
+        $this->task('H02-M03', $this->day(1, '14:00'));
+        $this->task('H01-M02', $this->today->addDays(3)->setTime(14, 0)->utc());
+
+        // Bugün sabah tamamlanmış kayıt ("Bugün tamamlanan" sayacı), tankın haftalık görevinden
+        // açıldı; görev tamamlandı. Çalıştırma saati gece 04:00'ten önceyse bu kayıt bir önceki
+        // güne düşer.
+        $this->travelTo($this->now->subMinutes(250));
+        $tankTask = $this->task('H01-M01', $this->now->subMinutes(240));
         $this->travelTo($this->now->subMinutes(240));
-        $done = $this->open($ayse, 'H01-M01', materials: ['DET-01', 'DUR-03'], workOrder: 'IE-2026-1043');
+        $done = $this->open($ayse, 'H01-M01', materials: ['DET-01', 'DUR-03'], workOrder: 'IE-2026-1043', task: $tankTask);
         $this->wait(3);
         $this->runSteps($ayse, $done, [1 => 3, 2 => 6, 3 => 16, 4 => 4, 5 => 11, 6 => 6, 7 => 4]);
 
@@ -569,9 +667,29 @@ class DemoSeeder extends Seeder
         $this->wait(1);
         $this->workflow->startStep($ahmet, $this->step($running, 8));
 
-        // Birkaç dakika önce açılmış, henüz başlatılmamış kayıt (R-20).
+        // Birkaç dakika önce açılmış, henüz başlatılmamış kayıt (R-20). Amoksisilin iş emrinin
+        // tamamlanmasıyla doğan görevden açıldı; görev "kayıt açıldı" durumunda.
+        $this->travelTo($this->now->subMinutes(5));
+        $blisterTask = $this->task('H02-M01', $this->workOrders['IE-2026-1051']->completed_at, trigger: 'IE-2026-1051', next: 'IE-2026-1056');
         $this->travelTo($this->now->subMinutes(4));
-        $this->open($ayse, 'H02-M01', workOrder: 'IE-2026-1056', notes: 'Ürün değişimi: amoksisilinden parasetamole geçiş.');
+        $this->open($ayse, 'H02-M01', workOrder: 'IE-2026-1056', notes: 'Ürün değişimi: amoksisilinden parasetamole geçiş.', task: $blisterTask);
+    }
+
+    /**
+     * Makinenin planından açık görev (K-21); planın son görev zamanı güncellenir.
+     */
+    private function task(string $machine, CarbonImmutable $dueAt, ?string $trigger = null, ?string $next = null): CleaningTask
+    {
+        $plan = $this->plans[$machine];
+        $task = CleaningTask::openFor(
+            $plan,
+            $dueAt,
+            $trigger !== null ? $this->workOrders[$trigger] : null,
+            $next !== null ? $this->workOrders[$next] : null,
+        );
+        $plan->update(['last_task_at' => CarbonImmutable::now()]);
+
+        return $task;
     }
 
     // ---------------------------------------------------------------------------------------
@@ -590,6 +708,7 @@ class DemoSeeder extends Seeder
         array $materials = [],
         ?string $workOrder = null,
         ?string $notes = null,
+        ?CleaningTask $task = null,
     ): Cleaning {
         return $this->workflow->open(
             $owner,
@@ -599,26 +718,23 @@ class DemoSeeder extends Seeder
             array_map(fn (string $code) => $this->lot($code), $materials),
             $workOrder !== null ? $this->workOrders[$workOrder] : null,
             $notes,
+            $task,
         );
     }
 
     /**
-     * Malzemenin demo lotu. Son kullanma tarihi çalıştırma anına göre ileridedir (K-14).
+     * Malzemenin seçilen lotu; verilmezse malzemenin varsayılan demo lotu (K-14).
      */
     private function lot(string $code, ?string $lotNo = null): MaterialEntry
     {
-        [$defaultLot, $months] = match ($code) {
-            'DET-01' => ['DT-24118', 10],
-            'DEZ-02' => ['DZ-11207', 6],
-            'DUR-03' => ['DR-00931', 12],
-            'ALK-04' => ['AL-33051', 4],
+        $lotNo ??= match ($code) {
+            'DET-01' => 'DT-24118',
+            'DEZ-02' => 'DZ-11207',
+            'DUR-03' => 'DR-00931',
+            'ALK-04' => 'AL-33051',
         };
 
-        return new MaterialEntry(
-            $this->materials[$code]->id,
-            $lotNo ?? $defaultLot,
-            $this->today->addMonthsNoOverflow($months)->endOfMonth()->toDateString(),
-        );
+        return new MaterialEntry($this->lots["{$code}/{$lotNo}"]->id);
     }
 
     /**

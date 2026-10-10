@@ -115,7 +115,7 @@ class AuditReportTest extends TestCase
             $this->assertStringContainsString('Önceki hash: '.($event->previous_hash ?? '— (ilk olay)'), $rows[$index]);
         }
 
-        $this->assertStringStartsWith('1 09.10.2026 11:00:00 Ahmet Kayıt açıldı Tür: Planlı temizlik Prosedür: PRC-M03 — M03 temizlik prosedürü (versiyon 1) Yardımcı personel: Mehmet İş emri: WO-2026-001', $rows[0]);
+        $this->assertStringStartsWith('1 09.10.2026 11:00:00 Ahmet Kayıt açıldı Tür: Planlı temizlik Prosedür: PRC-M03 — M03 temizlik prosedürü (versiyon 1) Yardımcı personel: Mehmet Üretim iş emri: WO-2026-001', $rows[0]);
         $this->assertStringStartsWith('4 09.10.2026 11:05:00 Ahmet Malzeme geçersiz kılındı Malzeme: DET-01 — Malzeme DET-01 Lot: LOT-WRONG Gerekçe: Lot yanlış yazıldı', $rows[3]);
         $this->assertStringContainsString('Temizlik tamamlandı Net çalışma süresi: 25 dk 00 sn Brüt süre: 45 dk 00 sn İnsan eforu: 35 dk 00 sn', end($rows));
     }

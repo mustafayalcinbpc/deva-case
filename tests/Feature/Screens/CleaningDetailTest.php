@@ -8,6 +8,7 @@ use App\Models\Cleaning;
 use App\Models\CleaningEvent;
 use App\Models\CleaningMaterial;
 use App\Models\CleaningStep;
+use App\Models\MaterialLot;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\Cleaning\MaterialEntry;
@@ -133,7 +134,7 @@ class CleaningDetailTest extends TestCase
             'Makine M03 — Makine M03',
             'Sorumlu Ahmet Yılmaz',
             'Prosedür PRC-M03 — M03 temizlik prosedürü versiyon 1',
-            'İş emri WO-2026-001 — Ürün değişimi',
+            'Üretim iş emri WO-2026-001 — Ürün değişimi',
             'Açıklama Alerjen sonrası temizlik',
             'Açılış 09.10.2026 11:00:00',
             'Başlangıç 09.10.2026 11:15:00',
@@ -502,7 +503,7 @@ class CleaningDetailTest extends TestCase
         $cleaning = $this->openCleaning($ahmet, $this->makeMachine(materialRequired: true), materials: [$this->entry($detergent, 'LOT-001', '2027-12-31')]);
 
         $this->at('08:05:00');
-        $wrong = $this->workflow()->addMaterial($ahmet, $cleaning, new MaterialEntry($disinfectant->id, 'LOT-YANLIS', '2027-03-01'));
+        $wrong = $this->workflow()->addMaterial($ahmet, $cleaning, new MaterialEntry(MaterialLot::create(['material_id' => $disinfectant->id, 'lot_no' => 'LOT-YANLIS', 'expiry_date' => '2027-03-01'])->id));
         $this->at('08:06:00');
         $this->workflow()->voidMaterial($ahmet, $wrong, 'Lot numarası yanlış okundu');
         $valid = CleaningMaterial::query()->where('cleaning_id', $cleaning->id)->where('lot_no', 'LOT-001')->firstOrFail();

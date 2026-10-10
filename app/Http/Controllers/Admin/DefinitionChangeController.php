@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 /**
- * Tanım değişiklik günlüğü (R-49): tesis, hat, makine, prosedür, malzeme, iş emri ve kullanıcı
+ * Tanım değişiklik günlüğü (R-49): tesis, hat, makine, prosedür, malzeme, üretim iş emri ve kullanıcı
  * tanımlarında kim, ne zaman, neyi değiştirdi. Yalnızca okunur; satırlar model olaylarından
  * yazılır (RecordsDefinitionChanges). En yeni değişiklik üsttedir.
  *

@@ -2,24 +2,24 @@
 
 @php
     $editing = $workOrder->exists;
-    // Kayıt, açıldığı andaki iş emrine bağlıdır; kullanılmış iş emrinin kodu ve bağlantısı değişmez.
+    // Kayıt, açıldığı andaki üretim iş emrine bağlıdır; kullanılmış üretim iş emrinin kodu ve bağlantısı değişmez.
     $locked = $editing && $usage > 0;
     $selectedLine = (string) old('line_id', $workOrder->line_id);
     $selectedMachine = (string) old('machine_id', $workOrder->machine_id);
 @endphp
 
-@section('title', $editing ? "İş Emri {$workOrder->code}" : 'Yeni İş Emri')
-@section('page-title', $editing ? "İş Emri: {$workOrder->code}" : 'Yeni İş Emri')
-@section('page-subtitle', 'Gerçek kullanımda iş emirleri ERP\'den gelir; demoda burada tanımlanır.')
+@section('title', $editing ? "Üretim İş Emri {$workOrder->code}" : 'Yeni Üretim İş Emri')
+@section('page-title', $editing ? "Üretim İş Emri: {$workOrder->code}" : 'Yeni Üretim İş Emri')
+@section('page-subtitle', 'Gerçek kullanımda üretim iş emirleri ERP\'den gelir; demoda burada tanımlanır.')
 
 @section('page-actions')
     <a href="{{ route('admin.work-orders.index') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left" aria-hidden="true"></i> İş emirleri
+        <i class="bi bi-arrow-left" aria-hidden="true"></i> Üretim iş emirleri
     </a>
 @endsection
 
 {{--
-    K-19: iş emri bir hatta, bir makineye ya da hiçbirine bağlanır. Makine seçilirse hat
+    K-19: üretim iş emri bir hatta, bir makineye ya da hiçbirine bağlanır. Makine seçilirse hat
     makineden gelir; ikisi birlikte seçilirse makine o hatta olmalıdır (SaveWorkOrderRequest).
 --}}
 @section('content')
@@ -34,19 +34,19 @@
         @endif
 
         <div class="card-header">
-            <h2 class="card-title" id="work-order-form-title">İş emri bilgileri</h2>
+            <h2 class="card-title" id="work-order-form-title">Üretim iş emri bilgileri</h2>
         </div>
 
         <div class="card-body">
             @if ($locked)
                 <div class="alert alert-info work-order-form__locked" role="note">
-                    Bu iş emri {{ $usage }} temizlik kaydında kullanıldı. Kodu ve bağlantısı değiştirilemez; yalnızca açıklaması düzeltilebilir.
+                    Bu üretim iş emri {{ $usage }} temizlik kaydında kullanıldı. Kodu ve bağlantısı değiştirilemez; yalnızca açıklaması düzeltilebilir.
                 </div>
             @endif
 
             <div class="row g-3">
                 <div class="col-12 col-md-4">
-                    <label for="code" class="form-label">İş emri kodu</label>
+                    <label for="code" class="form-label">Üretim iş emri kodu</label>
                     <input type="text"
                            id="code"
                            name="code"
@@ -126,9 +126,9 @@
 
                 <div class="col-12">
                     <div id="binding-help" class="form-text">
-                        Makineye bağlı iş emri yalnızca o makinede, hatta bağlı iş emri o hattın makinelerinde seçilebilir.
+                        Makineye bağlı üretim iş emri yalnızca o makinede, hatta bağlı üretim iş emri o hattın makinelerinde seçilebilir.
                         Makine seçilirse hat makineden gelir; ikisi birlikte seçilirse makine o hatta olmalıdır.
-                        Hiçbiri seçilmezse iş emri bütün makinelerde kullanılabilir.
+                        Hiçbiri seçilmezse üretim iş emri bütün makinelerde kullanılabilir.
                     </div>
                 </div>
             </div>
@@ -136,7 +136,7 @@
 
         <div class="card-footer admin-form__actions">
             <button type="submit" class="btn btn-primary">
-                <i class="bi bi-check2-circle" aria-hidden="true"></i> {{ $editing ? 'Kaydet' : 'İş emrini ekle' }}
+                <i class="bi bi-check2-circle" aria-hidden="true"></i> {{ $editing ? 'Kaydet' : 'Üretim iş emrini ekle' }}
             </button>
             <a href="{{ route('admin.work-orders.index') }}" class="btn btn-link">Vazgeç</a>
         </div>

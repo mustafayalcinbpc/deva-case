@@ -10,8 +10,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 /**
- * İş emri: ekleme ve düzenleme (K-19). İş emri bir hatta, bir makineye ya da hiçbirine bağlıdır.
- * Makineye bağlı iş emri o makinenin hattına da bağlıdır: hat boş bırakılırsa makineden gelir,
+ * Üretim iş emri: ekleme ve düzenleme (K-19). Üretim iş emri bir hatta, bir makineye ya da hiçbirine bağlıdır.
+ * Makineye bağlı üretim iş emri o makinenin hattına da bağlıdır: hat boş bırakılırsa makineden gelir,
  * ikisi birlikte seçilirse makine o hatta olmalıdır.
  */
 class SaveWorkOrderRequest extends FormRequest
@@ -58,7 +58,7 @@ class SaveWorkOrderRequest extends FormRequest
     }
 
     /**
-     * Kaydedilecek alanlar; makineye bağlı iş emrinin hattı makineden gelir.
+     * Kaydedilecek alanlar; makineye bağlı üretim iş emrinin hattı makineden gelir.
      *
      * @return array{code: string, description: ?string, line_id: ?int, machine_id: ?int}
      */
@@ -81,7 +81,7 @@ class SaveWorkOrderRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'code' => 'iş emri kodu',
+            'code' => 'üretim iş emri kodu',
             'description' => 'açıklama',
             'line_id' => 'hat',
             'machine_id' => 'makine',

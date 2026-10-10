@@ -2,7 +2,7 @@
 // bu modül yalnızca kolaylık katar:
 // - seçilen makinenin prosedür özetini ve başlamamış kayıt uyarısını (K-05) gösterir,
 // - malzeme zorunluysa ipucunu gösterir (K-12),
-// - iş emirlerini seçilen makineye göre süzer (K-19; asıl kontrol sunucuda),
+// - üretim iş emirlerini seçilen makineye göre süzer (K-19; asıl kontrol sunucuda),
 // - malzeme satırı ekler ve çıkarır.
 
 const INDEX_PLACEHOLDER = /__INDEX__/g;
@@ -57,9 +57,9 @@ function showSummary(container, machine) {
 }
 
 /**
- * WorkOrder::isUsableFor ile aynı koşul: iş emri bir makineye ya da hatta bağlıysa yalnızca o
+ * WorkOrder::isUsableFor ile aynı koşul: üretim iş emri bir makineye ya da hatta bağlıysa yalnızca o
  * makinede kullanılabilir. Gizlenen seçenek ayrıca devre dışı bırakılır (bazı mobil tarayıcılar
- * gizli seçeneği yine de listeler). Seçili iş emri artık uygun değilse seçim kaldırılır.
+ * gizli seçeneği yine de listeler). Seçili üretim iş emri artık uygun değilse seçim kaldırılır.
  */
 function filterWorkOrders(select, emptyHint, machine) {
     if (!select) {

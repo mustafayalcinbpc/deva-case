@@ -77,7 +77,7 @@
                 <dd>{{ $version->material_required ? 'Zorunlu' : 'Zorunlu değil' }}</dd>
             </div>
             <div class="cleaning-summary__item">
-                <dt>İş emri</dt>
+                <dt>Üretim iş emri</dt>
                 <dd>
                     @if ($cleaning->workOrder)
                         <span class="record-no">{{ $cleaning->workOrder->code }}</span>

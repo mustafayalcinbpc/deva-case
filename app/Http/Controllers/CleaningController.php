@@ -6,8 +6,10 @@ use App\Enums\CleaningStatus;
 use App\Enums\CleaningType;
 use App\Http\Requests\StoreCleaningRequest;
 use App\Models\Cleaning;
+use App\Models\CleaningTask;
 use App\Models\Machine;
 use App\Models\Material;
+use App\Models\MaterialLot;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\Cleaning\CleaningWorkflow;
@@ -65,6 +67,8 @@ class CleaningController extends Controller
     public function create(Request $request): View
     {
         return view('cleanings.create', [
+            // K-21: görevden gelindiyse (?task=ID) form görevle doldurulur; görev açık değilse yok sayılır.
+            'task' => $this->openTask($request),
             'machineGroups' => $this->groupByLocation($this->usableMachines()),
             'types' => CleaningType::cases(),
             'helpers' => User::query()
@@ -75,7 +79,23 @@ class CleaningController extends Controller
             'workOrders' => $this->workOrderOptions(),
             // Kullanımdan kaldırılan malzeme yeni kayıtta seçilemez (K-13).
             'materials' => Material::query()->active()->orderBy('code')->get(['id', 'code', 'name']),
+            // K-14: seçilebilen lotlar (kullanımda, SKT'si geçmemiş), malzemeye göre gruplu.
+            'lotsByMaterial' => MaterialLot::query()
+                ->usableOn(now())
+                ->orderBy('expiry_date')
+                ->orderBy('lot_no')
+                ->get(['id', 'material_id', 'lot_no', 'expiry_date'])
+                ->groupBy('material_id'),
         ]);
+    }
+
+    private function openTask(Request $request): ?CleaningTask
+    {
+        $id = $request->integer('task');
+
+        return $id > 0
+            ? CleaningTask::query()->open()->with(['machine', 'workOrder', 'triggerWorkOrder'])->find($id)
+            : null;
     }
 
     public function store(StoreCleaningRequest $request, CleaningWorkflow $workflow): RedirectResponse
@@ -88,6 +108,7 @@ class CleaningController extends Controller
             $request->materialEntries(),
             $request->workOrder(),
             $request->notes(),
+            $request->task(),
         );
 
         return redirect()
@@ -143,7 +164,11 @@ class CleaningController extends Controller
             ->where('machines.is_active', true)
             ->whereNotNull('machines.procedure_id')
             // Geçerli versiyon eager load ile gelir; sorgu sayısı makine ya da prosedür sayısıyla artmaz.
-            ->with(['procedure.currentPublishedVersion.phases' => fn ($query) => $query->withCount('steps')])
+            ->with([
+                'procedure.currentPublishedVersion.phases' => fn ($query) => $query->withCount('steps'),
+                // K-13: formdaki malzeme satırları versiyonun beklediği malzemelerden gelir.
+                'procedure.currentPublishedVersion.materials.material',
+            ])
             ->get();
 
         // K-05: kayıt açmak makineyi kilitlemez, ama aynı makinede başlamamış kayıt varsa uyarılır.
@@ -175,7 +200,7 @@ class CleaningController extends Controller
     }
 
     /**
-     * K-19: bütün iş emirleri, bağlı oldukları makine ya da hatla birlikte. Seçilen makineye
+     * K-19: bütün üretim iş emirleri, bağlı oldukları makine ya da hatla birlikte. Seçilen makineye
      * ait olmayanları form gizler; asıl kontrol workflow'dadır (invalid_work_order).
      *
      * @return BaseCollection<int, array{id: int, label: string, machine_id: ?int, line_id: ?int}>
