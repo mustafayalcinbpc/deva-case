@@ -288,7 +288,9 @@ class DemoSeeder extends Seeder
                 'planned_start_at' => $start,
                 'planned_end_at' => $end,
                 // Bugün biten iş emri sabah 08:00'de tamamlanmış sayılır (blister planının tetiği).
-                'completed_at' => $status === WorkOrderStatus::Completed ? min($end, $this->today->setTime(8, 0)->utc()) : null,
+                // Gece erken saatte çalıştırılırsa o saat henüz gelmemiştir: tamamlanma en geç yarım
+                // saat öncedir (görevin vakti tamamlanma anıdır, vakti gelmeyen görevden kayıt açılmaz).
+                'completed_at' => $status === WorkOrderStatus::Completed ? min($end, $this->today->setTime(8, 0)->utc(), $this->now->subMinutes(30)) : null,
             ]);
         }
     }
