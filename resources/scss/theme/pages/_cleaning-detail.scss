@@ -1,7 +1,8 @@
 // cleaning-detail sayfasının yerleşim kuralları. Renk yazılmaz; gerekirse _tokens.scss değişkenleri kullanılır.
 //
-// Telefonda tek sütun: Şimdi, kontrol listesi, özet, malzemeler, iptal, olay geçmişi.
-// Geniş ekranda (xl) sol sütunda Şimdi ve kontrol listesi, sağ sütunda özet, malzemeler ve iptal.
+// Sol sütunda sekmeler (Şimdi, Adımlar, Özet, Malzemeler, Olay geçmişi); her panelde yalnızca
+// kendi bölümü görünür. Sağ sütunda ilerleme göstergesi ve iptal. Telefonda tek sütun: önce
+// sekmeler, sonra ilerleme ve iptal. Geniş ekranda (xl) sağ sütun sayfa kayarken yerinde kalır.
 
 .cleaning-detail {
     --cleaning-detail-gap: 1rem;
@@ -24,20 +25,42 @@
     }
 }
 
-// Bölümler arası atlama: sekme görünümü (bootstrap/_navs.scss); dar ekranda yatay kayar.
-// Etkin sekme, son atlanan bölümdür (:target); henüz atlanmadıysa "Şimdi".
-.cleaning-detail__nav .nav {
+// Sekme çubuğu: görünüm bootstrap/_navs.scss'ten (etkin sekme vurgu alt çizgili, dar ekranda
+// yatay kayar). Sekme düğmeleri dokunmaya uygun yükseklikte.
+.cleaning-detail__nav {
     margin-top: calc(var(--nc-space-2) * -1);
 }
 
-.cleaning-detail:not(:has(:target)) .cleaning-detail__tab--now,
-.cleaning-detail:has(#now:target, #now :target) .cleaning-detail__tab--now,
-.cleaning-detail:has(#checklist:target, #checklist :target) .cleaning-detail__tab--checklist,
-.cleaning-detail:has(#summary:target) .cleaning-detail__tab--summary,
-.cleaning-detail:has(#materials:target, #materials :target) .cleaning-detail__tab--materials,
-.cleaning-detail:has(#history:target) .cleaning-detail__tab--history {
-    color: var(--nc-text);
-    border-bottom-color: var(--nc-accent);
+.cleaning-detail__tab {
+    min-height: 2.75rem;
+}
+
+.cleaning-detail__panes {
+    margin-top: var(--cleaning-detail-gap);
+}
+
+// Paneldeki kartın başlığı sekme adını tekrarlar: ekranda görsel olarak gizli, ekran okuyucuya
+// açık. Yazdırırken sekme çubuğu gizlenir (_shell.scss); bütün paneller başlıklarıyla basılır.
+@media screen {
+    .cleaning-detail__pane > .card > .card-header {
+        @include visually-hidden;
+    }
+}
+
+@media print {
+    .cleaning-detail__pane {
+        display: block !important;
+        opacity: 1 !important;
+    }
+
+    .cleaning-detail__pane + .cleaning-detail__pane {
+        margin-top: var(--cleaning-detail-gap);
+    }
+}
+
+.cleaning-detail__pane:focus-visible {
+    outline: 2px solid var(--nc-focus-ring);
+    outline-offset: 2px;
 }
 
 .cleaning-detail__layout {
@@ -57,6 +80,18 @@
     flex-direction: column;
     gap: var(--cleaning-detail-gap);
     min-width: 0;
+}
+
+.cleaning-detail__main {
+    gap: 0;
+}
+
+// Geniş ekranda sağ sütun (ilerleme) sayfa kayarken yerinde kalır.
+.cleaning-detail__aside {
+    @include media-breakpoint-up(xl) {
+        position: sticky;
+        top: var(--nc-space-6);
+    }
 }
 
 // Bağlantıyla gelinen bölüm sabit başlığın altında kalmasın

@@ -251,9 +251,11 @@ Faz minimum süresi, fazın ayarına göre net ya da brüt süreyle kontrol edil
 - **Temizlik kayıtları:** bütün kayıtlar; duruma, makineye ve "bana ait" olmaya göre filtrelenir.
 - **Yeni kayıt:** yalnızca kullanımda olan ve geçerli prosedürü bulunan makineler seçilebilir. Seçilen makinenin prosedürü (fazlar, minimum süreler, malzeme zorunluluğu) ve makinede başlamamış kayıt varsa uyarı gösterilir.
 - **Kayıt detayı (sahadaki ekran):**
-  - En üstteki **Şimdi** kartında güncel adım, büyük aksiyon butonları (başlat, duraklat, devam et, tamamla) ve canlı sayan çalışma süresi bulunur. Butonlar yalnızca kaydın sorumlusuna ve adımın görevlilerine görünür.
+  - Bölümler sekmelerdedir: **Şimdi**, **Adımlar**, **Özet**, **Malzemeler**, **Olay geçmişi**. Her sekme yalnızca kendi bölümünü gösterir; adresteki çapa (`#materials`, `#step-12`) ilgili sekmeyi açar, yenilemede aynı sekme kalır.
+  - **Şimdi** sekmesinde güncel adım, büyük aksiyon butonları (başlat, duraklat, devam et, tamamla) ve canlı sayan çalışma süresi bulunur. Butonlar yalnızca kaydın sorumlusuna ve adımın görevlilerine görünür.
   - Fazı minimum süresinin altında kapatırken gerekçe alanı açılır.
-  - Kontrol listesi, malzemeler (ekleme, gerekçeyle geçersiz kılma), iptal formu ve olay geçmişi ile bütünlük doğrulaması bu sayfadadır.
+  - Sağ sütundaki **İlerleme** göstergesi kargo takibindeki gibi kayıt açılışından kapanışa fazları ve adımları noktadan noktaya gösterir: tamamlanan, devam eden, duraklatılan, gelecek ve (iptal/süre dolumunda) yapılmayan adımlar renk, simge ve metinle ayrılır. Adıma tıklamak Adımlar sekmesinde o adımı açar. İptal formu da sağ sütundadır.
+  - Malzemeler (ekleme, gerekçeyle geçersiz kılma) ve olay geçmişi ile bütünlük doğrulaması kendi sekmelerindedir.
 
 Bütün aksiyonlar `CleaningWorkflow` üzerinden çalışır. Kural ihlalinde kullanıcı aynı sayfaya mesajla döner; ekranlar kural tekrarlamaz, yalnızca hangi butonun gösterileceğine `CleaningPermissions` ile karar verir.
 

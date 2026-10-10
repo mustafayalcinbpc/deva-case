@@ -275,6 +275,28 @@
     --app-current-step-border: var(--nc-accent);
     --app-current-step-bg: color-mix(in srgb, var(--nc-accent) 5%, transparent);
 
+    // Detay ekranındaki ilerleme göstergesi: düğüm dolgusu, üzerindeki simge ve bağlantı çizgisi.
+    // Durum aileleri rozetlerle aynı: tamamlanan ok, devam eden vurgu, duraklatılan warn, iptal crit.
+    --app-progress-node-bg: var(--nc-surface);
+    --app-progress-done: var(--nc-ok-solid);
+    --app-progress-on-done: var(--nc-on-status);
+    --app-progress-current: var(--nc-accent-solid);
+    --app-progress-on-current: var(--nc-on-accent);
+    --app-progress-current-ring: var(--nc-accent-tint);
+    --app-progress-pulse: color-mix(in srgb, var(--nc-accent) 45%, transparent);
+    --app-progress-paused: var(--nc-warn-solid);
+    --app-progress-on-paused: var(--nc-on-status);
+    --app-progress-cancelled: var(--nc-crit-solid);
+    --app-progress-on-cancelled: var(--nc-on-status);
+    --app-progress-upcoming: var(--nc-border-strong);
+    --app-progress-upcoming-fg: var(--nc-text-muted);
+    --app-progress-skipped: var(--nc-divider);
+    --app-progress-skipped-fg: var(--nc-text-subtle);
+    --app-progress-line-done: var(--nc-ok);
+    --app-progress-line-pending: color-mix(in srgb, var(--nc-text) 28%, transparent);
+    --app-progress-line-skipped: var(--nc-divider);
+    --app-progress-track: var(--nc-row-divider);
+
     // "Bana ait" işareti ve satır vurgusu
     --app-mine-bg: var(--nc-accent-tint);
     --app-mine-fg: var(--nc-accent);

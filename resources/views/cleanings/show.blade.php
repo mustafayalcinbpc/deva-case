@@ -32,39 +32,55 @@
 @endsection
 
 {{--
-    Kayıt detayı: sahada adım adım ilerlenen ekran (R-21–R-25). En üstte güncel adım ve onun
-    aksiyonları ("Şimdi"), ardından kontrol listesi; yan sütunda özet, malzemeler ve iptal; en
-    altta olay geçmişi. Formlar yalnızca kayıt açıksa ve CleaningPermissions izin veriyorsa
-    gösterilir; asıl kontrol her zaman workflow'dadır.
+    Kayıt detayı: sahada adım adım ilerlenen ekran (R-21–R-25). Sol sütunda sekmeler: güncel adım
+    ve aksiyonları ("Şimdi"), kontrol listesi, özet, malzemeler, olay geçmişi; her sekmede yalnızca
+    kendi bölümü görünür. Sağ sütunda fazların ve adımların ilerlemesi ile iptal. Formlar yalnızca
+    kayıt açıksa ve CleaningPermissions izin veriyorsa gösterilir; asıl kontrol her zaman workflow'dadır.
+
+    Bölüm id'leri (#now, #checklist, #summary, #materials, #history) adres çapası olarak kullanılır;
+    çapa bir paneldeyse o sekme açılır (resources/js/modules/detail-tabs.js).
 --}}
+@php
+    $tabs = [
+        'now' => 'Şimdi',
+        'checklist' => 'Adımlar',
+        'summary' => 'Özet',
+        'materials' => 'Malzemeler',
+        'history' => 'Olay geçmişi',
+    ];
+@endphp
+
 @section('content')
     <div class="cleaning-detail">
-        {{-- Bölümler arası atlama: sekme görünümünde bağlantılar. Son atlanan bölüm CSS :target ile vurgulanır. --}}
-        <nav class="cleaning-detail__nav" aria-label="Sayfa bölümleri">
-            <ul class="nav nav-tabs">
-                <li class="nav-item"><a class="nav-link cleaning-detail__tab--now" href="#now">Şimdi</a></li>
-                <li class="nav-item"><a class="nav-link cleaning-detail__tab--checklist" href="#checklist">Adımlar</a></li>
-                <li class="nav-item"><a class="nav-link cleaning-detail__tab--summary" href="#summary">Özet</a></li>
-                <li class="nav-item"><a class="nav-link cleaning-detail__tab--materials" href="#materials">Malzemeler</a></li>
-                <li class="nav-item"><a class="nav-link cleaning-detail__tab--history" href="#history">Olay geçmişi</a></li>
-            </ul>
-        </nav>
-
         <div class="cleaning-detail__layout">
-            <div class="cleaning-detail__main">
-                @include('cleanings.show.now')
-                @include('cleanings.show.checklist')
+            <div class="cleaning-detail__main" data-module="detail-tabs">
+                <ul class="nav nav-tabs cleaning-detail__nav" role="tablist" aria-label="Kayıt bölümleri">
+                    @foreach ($tabs as $section => $label)
+                        <li class="nav-item" role="presentation">
+                            <button type="button" id="tab-{{ $section }}" @class(['nav-link', 'cleaning-detail__tab', 'cleaning-detail__tab--'.$section, 'active' => $loop->first])
+                                    data-bs-toggle="tab" data-bs-target="#pane-{{ $section }}" data-section="{{ $section }}"
+                                    role="tab" aria-controls="pane-{{ $section }}" aria-selected="{{ $loop->first ? 'true' : 'false' }}"
+                                    @unless ($loop->first) tabindex="-1" @endunless>{{ $label }}</button>
+                        </li>
+                    @endforeach
+                </ul>
+
+                <div class="tab-content cleaning-detail__panes">
+                    @foreach ($tabs as $section => $label)
+                        <div id="pane-{{ $section }}" @class(['tab-pane', 'fade', 'cleaning-detail__pane', 'cleaning-detail__pane--'.$section, 'show active' => $loop->first])
+                             role="tabpanel" aria-labelledby="tab-{{ $section }}" tabindex="0">
+                            @include('cleanings.show.'.$section)
+                        </div>
+                    @endforeach
+                </div>
             </div>
 
-            <div class="cleaning-detail__aside">
-                @include('cleanings.show.summary')
-                @include('cleanings.show.materials')
+            <aside class="cleaning-detail__aside" aria-label="İlerleme ve iptal">
+                @include('cleanings.show.progress')
                 @if ($cancelReasons !== [])
                     @include('cleanings.show.cancel')
                 @endif
-            </div>
+            </aside>
         </div>
-
-        @include('cleanings.show.history')
     </div>
 @endsection
