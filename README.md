@@ -355,6 +355,7 @@ Arayüz AdminLTE 4 (Bootstrap 5.3) üzerine kuruludur ve Vite + Sass ile derleni
 
 **Görünüm: "Nocturne" tasarım dili.**
 - Açık renkli sidebar ve vurgulu menü bağlantıları.
+- Sol menü geniş ekranda yalnızca ikonlarla durur; fare üzerine gelince (ya da klavyeyle içine girilince) içeriği itmeden açılır, çıkınca ikonlara döner. Üst bardaki menü düğmesi menüyü kalıcı olarak açar. Telefonda menü düğmeyle açılan kenar çekmecesidir.
 - Üst barda breadcrumb, tema düğmesi ve bildirim zili.
 - KPI kartları, etiket rozetleri, kenarlara doğru solan tablo ayırıcıları.
 - Inter yazı tipi.

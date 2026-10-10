@@ -9,7 +9,7 @@
     @fonts
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
 </head>
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
 <a href="#main-content" class="skip-link">İçeriğe geç</a>
 <div class="app-wrapper">
     @include('layouts.partials.header')
