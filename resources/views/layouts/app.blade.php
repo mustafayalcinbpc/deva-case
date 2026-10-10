@@ -40,5 +40,7 @@
 
     @include('layouts.partials.footer')
 </div>
+
+<x-confirm-modal />
 </body>
 </html>

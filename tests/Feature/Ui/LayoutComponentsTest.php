@@ -70,6 +70,23 @@ class LayoutComponentsTest extends TestCase
             ->assertSee('>31 Mayıs 2027</time>', false);
     }
 
+    public function test_layout_has_one_shared_confirm_modal(): void
+    {
+        // data-module="confirm-submit" formları onayı bu pencerede sorar (confirm-submit.js).
+        $this->actingAs(User::factory()->create());
+        $page = HTMLDocument::createFromString($this->get(route('dashboard'))->assertOk()->getContent(), LIBXML_NOERROR);
+
+        $this->assertCount(1, $page->querySelectorAll('#confirm-modal'));
+        $modal = $page->getElementById('confirm-modal');
+        $this->assertTrue($modal->classList->contains('modal'));
+        $this->assertSame('confirm-modal-title', $modal->getAttribute('aria-labelledby'));
+        $this->assertSame('confirm-modal-message', $modal->getAttribute('aria-describedby'));
+        $this->assertNotNull($modal->querySelector('#confirm-modal-title'));
+        $this->assertNotNull($modal->querySelector('#confirm-modal-message'));
+        $this->assertSame('Devam et', trim($modal->querySelector('button[data-confirm-accept]')->textContent));
+        $this->assertSame('Vazgeç', trim($modal->querySelector('button[data-bs-dismiss="modal"].btn')->textContent));
+    }
+
     public function test_duration_is_human_readable(): void
     {
         $this->blade('<x-duration :seconds="45" />')->assertSee('45 sn');

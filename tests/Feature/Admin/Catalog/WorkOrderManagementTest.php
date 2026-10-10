@@ -359,7 +359,13 @@ class WorkOrderManagementTest extends TestCase
 
         $page = $this->page($this->actingAs($this->manager)->get(route('admin.work-orders.edit', $order))->assertOk());
         $this->assertNotNull($page->querySelector('form[action="'.route('admin.work-orders.start', $order).'"]'));
-        $this->assertNotNull($page->querySelector('form[action="'.route('admin.work-orders.complete', $order).'"]'));
+        // Tamamlama onayı tarayıcının kutusunda değil, ortak onay penceresinde sorulur.
+        $complete = $page->querySelector('form[action="'.route('admin.work-orders.complete', $order).'"]');
+        $this->assertSame('confirm-submit submit-once', $complete->getAttribute('data-module'));
+        $this->assertSame('Üretim iş emrini tamamla', $complete->getAttribute('data-confirm-title'));
+        $this->assertSame('Tamamla', $complete->getAttribute('data-confirm-accept'));
+        $this->assertStringStartsWith('IE-1 tamamlandı olarak işaretlenecek; bu geri alınamaz.', $complete->getAttribute('data-confirm'));
+        $this->assertNotNull($page->querySelector('#confirm-modal [data-confirm-accept]'));
 
         $this->actingAs($this->manager)->from(route('admin.work-orders.index'))->post(route('admin.work-orders.start', $order))
             ->assertRedirect(route('admin.work-orders.index'))

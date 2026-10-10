@@ -262,6 +262,20 @@ class DemoSeederTest extends TestCase
         }
     }
 
+    public function test_demo_data_loads_just_after_midnight(): void
+    {
+        // Gece 00:30'da "bugün" biten iş emirlerinin planlanan bitişi henüz gelmemiştir; görevden
+        // açılan demo kaydı yine de açılabilmeli (K-24: vakti gelmeyen görevden kayıt açılmaz).
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-11 00:30:00', 'Europe/Istanbul')->utc());
+
+        $this->seed(DatabaseSeeder::class);
+
+        $open = CleaningTask::open()->get();
+        $this->assertSame(4, $open->count());
+        $this->assertSame(1, $open->filter(fn (CleaningTask $task) => $task->isOverdue(now()))->count());
+        $this->assertSame(1, CleaningTask::where('status', CleaningTaskStatus::InRecord)->count());
+    }
+
     private function assertClockWasReset(): void
     {
         $this->assertFalse(CarbonImmutable::hasTestNow());
