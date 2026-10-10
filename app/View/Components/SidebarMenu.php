@@ -10,13 +10,17 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\View\Component;
 
 /**
- * config/menu.php'deki öğelerden kullanıcının rolüne uygun olanları gösterir ve
- * bulunulan sayfayı işaretler. Altında öğe kalmayan başlıklar gizlenir.
+ * config/menu.php'deki öğe ve gruplardan kullanıcının rolüne uygun olanları gösterir ve bulunulan
+ * sayfayı işaretler. Görünen öğesi kalmayan grup gizlenir; etkin öğeyi içeren grup açık gelir.
  * Üst bardaki breadcrumb da aynı listeden üretilir (trail()).
  */
 class SidebarMenu extends Component
 {
-    /** @var list<array<string, mixed>> */
+    /**
+     * Tek öğe: label, icon, route, active. Grup: label, icon, items (öğeler), open.
+     *
+     * @var list<array<string, mixed>>
+     */
     public array $items;
 
     public function __construct(Request $request)
@@ -30,23 +34,25 @@ class SidebarMenu extends Component
     }
 
     /**
-     * Bulunulan sayfanın menüdeki yeri: bölüm başlığı (varsa) ve etkin öğe.
+     * Bulunulan sayfanın menüdeki yeri: grup (varsa) ve etkin öğe.
      *
      * @return array{section: ?string, item: ?array<string, mixed>}
      */
     public function trail(): array
     {
-        $section = null;
-
-        foreach ($this->items as $item) {
-            if (isset($item['header'])) {
-                $section = $item['header'];
+        foreach ($this->items as $entry) {
+            if (isset($entry['items'])) {
+                foreach ($entry['items'] as $item) {
+                    if ($item['active']) {
+                        return ['section' => $entry['label'], 'item' => $item];
+                    }
+                }
 
                 continue;
             }
 
-            if ($item['active']) {
-                return ['section' => $section, 'item' => $item];
+            if ($entry['active']) {
+                return ['section' => null, 'item' => $entry];
             }
         }
 
@@ -59,28 +65,57 @@ class SidebarMenu extends Component
      */
     private function build(array $config, ?User $user, Request $request): array
     {
-        $visible = array_values(array_filter(
-            $config,
-            fn (array $item) => (! isset($item['roles']) || ($user && in_array($user->role->value, $item['roles'], true)))
-                && (! isset($item['route']) || Route::has($item['route'])),
-        ));
+        $entries = [];
 
-        $items = [];
+        foreach ($config as $entry) {
+            if (! $this->allows($entry, $user)) {
+                continue;
+            }
 
-        foreach ($visible as $index => $item) {
-            if (isset($item['header'])) {
-                $next = $visible[$index + 1] ?? null;
-
-                if ($next !== null && ! isset($next['header'])) {
-                    $items[] = $item;
+            if (! isset($entry['group'])) {
+                if ($item = $this->item($entry, $user, $request)) {
+                    $entries[] = $item;
                 }
 
                 continue;
             }
 
-            $items[] = ['active' => $request->routeIs(...(array) ($item['active'] ?? $item['route']))] + $item;
+            $items = array_values(array_filter(array_map(
+                fn (array $item) => $this->item($item, $user, $request),
+                $entry['items'] ?? [],
+            )));
+
+            if ($items !== []) {
+                $entries[] = [
+                    'label' => $entry['group'],
+                    'icon' => $entry['icon'] ?? 'bi-folder',
+                    'items' => $items,
+                    'open' => in_array(true, array_column($items, 'active'), true),
+                ];
+            }
         }
 
-        return $items;
+        return $entries;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>|null
+     */
+    private function item(array $item, ?User $user, Request $request): ?array
+    {
+        if (! $this->allows($item, $user) || ! Route::has($item['route'])) {
+            return null;
+        }
+
+        return ['active' => $request->routeIs(...(array) ($item['active'] ?? $item['route']))] + $item;
+    }
+
+    /**
+     * @param  array<string, mixed>  $entry
+     */
+    private function allows(array $entry, ?User $user): bool
+    {
+        return ! isset($entry['roles']) || ($user !== null && in_array($user->role->value, $entry['roles'], true));
     }
 }

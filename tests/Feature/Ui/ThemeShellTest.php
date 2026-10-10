@@ -69,8 +69,9 @@ class ThemeShellTest extends TestCase
     {
         config(['menu' => [
             ['label' => 'Gösterge Paneli', 'icon' => 'bi-speedometer2', 'route' => 'dashboard'],
-            ['header' => 'Kayıtlar'],
-            ['label' => 'Kayıt listesi', 'icon' => 'bi-list', 'route' => 'cleanings.index', 'active' => 'cleanings.*'],
+            ['group' => 'Kayıtlar', 'icon' => 'bi-list', 'items' => [
+                ['label' => 'Kayıt listesi', 'icon' => 'bi-list', 'route' => 'cleanings.index', 'active' => 'cleanings.*'],
+            ]],
         ]]);
 
         $this->actingAs(User::factory()->create());
