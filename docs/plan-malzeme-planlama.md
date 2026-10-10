@@ -194,3 +194,18 @@ Renk yazma, token kullan. Türkçe arayüz metni ve dosya başı yorum üslubunu
 **Paylaşılan dosyalar:**
 - `cleanings/form/machine.blade.php`: 1D'ye aittir; 1B'nin malzeme satırları `form/material*` ve `machine-summary` üzerinden gelir.
 - `routes/web/*`: Her ajan yalnızca kendi satırlarını ekler.
+
+## Faz 2 sonucu: entegrasyon
+
+- **Ajan dosyaları:** Dört ajanın işi birleştirildi.
+- **Ajanların bıraktığı işler:**
+  - görev iptal alanları modele bağlandı;
+  - görev yüklemesi `CleaningDetailController`'a taşındı;
+  - malzeme doğrulama hataları `#materials` sekmesine dönüyor;
+  - lot alanlarının Türkçe adları eklendi;
+  - eski lot/SKT alanlarını kullanan iki detay testi ve değişiklik günlüğü testi güncellendi.
+- **Doğrulama:** Tam test takımı 830/830 geçiyor. Production asset build'i hatasız.
+- **Açık kalanlar:**
+  - D (K-22 görev ataması) bekliyor.
+  - Yeni ekranların sınıflarına özel stil yazılmadı.
+  - Malzeme raporunda ayrı lot filtresi yok.

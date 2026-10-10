@@ -2,7 +2,7 @@
 
 @section('title', 'Malzemeler')
 @section('page-title', 'Malzemeler')
-@section('page-subtitle', 'Temizlikte kullanılan malzeme bu katalogdan seçilir; lot ve son kullanma tarihini operatör girer.')
+@section('page-subtitle', 'Temizlikte kullanılan malzemeler ve lotları. Lot ve son kullanma tarihi burada tanımlanır; operatör kayıtta lotu seçer.')
 
 @section('page-actions')
     <a href="{{ route('admin.materials.create') }}" class="btn btn-primary">
@@ -11,8 +11,9 @@
 @endsection
 
 {{--
-    Malzeme kataloğu (K-13). Kayıtlar malzemeye bağlı olduğu için malzeme silinmez; kullanımdan
+    Malzeme kataloğu (K-13, K-14). Kayıtlar malzemeye bağlı olduğu için malzeme silinmez; kullanımdan
     kaldırılır. Kullanımdan kaldırılan malzeme yeni girişlerde seçilemez, geçmiş kayıtlarda görünür.
+    Lot sütunu toplam lot ve bugün seçilebilen (kullanımda, SKT'si geçmemiş) lot sayısıdır.
 --}}
 @section('content')
     <section class="card admin-list material-list" aria-labelledby="material-list-title">
@@ -34,6 +35,7 @@
                                 <th scope="col">Ad</th>
                                 <th scope="col">Durum</th>
                                 <th scope="col" class="text-end" title="Malzemenin girildiği temizlik kaydı sayısı">Kullanıldığı kayıt</th>
+                                <th scope="col" title="Toplam lot ve bugün seçilebilen lot sayısı">Lotlar</th>
                                 <th scope="col"><span class="visually-hidden">İşlemler</span></th>
                             </tr>
                         </thead>
@@ -46,6 +48,12 @@
                                     <td>{{ $material->name }}</td>
                                     <td>@include('admin.materials.state', ['material' => $material])</td>
                                     <td class="text-end">{{ $material->cleanings_count }}</td>
+                                    <td class="text-nowrap material-list__lots">
+                                        {{ $material->lots_count }} lot
+                                        @if ($material->lots_count > 0)
+                                            <span class="form-text">({{ $material->usable_lots_count }} seçilebilir)</span>
+                                        @endif
+                                    </td>
                                     <td class="text-end text-nowrap admin-list__actions">
                                         <a href="{{ route('admin.materials.edit', $material) }}" class="btn btn-sm btn-outline-secondary">
                                             <i class="bi bi-pencil" aria-hidden="true"></i> Düzenle

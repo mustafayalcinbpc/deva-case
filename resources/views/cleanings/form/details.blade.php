@@ -1,7 +1,11 @@
 {{--
     K-19: üretim iş emri listeden seçilir ve isteğe bağlıdır. cleaning-form.js seçilen makineye ya da
-    hattına ait olmayanları gizler; asıl kontrol workflow'dadır (invalid_work_order).
+    hattına ait olmayanları gizler; asıl kontrol workflow'dadır (invalid_work_order). Görevden
+    açılan kayıtta görevin sonraki üretim iş emri seçili gelir ve değiştirilebilir (K-21).
 --}}
+@php
+    $selectedWorkOrder = (string) old('work_order_id', $task?->work_order_id);
+@endphp
 <section class="card cleaning-form__section" aria-labelledby="cleaning-form-details">
     <div class="card-header">
         <h2 class="card-title" id="cleaning-form-details">Üretim iş emri ve açıklama</h2>
@@ -21,7 +25,7 @@
                     <option value="{{ $workOrder['id'] }}"
                             data-machine-id="{{ $workOrder['machine_id'] }}"
                             data-line-id="{{ $workOrder['line_id'] }}"
-                            @selected((string) old('work_order_id') === (string) $workOrder['id'])>{{ $workOrder['label'] }}</option>
+                            @selected($selectedWorkOrder === (string) $workOrder['id'])>{{ $workOrder['label'] }}</option>
                 @endforeach
             </select>
             @error('work_order_id')

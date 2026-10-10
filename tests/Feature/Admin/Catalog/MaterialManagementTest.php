@@ -4,7 +4,9 @@ namespace Tests\Feature\Admin\Catalog;
 
 use App\Models\Cleaning;
 use App\Models\CleaningMaterial;
+use App\Models\DefinitionChange;
 use App\Models\Material;
+use App\Models\MaterialLot;
 use App\Models\User;
 use Dom\Element;
 use Dom\HTMLDocument;
@@ -15,9 +17,10 @@ use Tests\Feature\Cleaning\Concerns\InteractsWithCleaningWorkflow;
 use Tests\TestCase;
 
 /**
- * Malzeme kataloğu (K-13, R-07, R-10): ekleme, düzenleme, kullanımdan kaldırma. Kaldırılan malzeme
- * yeni kayıtta ve malzeme ekleme formunda sunulmaz, gönderilirse reddedilir; geçmiş kayıtlarda
- * görünmeye devam eder.
+ * Malzeme kataloğu ve lotları (K-13, K-14, R-07, R-10): ekleme, düzenleme, kullanımdan kaldırma.
+ * Kaldırılan malzemenin ya da lotun girişi yeni kayıtta ve malzeme eklerken sunulmaz, gönderilirse
+ * reddedilir; geçmiş kayıtlarda görünmeye devam eder. Kayıtta kullanılan lotun numarası değişmez,
+ * SKT düzeltilebilir; kayıt seçildiği andaki kopyayı taşır.
  */
 class MaterialManagementTest extends TestCase
 {
@@ -177,38 +180,43 @@ class MaterialManagementTest extends TestCase
         $this->assertSame(1, Material::count());
     }
 
-    public function test_inactive_material_is_not_offered_in_the_new_record_form(): void
+    public function test_only_usable_lots_are_offered_in_the_new_record_form(): void
     {
+        // K-13, K-14: kullanımdan kaldırılan malzemenin, kullanımdan kaldırılan ve SKT'si geçen lot sunulmaz.
         $this->makeMachine(code: 'M01');
-        $this->makeMaterial('DET-01');
-        $this->makeMaterial('DEZ-02')->update(['is_active' => false]);
+        $detergent = $this->makeMaterial('DET-01');
+        $retired = $this->makeMaterial('DEZ-02');
+        $usable = $this->lot($detergent, 'DT-1', '2027-01-31');
+        $this->lot($detergent, 'DT-0', '2026-10-08');
+        $this->lot($detergent, 'DT-X', '2027-06-30')->update(['is_active' => false]);
+        $this->lot($retired, 'DZ-1');
+        $retired->update(['is_active' => false]);
 
-        $page = $this->page($this->actingAs($this->operator())->get(route('cleanings.create'))->assertOk());
+        $lots = $this->actingAs($this->operator())->get(route('cleanings.create'))->assertOk()->viewData('lotsByMaterial');
 
-        $this->assertSame(
-            ['Malzeme seçin', 'DET-01 — Malzeme DET-01'],
-            array_map(fn (Element $option) => $this->text($option), iterator_to_array($page->querySelectorAll('select[name="materials[0][material_id]"] option'))),
-        );
+        $this->assertSame([$detergent->id], $lots->keys()->all());
+        $this->assertSame([$usable->id], $lots->collapse()->pluck('id')->all());
     }
 
-    public function test_inactive_material_is_rejected_when_opening_a_record(): void
+    public function test_lot_of_an_inactive_material_is_rejected_when_opening_a_record(): void
     {
         $machine = $this->makeMachine(code: 'M01');
         $retired = $this->makeMaterial('DEZ-02');
+        $lot = $this->lot($retired, 'DZ-1');
         $retired->update(['is_active' => false]);
 
         $this->actingAs($this->operator())->from(route('cleanings.create'))->post(route('cleanings.store'), [
             'machine_id' => $machine->id,
             'type' => 'planned',
-            'materials' => [['material_id' => $retired->id, 'lot_no' => 'LOT-1', 'expiry_date' => '2027-01-31']],
+            'materials' => [['material_id' => $retired->id, 'material_lot_id' => $lot->id]],
         ])
             ->assertRedirect(route('cleanings.create'))
-            ->assertSessionHasErrors(['materials.0.material_id' => 'Seçilen malzeme geçersiz.']);
+            ->assertSessionHasErrors(['workflow' => 'DZ-1 lotu kullanımda değil.']);
 
         $this->assertSame(0, Cleaning::count());
     }
 
-    public function test_inactive_material_is_not_offered_or_accepted_on_the_record_but_existing_entries_stay(): void
+    public function test_inactive_material_is_not_accepted_on_the_record_but_existing_entries_stay(): void
     {
         $machine = $this->makeMachine(code: 'M01');
         $detergent = $this->makeMaterial('DET-01');
@@ -224,32 +232,199 @@ class MaterialManagementTest extends TestCase
         $this->assertStringContainsString('DEZ-02', $this->text($page->querySelector('#materials')));
         $this->assertStringContainsString('LOT-DZ', $this->text($page->querySelector('#materials')));
 
-        // Ekleme formunda sunulmaz.
-        $options = array_map(
-            fn (Element $option) => $option->getAttribute('value'),
-            iterator_to_array($page->querySelectorAll('select[name="material_id"] option')),
-        );
-        $this->assertContains((string) $detergent->id, $options);
-        $this->assertNotContains((string) $disinfectant->id, $options);
-
-        // Elle gönderilse de reddedilir.
+        // Kullanımdan kaldırılan malzemenin lotu gönderilse de reddedilir.
         $this->actingAs($ahmet)->from(route('cleanings.show', $cleaning))
-            ->post(route('cleanings.materials.store', $cleaning), [
-                'material_id' => $disinfectant->id,
-                'lot_no' => 'LOT-2',
-                'expiry_date' => '2027-01-31',
-            ])
-            ->assertSessionHasErrors(['material_id' => 'Seçilen malzeme geçersiz.']);
+            ->post(route('cleanings.materials.store', $cleaning), ['material_lot_id' => $this->lot($disinfectant, 'LOT-2')->id])
+            ->assertSessionHasErrors(['workflow' => 'LOT-2 lotu kullanımda değil.']);
 
         $this->assertSame(1, CleaningMaterial::query()->where('cleaning_id', $cleaning->id)->count());
 
-        $this->actingAs($ahmet)->post(route('cleanings.materials.store', $cleaning), [
-            'material_id' => $detergent->id,
-            'lot_no' => 'LOT-3',
-            'expiry_date' => '2027-01-31',
-        ])->assertSessionHasNoErrors();
+        $this->actingAs($ahmet)->post(route('cleanings.materials.store', $cleaning), ['material_lot_id' => $this->lot($detergent, 'LOT-3')->id])
+            ->assertSessionHasNoErrors();
 
         $this->assertSame(2, CleaningMaterial::query()->where('cleaning_id', $cleaning->id)->count());
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Lotlar (K-14)
+    // ---------------------------------------------------------------------------------------
+
+    public function test_manager_adds_lots_and_the_material_page_lists_them(): void
+    {
+        $material = $this->makeMaterial('DET-01');
+        $edit = route('admin.materials.edit', $material);
+
+        $this->actingAs($this->manager)->post(route('admin.materials.lots.store', $material), [
+            'lot_no' => ' DT-24118 ',
+            'expiry_date' => '2027-05-31',
+            'received_at' => '2026-09-01',
+        ])
+            ->assertRedirect($edit.'#material-lots')
+            ->assertSessionHas('status', 'DT-24118 lotu eklendi.')
+            ->assertSessionHasNoErrors();
+
+        $lot = MaterialLot::query()->sole();
+        $this->assertSame(
+            [$material->id, 'DT-24118', '2027-05-31', '2026-09-01', true],
+            [$lot->material_id, $lot->lot_no, $lot->expiry_date->toDateString(), $lot->received_at->toDateString(), $lot->is_active],
+        );
+
+        $expired = $this->lot($material, 'DT-23090', '2026-09-30');
+        $recalled = $this->lot($material, 'DT-24500', '2027-08-31');
+        $recalled->update(['is_active' => false]);
+        $this->openCleaning($this->operator(), $this->makeMachine(), materials: [$this->entry($material, 'DT-24118')]);
+
+        $page = $this->page($this->actingAs($this->manager)->get($edit)->assertOk());
+
+        $rows = array_map(
+            fn (Element $row) => array_map(fn (Element $cell) => $this->text($cell), array_slice(iterator_to_array($row->querySelectorAll('td')), 0, 5)),
+            iterator_to_array($page->querySelectorAll('#material-lots tbody tr')),
+        );
+
+        // SKT sırasıyla; geçmiş ve kullanımdan kaldırılmış lot işaretli.
+        $this->assertSame([
+            ['DT-23090', '30.09.2026', '—', 'SKT geçti', '0'],
+            ['DT-24118', '31.05.2027', '01.09.2026', 'Kullanımda', '1'],
+            ['DT-24500', '31.08.2027', '—', 'Kullanımdan kaldırıldı', '0'],
+        ], $rows);
+        $this->assertNotNull($page->querySelector("#material-lot-{$expired->id} a[href=\"".route('admin.materials.lots.edit', [$material, $expired]).'"]'));
+        $this->assertNotNull($page->querySelector("#material-lot-{$recalled->id} form[action=\"".route('admin.materials.lots.activate', [$material, $recalled]).'"]'));
+        $this->assertNotNull($page->querySelector('#material-lots form[action="'.route('admin.materials.lots.store', $material).'"]'));
+    }
+
+    public function test_lot_validation_messages_are_turkish_and_lot_numbers_are_unique_per_material(): void
+    {
+        $detergent = $this->makeMaterial('DET-01');
+        $disinfectant = $this->makeMaterial('DEZ-02');
+        $this->lot($detergent, 'LOT-1');
+        $edit = route('admin.materials.edit', $detergent);
+
+        $this->actingAs($this->manager)->from($edit)->post(route('admin.materials.lots.store', $detergent), [])
+            ->assertRedirect($edit)
+            ->assertSessionHasErrors([
+                'lot_no' => 'lot numarası zorunludur.',
+                'expiry_date' => 'son kullanma tarihi zorunludur.',
+            ]);
+
+        $this->actingAs($this->manager)->from($edit)->post(route('admin.materials.lots.store', $detergent), [
+            'lot_no' => 'LOT-1',
+            'expiry_date' => '31.05.2027',
+            'received_at' => 'dün',
+        ])->assertSessionHasErrors([
+            'lot_no' => 'lot numarası zaten kullanılıyor.',
+            'expiry_date' => 'son kullanma tarihi Y-m-d biçiminde olmalıdır.',
+            'received_at' => 'giriş tarihi Y-m-d biçiminde olmalıdır.',
+        ]);
+
+        // Başka malzemede aynı lot numarası olabilir.
+        $this->actingAs($this->manager)->post(route('admin.materials.lots.store', $disinfectant), ['lot_no' => 'LOT-1', 'expiry_date' => '2027-05-31'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(2, MaterialLot::count());
+    }
+
+    public function test_used_lot_number_is_locked_but_its_expiry_can_be_corrected_without_changing_records(): void
+    {
+        $material = $this->makeMaterial('DET-01');
+        $lot = $this->lot($material, 'DT-24118', '2027-05-31');
+        $cleaning = $this->openCleaning($this->operator(), $this->makeMachine(), materials: [$this->entry($material, 'DT-24118')]);
+        $form = route('admin.materials.lots.edit', [$material, $lot]);
+
+        $page = $this->page($this->actingAs($this->manager)->get($form)->assertOk());
+        $this->assertTrue($page->getElementById('lot_no')->hasAttribute('readonly'));
+        $this->assertStringContainsString('1 temizlik kaydında kullanıldı.', $this->text($page->querySelector('.material-lot-status')));
+
+        $this->actingAs($this->manager)->from($form)
+            ->put(route('admin.materials.lots.update', [$material, $lot]), ['lot_no' => 'DT-24181', 'expiry_date' => '2027-05-31'])
+            ->assertRedirect($form)
+            ->assertSessionHasErrors(['lot_no' => 'Bu lot kayıtlarda kullanıldığı için numarası değiştirilemez; son kullanma tarihi düzeltilebilir.']);
+
+        $this->actingAs($this->manager)
+            ->put(route('admin.materials.lots.update', [$material, $lot]), ['lot_no' => 'DT-24118', 'expiry_date' => '2027-06-30'])
+            ->assertRedirect(route('admin.materials.edit', $material).'#material-lots')
+            ->assertSessionHas('status', 'DT-24118 lotu güncellendi.');
+
+        $this->assertSame('2027-06-30', $lot->fresh()->expiry_date->toDateString());
+        // Kayıt, lotun seçildiği andaki kopyasını taşır (R-13).
+        $this->assertSame('2027-05-31', $cleaning->materials()->sole()->expiry_date->toDateString());
+    }
+
+    public function test_unused_lot_number_can_be_corrected(): void
+    {
+        $material = $this->makeMaterial('DET-01');
+        $lot = $this->lot($material, 'DT-24181');
+
+        $this->actingAs($this->manager)
+            ->put(route('admin.materials.lots.update', [$material, $lot]), ['lot_no' => 'DT-24118', 'expiry_date' => '2027-05-31', 'received_at' => ''])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(['DT-24118', '2027-05-31', null], [$lot->fresh()->lot_no, $lot->fresh()->expiry_date->toDateString(), $lot->fresh()->received_at]);
+    }
+
+    public function test_lot_is_deactivated_and_activated_and_cannot_be_used_while_inactive(): void
+    {
+        $material = $this->makeMaterial('DET-01');
+        $lot = $this->lot($material, 'DT-24118');
+        $back = route('admin.materials.edit', $material).'#material-lots';
+
+        $this->actingAs($this->manager)->post(route('admin.materials.lots.deactivate', [$material, $lot]))
+            ->assertRedirect($back)
+            ->assertSessionHas('status', 'DT-24118 lotu kullanımdan kaldırıldı. Yeni girişlerde seçilemez; girildiği kayıtlarda görünmeye devam eder.');
+        $this->assertFalse($lot->fresh()->is_active);
+
+        $this->assertRuleViolation('material_lot_unavailable', fn () => $this->openCleaning($this->operator(), $this->makeMachine(), materials: [$this->entry($material, 'DT-24118')]));
+
+        $this->actingAs($this->manager)->post(route('admin.materials.lots.activate', [$material, $lot]))
+            ->assertRedirect($back)
+            ->assertSessionHas('status', 'DT-24118 lotu yeniden kullanımda.');
+        $this->assertTrue($lot->fresh()->is_active);
+
+        $this->actingAs($this->manager)->delete('/admin/materials/'.$material->id.'/lots/'.$lot->id)->assertMethodNotAllowed();
+        $this->assertSame(1, MaterialLot::count());
+    }
+
+    public function test_lot_routes_are_scoped_to_the_material_and_closed_to_operators(): void
+    {
+        $detergent = $this->makeMaterial('DET-01');
+        $disinfectant = $this->makeMaterial('DEZ-02');
+        $lot = $this->lot($detergent, 'DT-1');
+
+        $this->actingAs($this->manager)->get(route('admin.materials.lots.edit', [$disinfectant, $lot]))->assertNotFound();
+        $this->actingAs($this->manager)->post(route('admin.materials.lots.deactivate', [$disinfectant, $lot]))->assertNotFound();
+
+        $this->actingAs($this->operator());
+        $requests = [
+            ['post', route('admin.materials.lots.store', $detergent), ['lot_no' => 'X', 'expiry_date' => '2027-01-31']],
+            ['get', route('admin.materials.lots.edit', [$detergent, $lot])],
+            ['put', route('admin.materials.lots.update', [$detergent, $lot]), ['lot_no' => 'X', 'expiry_date' => '2027-01-31']],
+            ['post', route('admin.materials.lots.deactivate', [$detergent, $lot])],
+            ['post', route('admin.materials.lots.activate', [$detergent, $lot])],
+        ];
+
+        foreach ($requests as $request) {
+            [$method, $url, $data] = $request + [2 => []];
+            $this->{$method}($url, $data)->assertForbidden();
+        }
+
+        $this->assertSame([['DT-1', true]], MaterialLot::all()->map(fn ($lot) => [$lot->lot_no, $lot->is_active])->all());
+    }
+
+    public function test_list_shows_lot_counts_and_lot_changes_are_in_the_material_history(): void
+    {
+        $material = $this->makeMaterial('DET-01');
+        $this->makeMaterial('DEZ-02');
+        $this->lot($material, 'DT-1', '2027-01-31');
+        $this->lot($material, 'DT-0', '2026-10-08');
+
+        $page = $this->page($this->actingAs($this->manager)->get(route('admin.materials.index'))->assertOk());
+
+        $this->assertSame('2 lot (1 seçilebilir)', $this->text($page->querySelector("#material-{$material->id} .material-list__lots")));
+
+        $this->actingAs($this->manager)->post(route('admin.materials.lots.store', $material), ['lot_no' => 'DT-2', 'expiry_date' => '2027-03-31']);
+        $lot = MaterialLot::where('lot_no', 'DT-2')->sole();
+
+        $change = DefinitionChange::query()->where('subject_type', DefinitionChange::typeOf($lot))->where('subject_id', $lot->id)->sole();
+        $this->assertSame([DefinitionChange::typeOf($material), $material->id, 'DET-01 / DT-2'], [$change->root_type, $change->root_id, $change->subject_label]);
     }
 
     // ---------------------------------------------------------------------------------------

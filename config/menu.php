@@ -20,6 +20,7 @@ return [
     ['label' => 'Prosedürler', 'icon' => 'bi-journal-check', 'route' => 'admin.procedures.index', 'active' => 'admin.procedures.*', 'roles' => ['manager']],
     ['label' => 'Malzemeler', 'icon' => 'bi-droplet', 'route' => 'admin.materials.index', 'active' => 'admin.materials.*', 'roles' => ['manager']],
     ['label' => 'Üretim İş Emirleri', 'icon' => 'bi-clipboard-data', 'route' => 'admin.work-orders.index', 'active' => 'admin.work-orders.*', 'roles' => ['manager']],
+    ['label' => 'Temizlik Planları', 'icon' => 'bi-calendar-check', 'route' => 'admin.cleaning-plans.index', 'active' => 'admin.cleaning-plans.*', 'roles' => ['manager']],
     ['label' => 'Kullanıcılar', 'icon' => 'bi-people', 'route' => 'admin.users.index', 'active' => 'admin.users.*', 'roles' => ['manager']],
     ['label' => 'Değişiklik Günlüğü', 'icon' => 'bi-clock-history', 'route' => 'admin.definition-changes.index', 'roles' => ['manager']],
 

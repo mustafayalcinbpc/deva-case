@@ -49,6 +49,7 @@ final class CleaningEventDescriber
                 $text('Prosedür', "{$version->procedure->code} — {$version->procedure->name} (versiyon {$version->version})"),
                 $text('Yardımcı personel', $people('helper_ids')),
                 $text('Üretim iş emri', ($payload['work_order_id'] ?? null) !== null ? $cleaning->workOrder?->code : null),
+                $text('Görev', ($payload['cleaning_task_id'] ?? null) !== null ? $this->task($cleaning) : null),
             ]],
             'cleaning.started' => ['Temizlik başladı (ilk adım başlatıldı)', [
                 $text('Saha defteri referansı', $payload['field_ref'] ?? null),
@@ -110,6 +111,23 @@ final class CleaningEventDescriber
         };
 
         return ['title' => $title, 'details' => array_values(array_filter($details))];
+    }
+
+    /**
+     * K-21: kaydın açıldığı görev: neden ve son tarih ("Periyodik plan, son tarih 10.10.2026 14:00").
+     */
+    private function task(Cleaning $cleaning): ?string
+    {
+        $task = $cleaning->task;
+
+        if ($task === null) {
+            return null;
+        }
+
+        $trigger = $task->triggerWorkOrder?->code;
+        $due = $task->due_at->setTimezone(config('app.display_timezone'))->format('d.m.Y H:i');
+
+        return $task->source->label().($trigger !== null ? " ({$trigger})" : '').", son tarih {$due}";
     }
 
     private function date(string $value): string

@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 /**
  * Kayıt detayındaki malzeme aksiyonları (K-12–K-14). Kuralları ve yetkiyi workflow denetler.
  * Malzeme route'ta kayda bağlıdır (scoped binding): başka kaydın malzemesi 404 verir.
+ * Sonuç sayfası Malzemeler sekmesinde açılır (#materials, section-tabs.js).
  */
 class CleaningMaterialController extends Controller
 {
@@ -21,13 +22,13 @@ class CleaningMaterialController extends Controller
     {
         $this->workflow->addMaterial($request->user(), $cleaning, $request->entry());
 
-        return redirect()->route('cleanings.show', $cleaning)->with('status', 'Malzeme eklendi.');
+        return redirect()->route('cleanings.show', $cleaning)->withFragment('materials')->with('status', 'Malzeme eklendi.');
     }
 
     public function void(VoidMaterialRequest $request, Cleaning $cleaning, CleaningMaterial $material): RedirectResponse
     {
         $this->workflow->voidMaterial($request->user(), $material, $request->reason());
 
-        return redirect()->route('cleanings.show', $cleaning)->with('status', 'Malzeme geçersiz kılındı.');
+        return redirect()->route('cleanings.show', $cleaning)->withFragment('materials')->with('status', 'Malzeme geçersiz kılındı.');
     }
 }

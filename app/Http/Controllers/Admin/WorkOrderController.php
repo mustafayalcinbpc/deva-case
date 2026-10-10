@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\WorkOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Catalog\SaveWorkOrderRequest;
 use App\Models\Line;
 use App\Models\Machine;
 use App\Models\WorkOrder;
+use App\Services\Planning\WorkOrderLifecycle;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -18,7 +20,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Üretim iş emirleri (K-19). Demoda elle girilir, gerçekte ERP'den gelir. Üretim iş emri bir hatta, bir
  * makineye ya da hiçbirine bağlıdır. Kayıtlarda kullanılan üretim iş emrinin kodu ve bağlantısı
- * değişmez; yalnızca açıklaması düzeltilebilir.
+ * değişmez; yalnızca açıklaması düzeltilebilir. Durum ERP yerine "Üretime al" ve "Tamamlandı"
+ * düğmeleriyle değişir; tamamlanma temizlik planlarını tetikler (WorkOrderLifecycle, K-20).
  */
 class WorkOrderController extends Controller
 {
@@ -39,6 +42,7 @@ class WorkOrderController extends Controller
                 ->where('line_id', $lineId)
                 ->orWhereIn('machine_id', Machine::query()->select('id')->where('line_id', $lineId))))
             ->when($filters['machine_id'], fn (Builder $query, int $machineId) => $query->where('machine_id', $machineId))
+            ->when($filters['status'], fn (Builder $query, WorkOrderStatus $status) => $query->where('status', $status))
             ->orderBy('code')
             ->paginate(self::PER_PAGE)
             ->withQueryString();
@@ -46,7 +50,8 @@ class WorkOrderController extends Controller
         return view('admin.work-orders.index', [
             'workOrders' => $workOrders,
             'filters' => $filters,
-            'isFiltered' => $filters['q'] !== null || $filters['line_id'] !== null || $filters['machine_id'] !== null,
+            'isFiltered' => $filters['q'] !== null || $filters['line_id'] !== null || $filters['machine_id'] !== null || $filters['status'] !== null,
+            'statuses' => WorkOrderStatus::cases(),
             'lineGroups' => $this->lineGroups(),
             'machineGroups' => $this->machineGroups(),
         ]);
@@ -95,6 +100,27 @@ class WorkOrderController extends Controller
             ->with('status', "Üretim iş emri güncellendi: {$workOrder->code}");
     }
 
+    /**
+     * Demo: ERP'nin "üretime başladı" bildirimi yerine.
+     */
+    public function start(WorkOrder $workOrder, WorkOrderLifecycle $lifecycle): RedirectResponse
+    {
+        $lifecycle->start($workOrder);
+
+        return back()->with('status', "{$workOrder->code} üretime alındı.");
+    }
+
+    /**
+     * Demo: ERP'nin "tamamlandı" bildirimi yerine. Makinesinde "üretim iş emri tamamlanınca"
+     * kurallı plan varsa yapılması gereken temizlik görevi açılır (K-20).
+     */
+    public function complete(WorkOrder $workOrder, WorkOrderLifecycle $lifecycle): RedirectResponse
+    {
+        $lifecycle->complete($workOrder);
+
+        return back()->with('status', "{$workOrder->code} tamamlandı. Makinede bu tetiğe bağlı temizlik planı varsa görev açılır.");
+    }
+
     private function form(WorkOrder $workOrder, int $usage): View
     {
         return view('admin.work-orders.form', [
@@ -108,17 +134,19 @@ class WorkOrderController extends Controller
     /**
      * Geçersiz filtre değerleri yok sayılır.
      *
-     * @return array{q: ?string, line_id: ?int, machine_id: ?int}
+     * @return array{q: ?string, line_id: ?int, machine_id: ?int, status: ?WorkOrderStatus}
      */
     private function filters(Request $request): array
     {
         $id = fn (string $key) => filter_var($request->query($key), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
         $term = $request->query('q');
+        $status = $request->query('status');
 
         return [
             'q' => is_string($term) && trim($term) !== '' ? trim($term) : null,
             'line_id' => $id('line_id'),
             'machine_id' => $id('machine_id'),
+            'status' => is_string($status) ? WorkOrderStatus::tryFrom($status) : null,
         ];
     }
 

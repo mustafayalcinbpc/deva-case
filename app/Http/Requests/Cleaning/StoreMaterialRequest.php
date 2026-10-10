@@ -32,4 +32,12 @@ class StoreMaterialRequest extends FormRequest
     {
         return new MaterialEntry((int) $this->validated('material_lot_id'));
     }
+
+    /**
+     * Doğrulama hatasında kayıt detayı Malzemeler sekmesinde açılır; hata gizli sekmede kalmaz.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return strtok(parent::getRedirectUrl(), '#').'#materials';
+    }
 }

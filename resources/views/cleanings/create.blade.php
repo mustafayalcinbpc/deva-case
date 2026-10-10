@@ -16,12 +16,25 @@
     makinenin özetini gösterir, üretim iş emirlerini makineye göre süzer ve malzeme satırı ekler/çıkarır.
     Başlıktaki "Kaydı aç" düğmesi form="cleaning-form" ile aynı formu gönderir; telefonda ve
     uzun formda sağ sütundaki (dar ekranda en alttaki) düğme kullanılır.
+
+    Görevden gelindiğinde (?task=ID, K-21) $task doludur: makine ve tür (planlı) görevden gelir ve
+    değiştirilemez, üretim iş emri görevin sonraki emriyle dolar; görev gizli alanla gönderilir.
+    İstenen görev artık açık değilse (kayıt açılmış, iptal edilmiş) uyarı gösterilir.
 --}}
 @section('content')
     <form method="POST" action="{{ route('cleanings.store') }}" id="cleaning-form" class="cleaning-form" data-module="cleaning-form">
         @csrf
 
         @include('cleanings.form.errors')
+
+        @if ($task)
+            @include('cleanings.form.task')
+        @elseif (request()->filled('task'))
+            <div class="alert alert-warning cleaning-form__task-gone" role="alert">
+                Bu görev artık açık değil: görevden kayıt açılmış ya da görev iptal edilmiş olabilir.
+                <a href="{{ route('dashboard') }}" class="alert-link">Yapılması gereken temizliklere dön</a>
+            </div>
+        @endif
 
         {{-- Geniş ekranda iki sütun: solda zorunlu bölümler, sağda üretim iş emri ve gönder. --}}
         <div class="cleaning-form__layout">

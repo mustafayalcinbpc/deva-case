@@ -2,8 +2,10 @@
 // bu modül yalnızca kolaylık katar:
 // - seçilen makinenin prosedür özetini ve başlamamış kayıt uyarısını (K-05) gösterir,
 // - malzeme zorunluysa ipucunu gösterir (K-12),
+// - seçilen makinenin prosedürünün beklediği malzeme satırlarını gösterir; diğer makinelerinkini
+//   devre dışı bırakır, gönderilmezler (K-13),
 // - üretim iş emirlerini seçilen makineye göre süzer (K-19; asıl kontrol sunucuda),
-// - malzeme satırı ekler ve çıkarır.
+// - ek malzeme satırı ekler ve çıkarır.
 
 const INDEX_PLACEHOLDER = /__INDEX__/g;
 
@@ -27,6 +29,8 @@ export default function cleaningForm(form) {
             if (materialHint) {
                 materialHint.hidden = machine?.dataset.materialRequired !== '1';
             }
+
+            showExpectedMaterials(form, machine);
 
             filterWorkOrders(workOrderSelect, workOrderEmpty, machine);
         };
@@ -53,6 +57,24 @@ function showSummary(container, machine) {
 
     container.querySelectorAll('[data-machine-summary]').forEach((summary) => {
         summary.hidden = summary.dataset.machineSummary !== id;
+    });
+}
+
+/**
+ * Yalnızca seçili makinenin beklenen malzeme satırları görünür ve gönderilir: fieldset devre dışı
+ * kalınca içindeki alanlar forma girmez. Makine seçilmemişse açıklama gösterilir.
+ */
+function showExpectedMaterials(form, machine) {
+    const id = machine?.value ?? '';
+
+    form.querySelectorAll('[data-expected-materials]').forEach((group) => {
+        const selected = group.dataset.expectedMaterials === id;
+
+        group.hidden = !selected;
+
+        if (group instanceof HTMLFieldSetElement) {
+            group.disabled = !selected;
+        }
     });
 }
 
@@ -117,7 +139,7 @@ function setUpMaterialRows(form) {
         nextIndex += 1;
 
         rows.append(row);
-        row.querySelector('select, input')?.focus();
+        row.querySelector('select')?.focus();
     });
 
     rows.addEventListener('click', (event) => {

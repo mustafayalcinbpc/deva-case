@@ -26,6 +26,8 @@ class AccessTest extends ProcedureTestCase
         $draft = $this->draft($procedure, [['steps' => 2], ['steps' => 1]]);
         $phase = $draft->phases()->first();
         $step = $phase->steps()->first();
+        $detergent = $this->makeMaterial('DET-01');
+        $expected = $draft->materials()->create(['material_id' => $this->makeMaterial('DEZ-02')->id, 'sequence' => 1, 'is_required' => false]);
         $before = $this->outline($draft);
 
         $this->actingAs($this->operator());
@@ -40,7 +42,10 @@ class AccessTest extends ProcedureTestCase
             ['post', route('admin.procedures.versions.store', $procedure)],
             ['get', route('admin.procedures.versions.show', [$procedure, $published])],
             ['get', route('admin.procedures.versions.show', [$procedure, $draft])],
-            ['put', route('admin.procedures.versions.update', [$procedure, $draft]), ['material_required' => '1']],
+            ['post', route('admin.procedures.materials.store', [$procedure, $draft]), ['material_id' => $detergent->id, 'is_required' => '1']],
+            ['put', route('admin.procedures.materials.update', [$procedure, $draft, $expected]), ['is_required' => '1']],
+            ['delete', route('admin.procedures.materials.destroy', [$procedure, $draft, $expected])],
+            ['post', route('admin.procedures.materials.move', [$procedure, $draft, $expected, 'up'])],
             ['delete', route('admin.procedures.versions.destroy', [$procedure, $draft])],
             ['post', route('admin.procedures.versions.publish', [$procedure, $draft]), ['when' => 'now']],
             ['post', route('admin.procedures.phases.store', [$procedure, $draft]), ['name' => 'F', 'min_duration_minutes' => 1]],
@@ -66,6 +71,7 @@ class AccessTest extends ProcedureTestCase
         $this->assertSame(2, $procedure->versions()->count());
         $this->assertTrue($draft->fresh()->isDraft());
         $this->assertFalse($draft->fresh()->material_required);
+        $this->assertSame([[$expected->material_id, false]], $draft->materials()->get()->map(fn ($item) => [$item->material_id, $item->is_required])->all());
         $this->assertSame($before, $this->outline($draft));
     }
 }

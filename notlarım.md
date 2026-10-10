@@ -1,6 +1,6 @@
 # Notlarım — Dijital Temizlik Takip (deva-case)
 
-Son durum: 9 Ekim 2026. `main` = `2299dba` (GitHub'a push edildi). Bütün testler geçiyor (733 test).
+Son durum: 10 Ekim 2026. `main` = `5344bdb` (GitHub'da). `feature/malzeme-planlama` (prosedür sayfası sekmeleri dahil) yerelde, `main`'e merge bekliyor. Bütün testler geçiyor (830 test).
 
 ## Nasıl çalıştırılır
 
@@ -20,11 +20,13 @@ docker compose up -d --build        # ilk açılışta migration + demo verisi k
 
 ## Dokümanlar
 
-- `docs/is-gereksinimleri.md`: case dokümanından çıkarılan gereksinimler (R-01–R-49) ve verdiğimiz kararlar (K-01–K-19).
+- `docs/is-gereksinimleri.md`: case dokümanından çıkarılan gereksinimler (R-01–R-49) ve verdiğimiz kararlar (K-01–K-23).
 - `docs/plan.md`: durum makinesi planı ve sonuçları.
 - `docs/plan-arayuz.md`: AdminLTE kurulumu.
 - `docs/plan-ekranlar.md`: kayıt ekranları.
 - `docs/plan-yonetim-rapor-tasarim.md`: yönetim, raporlar, kuyruk, tasarım, iyileştirmeler.
+- `docs/plan-detay-sekmeler.md`: kayıt detayı sekmeleri ve ilerleme göstergesi.
+- `docs/plan-malzeme-planlama.md`: malzeme lotları, üretim iş emri, temizlik planı ve görevler; ajan sözleşmeleri.
 - `README.md`: kurulum, mimari, durum yönetimi, ekranlar, yönetim, raporlar, bildirimler, kontrol noktaları, production, tema.
 
 ## Yapılanlar
@@ -61,6 +63,14 @@ docker compose up -d --build        # ilk açılışta migration + demo verisi k
    - geliştirme ortamında 20 MB dosya yükleme;
    - root'a ait derlenmiş view'lar yüzünden 500: entrypoint her açılışta `storage` sahipliğini www-data'ya veriyor.
 15. **Kayıt detayı sekmeleri ve ilerleme göstergesi** (`docs/plan-detay-sekmeler.md`): Şimdi, Adımlar, Özet, Malzemeler, Olay geçmişi sekmelerde; sağ sütunda kargo takibi gibi faz/adım ilerlemesi. Operatör ve yönetici aynı sayfayı görür.
+16. **Prosedür sayfası sekmeleri.** Versiyonlar, Özet, Kullanan makineler, Değişiklik geçmişi; sekme yapısı iki sayfada ortak (`section-tabs.js`, `<x-section-tabs.*>`).
+17. **Malzeme, üretim iş emri, planlama** (`docs/plan-malzeme-planlama.md`):
+   - malzeme lotları (SKT lotun özelliği); kayıtta yalnızca lot seçimi, lot no/SKT kopyası (K-14);
+   - prosedür versiyonunda beklenen malzemeler, zorunlu olanların her biri ilk adımdan önce şart (K-12, K-13);
+   - "İş emri" → "Üretim iş emri"; durum (planlandı/üretimde/tamamlandı), ürün, planlanan zamanlar (K-19);
+   - temizlik planları (periyodik / üretim iş emri tamamlanınca), görev üretimi (saatlik komut + dinleyici), gecikme bildirimi (K-20);
+   - gösterge panelinde "Yapılması gereken temizlikler", görevden kayıt açma, görev iptali (K-21, K-23);
+   - port 8005 (`APP_PORT`, `APP_URL`).
 
 ## Önemli kararlar (mülakatta sorulabilir)
 
@@ -72,20 +82,26 @@ docker compose up -d --build        # ilk açılışta migration + demo verisi k
 - **K-08, K-09:** Başlamış kaydı yalnızca yönetici iptal eder; sahip yalnızca başlamamış kaydını "hatalı kayıt" olarak iptal edebilir.
 - **K-11:** Operatör bütün kayıtları görür ama değiştiremez. Adımı yalnızca sahibi ya da görevlisi yürütür.
 - **K-18:** Her makinenin tek geçerli prosedürü var; planlı ve plansız temizlik aynı prosedürü kullanır.
+- **K-14:** SKT lotun özelliği; operatör lot seçer, yazmaz. Kayıt lot no ve SKT'nin o anki kopyasını taşır.
+- **K-19:** Kayıt, temizliğin hazırladığı *sonraki* üretim iş emrine bağlanır; tamamlanan emir görevde "tetikleyen" olarak durur.
+- **K-20, K-21:** Görev ≠ kayıt. Plan görev üretir, kaydı operatör görevden açar ve sorumlusu olur (R-15 korunur, K-06 göreve işlemez).
 
 ## Yapılacaklar / açık konular
 
-1. **K-05 kararı.** Ya mülakatta gerekçesiyle savun, ya da "açık kayıt varken aynı makineye ikinci kayıt açılamaz, başlamayan kayıt 30 dakikada düşer" modeline dön.
-2. **Yapay zekâ görünürlüğü.** `docs/plan*.md` "Ajan A–H" diye yazıyor, commit'lerde Claude ortak yazar satırı var. Case kurallarındaki yapay zekâ politikasına göre karar ver. İzin varsa sahiplen ve kararları anlat.
-3. **Tasarım dosyası git geçmişinde.** "Huzurevi Panel Tasarımı.html" GitHub'daki geçmişte duruyor (`c9c57e6`). Tamamen silmek için geçmişi yeniden yazıp force push etmek gerekir.
-4. **Savunma ve mimari özeti.** Kısa bir doküman hazırlanmalı: neden durum makinesi, neden veritabanı kilidi, hash zinciri ve kontrol noktaları, kuyruk kullanımı, K-xx kararlarının gerekçeleri.
-5. **Teknik küçükler:**
+1. **D: görev ataması (K-22, bekliyor).** Yönetici görevi sorumlu operatör ve yardımcılar seçerek verir; "Görevlerim". Şu an görevler atanmamış, herhangi bir operatör görevden kayıt açabiliyor. Karar: görev modeli mi, yöneticinin kaydı açıp sorumlu seçmesi mi (öneri: görev modeli).
+2. **K-05 kararı.** Ya mülakatta gerekçesiyle savun, ya da "açık kayıt varken aynı makineye ikinci kayıt açılamaz, başlamayan kayıt 30 dakikada düşer" modeline dön.
+3. **Yapay zekâ görünürlüğü.** `docs/plan*.md` "Ajan A–H" diye yazıyor, commit'lerde Claude ortak yazar satırı var. Case kurallarındaki yapay zekâ politikasına göre karar ver. İzin varsa sahiplen ve kararları anlat.
+4. **Tasarım dosyası git geçmişinde.** "Huzurevi Panel Tasarımı.html" GitHub'daki geçmişte duruyor (`c9c57e6`). Tamamen silmek için geçmişi yeniden yazıp force push etmek gerekir.
+5. **Savunma ve mimari özeti.** Kısa bir doküman hazırlanmalı: neden durum makinesi, neden veritabanı kilidi, hash zinciri ve kontrol noktaları, kuyruk kullanımı, K-xx kararlarının gerekçeleri.
+6. **Teknik küçükler:**
    - eski PDF/CSV dışa aktarma dosyalarını temizleyen bir görev yok;
    - `CleaningCompleted` olayının dinleyicisi yok (ileride rapor/önbellek için);
    - production'da `event:cache` ya da listener discovery açık kalmalı;
    - query builder ile toplu güncelleme değişiklik günlüğünü ve model korumalarını atlar (şu an kodda yok). Prosedür tablolarında trigger yok, koruma model seviyesinde.
-   - `storage/logs/audit-checkpoints.log` dosyasının sunucu dışına taşınması operasyon işi.
-6. **Tasarım farkları:**
+   - `storage/logs/audit-checkpoints.log` dosyasının sunucu dışına taşınması operasyon işi;
+   - malzeme izlenebilirlik raporunda lot kaydına göre ayrı filtre yok (lot araması lot kaydını da kapsıyor).
+7. **Tasarım farkları:**
    - üst barda arama yok (uygulamada arama yok);
-   - çok sütunlu tablolar yatay kayıyor.
-7. **Yerel branch'ler.** `feature/*` branch'leri yalnızca yerelde duruyor, GitHub'a gönderilmedi.
+   - çok sütunlu tablolar yatay kayıyor;
+   - yeni ekranların (lotlar, beklenen malzemeler, planlar, görev kartı) sınıflarına özel stil yazılmadı; Bootstrap/AdminLTE varsayılanıyla çiziliyor.
+8. **Yerel branch'ler.** `feature/*` branch'leri yalnızca yerelde duruyor, GitHub'a gönderilmedi.

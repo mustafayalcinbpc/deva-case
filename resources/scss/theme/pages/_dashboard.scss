@@ -60,3 +60,55 @@
 .current-step__title {
     margin-inline-end: .35rem;
 }
+
+// Yapılması gereken temizlikler (K-21): gecikmiş satır uyarı tonunda; "Kaydı aç" ve yöneticinin
+// açılır iptal formu aynı hücrede.
+.due-tasks {
+    margin-bottom: 1rem;
+}
+
+.due-tasks__count {
+    margin-inline-start: auto;
+}
+
+.due-tasks__row--overdue > td {
+    background-color: color-mix(in srgb, var(--nc-warn) 8%, transparent);
+}
+
+.due-tasks__machine,
+.due-tasks__product {
+    display: block;
+    font-size: .8125rem;
+    color: var(--nc-text-muted);
+}
+
+.due-tasks__trigger,
+.due-tasks__overdue {
+    margin-inline-start: .35rem;
+}
+
+.due-tasks__actions {
+    min-width: 11rem;
+    text-align: end;
+}
+
+.due-tasks__cancel {
+    margin-top: .35rem;
+    text-align: start;
+
+    > summary {
+        cursor: pointer;
+        font-size: .8125rem;
+        color: var(--nc-text-muted);
+        text-align: end;
+    }
+}
+
+.due-tasks__cancel-form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .5rem;
+    margin-top: .5rem;
+    min-width: 16rem;
+}

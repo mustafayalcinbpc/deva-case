@@ -11,6 +11,10 @@ Artisan::command('inspire', function () {
 // K-06: başlamamış eski kayıtları "süresi doldu" durumuna alır.
 Schedule::command('cleanings:expire-stale')->everyMinute()->withoutOverlapping();
 
+// K-20, K-23: periyodik planlardan zamanı gelen görevler açılır, geciken görevler yöneticilere bildirilir.
+// "Üretim iş emri tamamlanınca" kurallı planlar komutu beklemez; WorkOrderCompleted olayıyla çalışır.
+Schedule::command('cleaning:generate-tasks')->hourly()->withoutOverlapping();
+
 // R-46: olay zincirlerinin dış çapası. Yeni olay varsa kontrol noktası oluşturulur ve
 // storage/logs/audit-checkpoints.log dosyasına da yazılır (bu dosya sunucu dışına taşınmalıdır).
 Schedule::command('audit:checkpoint')->hourly()->withoutOverlapping();

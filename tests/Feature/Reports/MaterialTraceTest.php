@@ -3,7 +3,9 @@
 namespace Tests\Feature\Reports;
 
 use App\Models\Cleaning;
+use App\Models\CleaningMaterial;
 use App\Models\Material;
+use App\Models\MaterialLot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
@@ -105,6 +107,43 @@ class MaterialTraceTest extends TestCase
         $this->assertSame([[$this->third->id, 'LOT-9_X']], $this->rows($this->search(['lot' => '9_X'])));
         $this->assertSame([], $this->rows($this->search(['lot' => '%'])));
         $this->assertSame([], $this->rows($this->search(['lot' => 'LOT_2026'])));
+    }
+
+    public function test_lot_search_also_matches_the_current_lot_record(): void
+    {
+        // K-14: girişteki lot no seçildiği andaki kopyadır; lot kaydı sonradan düzeltildiyse iki
+        // numarayla da bulunur ve satırda düzeltme belirtilir.
+        $lot = MaterialLot::query()->where('lot_no', 'LOT-9_X')->sole();
+        $lot->update(['lot_no' => 'LOT-9-Y', 'expiry_date' => '2028-01-31']);
+
+        foreach (['LOT-9_X', 'LOT-9-Y'] as $query) {
+            $response = $this->search(['lot' => $query]);
+            $this->assertCount(1, $this->page($response)->querySelectorAll('#material-results tbody tr'), $query);
+            $note = $this->text($this->page($response)->querySelector('#material-results tbody tr .material-trace__lot-note'));
+            $this->assertSame('Lot kaydı sonradan düzeltildi: LOT-9-Y, SKT 31.01.2028', $note);
+        }
+
+        $cell = $this->page($this->search(['lot' => 'LOT-9-Y']))->querySelectorAll('#material-results tbody tr td')[6];
+        $this->assertStringStartsWith('LOT-9_X', $this->text($cell), 'Satır kayıttaki kopyayı gösterir.');
+    }
+
+    public function test_recalled_lot_and_entries_without_a_lot_record_are_marked(): void
+    {
+        MaterialLot::query()->where('lot_no', 'LOT-2026-A2')->sole()->update(['is_active' => false]);
+        CleaningMaterial::create([
+            'cleaning_id' => $this->third->id,
+            'material_id' => $this->disinfectant->id,
+            'lot_no' => 'ESKI-1',
+            'expiry_date' => '2027-01-31',
+            'added_by' => $this->ahmet->id,
+        ]);
+
+        $recalled = $this->page($this->search(['lot' => 'A2']))->querySelector('#material-results tbody tr .material-trace__lot-note--inactive');
+        $this->assertSame('Lot kullanımdan kaldırıldı', $this->text($recalled));
+
+        $legacy = $this->page($this->search(['lot' => 'ESKI']));
+        $this->assertCount(1, $legacy->querySelectorAll('#material-results tbody tr'));
+        $this->assertSame('Lot kaydı yok (eski giriş)', $this->text($legacy->querySelector('#material-results tbody tr .material-trace__lot-note')));
     }
 
     /**

@@ -97,7 +97,12 @@
 
             @if ($materialMissing && $cleaning->status === CleaningStatus::Created)
                 <div class="alert alert-warning now-card__alert" role="alert">
-                    Bu prosedürde malzeme zorunlu; en az bir geçerli malzeme girilmeden ilk adım başlatılamaz.
+                    @if ($missingMaterials->isNotEmpty())
+                        Zorunlu malzemeler için lot girilmeden ilk adım başlatılamaz:
+                        {{ $missingMaterials->map(fn ($material) => "{$material->code} {$material->name}")->implode(', ') }}.
+                    @else
+                        Bu prosedürde malzeme zorunlu; en az bir geçerli malzeme girilmeden ilk adım başlatılamaz.
+                    @endif
                     <a href="#materials" class="alert-link">Malzemelere git</a>
                 </div>
             @endif

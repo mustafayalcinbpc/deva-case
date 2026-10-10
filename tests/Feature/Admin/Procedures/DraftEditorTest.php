@@ -93,20 +93,6 @@ class DraftEditorTest extends ProcedureTestCase
         $this->assertSame(0, $draft->phases()->count());
     }
 
-    public function test_material_requirement_is_set_on_the_draft(): void
-    {
-        $procedure = $this->procedure();
-        $draft = $this->draft($procedure);
-
-        $this->put(route('admin.procedures.versions.update', [$procedure, $draft]), ['material_required' => '1'])
-            ->assertRedirect(route('admin.procedures.versions.show', [$procedure, $draft]));
-        $this->assertTrue($draft->fresh()->material_required);
-
-        // İşaretsiz kutu gönderilmez: "hayır".
-        $this->put(route('admin.procedures.versions.update', [$procedure, $draft]), []);
-        $this->assertFalse($draft->fresh()->material_required);
-    }
-
     public function test_phases_are_added_edited_and_validated(): void
     {
         $procedure = $this->procedure();
@@ -243,15 +229,20 @@ class DraftEditorTest extends ProcedureTestCase
     public function test_published_version_cannot_be_edited_through_the_screens(): void
     {
         $procedure = $this->procedure();
-        $v1 = $this->publishVersion($procedure, [['steps' => 2], ['steps' => 1]]);
+        $v1 = $this->publishVersion($procedure, [['steps' => 2], ['steps' => 1]], materials: [[$this->makeMaterial('DEZ-02'), false]]);
         $phase = $v1->phases()->first();
         $step = $phase->steps()->first();
+        $expected = $v1->materials()->sole();
+        $material = $this->makeMaterial('DET-01');
         $before = $this->outline($v1);
         $back = route('admin.procedures.versions.show', [$procedure, $v1]);
         $message = 'v1 yayımlanmış; yayımlanmış versiyon değiştirilemez. Değişiklik için yeni taslak oluşturun (K-15).';
 
         $attempts = [
-            fn () => $this->put(route('admin.procedures.versions.update', [$procedure, $v1]), ['material_required' => '1']),
+            fn () => $this->post(route('admin.procedures.materials.store', [$procedure, $v1]), ['material_id' => $material->id, 'is_required' => '1']),
+            fn () => $this->put(route('admin.procedures.materials.update', [$procedure, $v1, $expected]), ['is_required' => '1']),
+            fn () => $this->delete(route('admin.procedures.materials.destroy', [$procedure, $v1, $expected])),
+            fn () => $this->post(route('admin.procedures.materials.move', [$procedure, $v1, $expected, 'down'])),
             fn () => $this->post(route('admin.procedures.phases.store', [$procedure, $v1]), ['name' => 'Yeni', 'min_duration_minutes' => 1]),
             fn () => $this->put(route('admin.procedures.phases.update', [$procedure, $v1, $phase]), ['name' => 'Yeni', 'min_duration_minutes' => 1]),
             fn () => $this->delete(route('admin.procedures.phases.destroy', [$procedure, $v1, $phase])),
@@ -278,6 +269,7 @@ class DraftEditorTest extends ProcedureTestCase
 
         $this->assertSame($before, $this->outline($v1));
         $this->assertFalse($v1->fresh()->material_required);
+        $this->assertSame([[$expected->material_id, 1, false]], $v1->materials()->get()->map(fn ($item) => [$item->material_id, $item->sequence, $item->is_required])->all());
         $this->assertTrue($v1->fresh()->published_at->eq(now()));
     }
 

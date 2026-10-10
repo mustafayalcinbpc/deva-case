@@ -13,8 +13,9 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Malzeme kataloğu (K-13, R-07, R-10). Kayıtlar malzemeye bağlı olduğu için malzeme silinmez;
- * kullanımdan kaldırılır. Kullanımdan kaldırılan malzeme yeni kayıtta ve malzeme ekleme
- * formunda seçilemez, geçmiş kayıtlarda görünmeye devam eder.
+ * kullanımdan kaldırılır. Kullanımdan kaldırılan malzeme ve lotları yeni kayıtta ve malzeme
+ * ekleme formunda seçilemez, geçmiş kayıtlarda görünmeye devam eder. Lotlar malzemenin
+ * sayfasında yönetilir (MaterialLotController, K-14).
  */
 class MaterialController extends Controller
 {
@@ -27,6 +28,10 @@ class MaterialController extends Controller
                 // Kullanıldığı kayıt sayısı: aynı kayda iki kez girilen malzeme bir kez sayılır.
                 ->withCount(['cleaningMaterials as cleanings_count' => fn (Builder $query) => $query
                     ->select(DB::raw('count(distinct cleaning_materials.cleaning_id)'))])
+                // K-14: lot sayısı ve bugün seçilebilen (kullanımda, SKT'si geçmemiş) lot sayısı.
+                ->withCount(['lots', 'lots as usable_lots_count' => fn (Builder $query) => $query
+                    ->where('is_active', true)
+                    ->whereDate('expiry_date', '>=', now()->toDateString())])
                 ->orderByDesc('is_active')
                 ->orderBy('code')
                 ->paginate(self::PER_PAGE),
@@ -55,6 +60,11 @@ class MaterialController extends Controller
         return view('admin.materials.form', [
             'material' => $material,
             'usage' => $this->usage($material),
+            // Lotlar SKT sırasıyla; her lotun girildiği kayıt sayısı (aynı kayda iki kez girilen bir sayılır).
+            'lots' => $material->lots()
+                ->withCount(['cleaningMaterials as cleanings_count' => fn (Builder $query) => $query
+                    ->select(DB::raw('count(distinct cleaning_materials.cleaning_id)'))])
+                ->get(),
         ]);
     }
 

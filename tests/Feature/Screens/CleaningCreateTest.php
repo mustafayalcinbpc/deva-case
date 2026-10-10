@@ -142,8 +142,14 @@ class CleaningCreateTest extends TestCase
         User::factory()->inactive()->create(['name' => 'Ayrılan Personel']);
         $this->manager('Yönetici Zeynep');
 
-        $this->makeMaterial('DEZ-02');
-        $this->makeMaterial('DET-01');
+        $disinfectant = $this->makeMaterial('DEZ-02');
+        $detergent = $this->makeMaterial('DET-01');
+        $this->makeMaterial('ALK-04'); // kullanılabilir lotu olmayan malzeme listelenmez
+        $this->lot($detergent, 'DT-2', '2027-06-30');
+        $this->lot($detergent, 'DT-1', '2027-01-31');
+        $this->lot($detergent, 'DT-ESKI', '2026-10-08'); // SKT'si geçmiş (K-14)
+        $this->lot($disinfectant, 'DZ-1', '2026-10-09'); // SKT bugün: geçerli
+        $this->lot($disinfectant, 'DZ-GERI', '2027-12-31')->update(['is_active' => false]);
 
         WorkOrder::create(['code' => 'IE-2', 'line_id' => $machine->line_id, 'description' => 'Şurup hazırlama']);
         WorkOrder::create(['code' => 'IE-1', 'line_id' => $machine->line_id, 'machine_id' => $machine->id, 'description' => 'Şurup dolum']);
@@ -177,20 +183,85 @@ class CleaningCreateTest extends TestCase
             ['IE-3 (bütün makineler)', '', ''],
         ], $workOrders);
 
-        // Malzeme: katalogdan seçim, JS olmadan da gönderilebilen tek boş satır ve satır şablonu.
+        // Ek malzeme: JS olmadan da gönderilebilen tek boş satır ve satır şablonu. Lot tek seçimde,
+        // malzemeye göre gruplu; yalnızca kullanımdaki ve SKT'si geçmemiş lotlar (K-14). Lot no ve
+        // SKT elle girilmez.
         $rows = $page->querySelectorAll('.material-rows [data-material-row]');
         $this->assertCount(1, $rows);
-        $this->assertSame(
-            ['Malzeme seçin', 'DET-01 — Malzeme DET-01', 'DEZ-02 — Malzeme DEZ-02'],
-            array_map(fn (Element $option) => $this->text($option), iterator_to_array($rows[0]->querySelectorAll('select[name="materials[0][material_id]"] option'))),
-        );
-        $this->assertNotNull($rows[0]->querySelector('input[name="materials[0][lot_no]"]'));
-        $this->assertSame('date', $rows[0]->querySelector('input[name="materials[0][expiry_date]"]')->getAttribute('type'));
-        $this->assertStringContainsString('name="materials[__INDEX__][lot_no]"', $page->querySelector('template[data-material-template]')->innerHTML);
-        $this->assertTrue($page->querySelector('[data-material-add]')->hasAttribute('hidden'), '"Malzeme ekle" yalnızca JS ile görünür.');
+        $select = $rows[0]->querySelector('select[name="materials[0][material_lot_id]"]');
+        $this->assertSame('Malzeme ve lot seçin', $this->text($select->querySelector('option')));
+        $groups = [];
+        foreach ($select->querySelectorAll('optgroup') as $group) {
+            $groups[$group->getAttribute('label')] = array_map(fn (Element $option) => $this->text($option), iterator_to_array($group->querySelectorAll('option')));
+        }
+        $this->assertSame([
+            'DET-01 — Malzeme DET-01' => ['DT-1 · SKT 31.01.2027', 'DT-2 · SKT 30.06.2027'],
+            'DEZ-02 — Malzeme DEZ-02' => ['DZ-1 · SKT 09.10.2026'],
+        ], $groups);
+        $this->assertNull($rows[0]->querySelector('input[name*="lot_no"], input[name*="expiry_date"]'));
+        $this->assertStringContainsString('name="materials[__INDEX__][material_lot_id]"', $page->querySelector('template[data-material-template]')->innerHTML);
+        $this->assertTrue($page->querySelector('[data-material-add]')->hasAttribute('hidden'), '"Ek malzeme ekle" yalnızca JS ile görünür.');
 
         $this->assertSame('cleaning-form', $page->querySelector('form.cleaning-form')->getAttribute('data-module'));
         $this->assertSame(route('cleanings.store'), $page->querySelector('form.cleaning-form')->getAttribute('action'));
+    }
+
+    public function test_expected_materials_of_each_machine_come_with_their_lots(): void
+    {
+        // K-13: makine seçilince prosedürün beklediği malzemeler satır olarak gelir; operatör yalnızca
+        // lot seçer (K-14). Her makinenin satırları ayrı fieldset'te; seçili olmayanlar devre dışıdır,
+        // gönderilmez.
+        $detergent = $this->makeMaterial('DET-01');
+        $acid = $this->makeMaterial('DUR-03');
+        $machine = $this->makeMachine(code: 'M01', materials: [[$detergent, true], [$acid, false]]);
+        $plain = $this->makeMachine(code: 'M02');
+        $this->lot($detergent, 'DT-1', '2027-01-31');
+        $this->lot($detergent, 'DT-ESKI', '2026-10-01');
+        $ahmet = $this->operator('Ahmet');
+
+        $page = $this->page($this->actingAs($ahmet)->get(route('cleanings.create'))->assertOk());
+
+        $this->assertStringContainsString(
+            'Malzeme DET-01 (zorunlu), DUR-03 (isteğe bağlı)',
+            $this->text($page->querySelector("[data-machine-summary=\"{$machine->id}\"] .machine-summary__fact--materials")),
+        );
+
+        $group = $page->querySelector("fieldset[data-expected-materials=\"{$machine->id}\"]");
+        $this->assertTrue($group->hasAttribute('disabled'), 'Makine seçilmeden satırlar gönderilmez.');
+        $this->assertTrue($group->hasAttribute('hidden'));
+        $this->assertFalse($page->querySelector('.expected-materials__empty')->hasAttribute('hidden'));
+
+        $rows = $group->querySelectorAll('.material-row--expected');
+        $this->assertCount(2, $rows);
+        $this->assertSame('DET-01 — Malzeme DET-01 Zorunlu', $this->text($rows[0]->querySelector('.material-row__field--material')));
+        $this->assertSame((string) $detergent->id, $rows[0]->querySelector("input[type=\"hidden\"][name=\"materials[p{$detergent->id}][material_id]\"]")->getAttribute('value'));
+        $this->assertSame(
+            ['Lot seçin', 'DT-1 · SKT 31.01.2027'],
+            array_map(fn (Element $option) => $this->text($option), iterator_to_array($rows[0]->querySelectorAll("select[name=\"materials[p{$detergent->id}][material_lot_id]\"] option"))),
+        );
+
+        // Kullanılabilir lotu olmayan malzeme: seçim devre dışı, açıklamalı.
+        $this->assertSame('DUR-03 — Malzeme DUR-03 İsteğe bağlı', $this->text($rows[1]->querySelector('.material-row__field--material')));
+        $this->assertTrue($rows[1]->querySelector('select')->hasAttribute('disabled'));
+        $this->assertStringContainsString('lotu yok', $this->text($rows[1]));
+
+        $this->assertStringContainsString('beklenen malzeme yok', $this->text($page->querySelector("fieldset[data-expected-materials=\"{$plain->id}\"]")));
+
+        // Hatayla dönülünce seçili makinenin satırları etkin ve seçilen lot korunur.
+        $lot = $detergent->lots()->where('lot_no', 'DT-1')->sole();
+        $page = $this->page($this->actingAs($ahmet)->from(route('cleanings.create'))->followingRedirects()
+            ->post(route('cleanings.store'), [
+                'machine_id' => $machine->id,
+                'materials' => ["p{$detergent->id}" => ['material_id' => $detergent->id, 'material_lot_id' => $lot->id]],
+            ])
+            ->assertOk());
+
+        $group = $page->querySelector("fieldset[data-expected-materials=\"{$machine->id}\"]");
+        $this->assertFalse($group->hasAttribute('disabled'));
+        $this->assertFalse($group->hasAttribute('hidden'));
+        $this->assertTrue($page->querySelector("fieldset[data-expected-materials=\"{$plain->id}\"]")->hasAttribute('disabled'));
+        $this->assertSame((string) $lot->id, $group->querySelector("select[name=\"materials[p{$detergent->id}][material_lot_id]\"] option[selected]")->getAttribute('value'));
+        $this->assertSame(0, Cleaning::count(), 'Tür seçilmediği için kayıt açılmadı.');
     }
 
     public function test_store_opens_the_record_and_redirects_to_its_page(): void
@@ -210,8 +281,8 @@ class CleaningCreateTest extends TestCase
             'work_order_id' => $workOrder->id,
             'notes' => '  Ürün değişimi: şurup → süspansiyon  ',
             'materials' => [
-                ['material_id' => $detergent->id, 'lot_no' => 'LOT-A1', 'expiry_date' => '2027-01-31'],
-                ['material_id' => $disinfectant->id, 'lot_no' => 'LOT-B2', 'expiry_date' => '2026-10-09'],
+                "p{$detergent->id}" => ['material_id' => $detergent->id, 'material_lot_id' => $this->lot($detergent, 'LOT-A1', '2027-01-31')->id],
+                0 => ['material_lot_id' => $this->lot($disinfectant, 'LOT-B2', '2026-10-09')->id],
             ],
         ]);
 
@@ -236,11 +307,12 @@ class CleaningCreateTest extends TestCase
             $this->assertSame($this->sortedIds($ahmet, $mehmet, $ayse), $this->activeAssigneeIds($step));
         }
 
-        $materials = $cleaning->materials()->with('material')->orderBy('id')->get();
+        // K-14: lot no ve SKT lot kaydından kopyalanır.
+        $materials = $cleaning->materials()->with(['material', 'lot'])->orderBy('id')->get();
         $this->assertSame([
-            ['DET-01', 'LOT-A1', '2027-01-31', $ahmet->id],
-            ['DEZ-02', 'LOT-B2', '2026-10-09', $ahmet->id],
-        ], $materials->map(fn ($item) => [$item->material->code, $item->lot_no, $item->expiry_date->toDateString(), $item->added_by])->all());
+            ['DET-01', 'LOT-A1', '2027-01-31', 'LOT-A1', $ahmet->id],
+            ['DEZ-02', 'LOT-B2', '2026-10-09', 'LOT-B2', $ahmet->id],
+        ], $materials->map(fn ($item) => [$item->material->code, $item->lot_no, $item->expiry_date->toDateString(), $item->lot->lot_no, $item->added_by])->all());
     }
 
     public function test_store_opens_an_unplanned_intervention_without_optional_fields(): void
@@ -275,9 +347,12 @@ class CleaningCreateTest extends TestCase
             'machine_id' => $machine->id,
             'type' => 'planned',
             'materials' => [
-                ['material_id' => '', 'lot_no' => '', 'expiry_date' => ''],
-                ['material_id' => $material->id, 'lot_no' => 'LOT-7', 'expiry_date' => '2027-05-01'],
-                ['material_id' => '', 'lot_no' => '   ', 'expiry_date' => ''],
+                0 => ['material_lot_id' => ''],
+                1 => ['material_lot_id' => $this->lot($material, 'LOT-7', '2027-05-01')->id],
+                2 => ['material_lot_id' => '   '],
+                // Prosedürden gelen satırda lot seçilmediyse yalnızca malzeme gelir; yok sayılır.
+                "p{$material->id}" => ['material_id' => $material->id, 'material_lot_id' => ''],
+                "p{$this->makeMaterial('DUR-03')->id}" => ['material_id' => '1'],
             ],
         ])->assertSessionHasNoErrors()->assertRedirect();
 
@@ -287,7 +362,7 @@ class CleaningCreateTest extends TestCase
         $this->actingAs($ahmet)->post(route('cleanings.store'), [
             'machine_id' => $machine->id,
             'type' => 'planned',
-            'materials' => [['material_id' => '', 'lot_no' => '', 'expiry_date' => '']],
+            'materials' => [['material_lot_id' => '']],
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertSame(0, Cleaning::query()->latest('id')->first()->materials()->count());
@@ -314,8 +389,8 @@ class CleaningCreateTest extends TestCase
             'work_order_id' => 999999,
             'notes' => str_repeat('a', 2001),
             'materials' => [
-                ['material_id' => '', 'lot_no' => '', 'expiry_date' => ''],
-                ['material_id' => $material->id, 'lot_no' => '', 'expiry_date' => '31.12.2027'],
+                ['material_lot_id' => ''],
+                ['material_lot_id' => 999999],
             ],
         ];
 
@@ -327,9 +402,9 @@ class CleaningCreateTest extends TestCase
                 'helper_ids.1' => 'Seçilen yardımcı personel geçersiz.',
                 'work_order_id' => 'Seçilen üretim iş emri geçersiz.',
                 'notes' => 'açıklama en fazla 2000 karakter olabilir.',
-                'materials.1.lot_no' => 'lot numarası zorunludur.',
-                'materials.1.expiry_date' => 'son kullanma tarihi Y-m-d biçiminde olmalıdır.',
-            ]);
+            ])
+            ->assertSessionHasErrors(['materials.1.material_lot_id'])
+            ->assertSessionDoesntHaveErrors(['materials.0.material_lot_id']);
         $this->assertSame(0, Cleaning::count());
 
         // Form, hatalarla ve girilen değerlerle (malzeme satırları dahil) yeniden gösterilir.
@@ -345,13 +420,11 @@ class CleaningCreateTest extends TestCase
 
         $rows = $page->querySelectorAll('.material-rows [data-material-row]');
         $this->assertCount(2, $rows, 'Gönderilen satırlar aynı anahtarlarla geri gelir.');
-        $this->assertSame((string) $material->id, $rows[1]->querySelector('select[name="materials[1][material_id]"] option[selected]')->getAttribute('value'));
-        $this->assertSame('31.12.2027', $rows[1]->querySelector('input[name="materials[1][expiry_date]"]')->getAttribute('value'));
 
-        $lot = $rows[1]->querySelector('input[name="materials[1][lot_no]"]');
+        $lot = $rows[1]->querySelector('select[name="materials[1][material_lot_id]"]');
         $this->assertTrue($lot->classList->contains('is-invalid'));
-        $this->assertSame('lot numarası zorunludur.', $this->text($page->getElementById($lot->getAttribute('aria-describedby'))));
-        $this->assertFalse($rows[0]->querySelector('input[name="materials[0][lot_no]"]')->classList->contains('is-invalid'));
+        $this->assertNotSame('', $this->text($page->getElementById($lot->getAttribute('aria-describedby'))));
+        $this->assertFalse($rows[0]->querySelector('select[name="materials[0][material_lot_id]"]')->classList->contains('is-invalid'));
         $this->assertSame('2', $page->querySelector('[data-material-rows]')->getAttribute('data-next-index'), 'JS yeni satıra çakışmayan anahtar verir.');
     }
 
@@ -361,12 +434,13 @@ class CleaningCreateTest extends TestCase
         $material = $this->makeMaterial();
         $ahmet = $this->operator();
 
-        // K-14: son kullanma tarihi bugünden önceyse kaydedilemez; kural workflow'da.
+        // K-14: SKT'si bugünden önce olan lot kaydedilemez; kural workflow'da. Form bu lotu zaten
+        // listelemez, ama eski bir sayfadan ya da elle gönderilebilir.
         $expired = [
             'machine_id' => $machine->id,
             'type' => 'planned',
             'materials' => [
-                ['material_id' => $material->id, 'lot_no' => 'LOT-OLD', 'expiry_date' => '2026-10-08'],
+                ['material_lot_id' => $this->lot($material, 'LOT-OLD', '2026-10-08')->id],
             ],
         ];
 
@@ -383,7 +457,7 @@ class CleaningCreateTest extends TestCase
             ->assertSee('LOT-OLD lotunun son kullanma tarihi (2026-10-08) geçmiş.'));
         $this->assertSame((string) $machine->id, $page->querySelector('#machine_id option[selected]')->getAttribute('value'));
         $this->assertSame('planned', $page->querySelector('input[name="type"][checked]')->getAttribute('value'));
-        $this->assertSame('LOT-OLD', $page->querySelector('input[name="materials[0][lot_no]"]')->getAttribute('value'));
+        $this->assertNull($page->querySelector('select[name="materials[0][material_lot_id]"] option[selected]'), 'Geçmiş lot seçenek olarak sunulmaz.');
         $this->assertNull($page->querySelector('.cleaning-form__errors'), 'İş kuralı hatası alan hatası değildir.');
     }
 

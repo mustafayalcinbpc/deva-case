@@ -1,4 +1,4 @@
-{{-- Seçilen makinenin prosedür özeti (K-15, K-18) ve aynı makinedeki başlamamış kayıtlar (K-05). --}}
+{{-- Seçilen makinenin prosedür özeti (K-13, K-15, K-18) ve aynı makinedeki başlamamış kayıtlar (K-05). --}}
 @php($version = $machine->currentVersion)
 
 <div class="machine-summary" data-machine-summary="{{ $machine->id }}" hidden>
@@ -15,9 +15,16 @@
             <dt>Kapsam</dt>
             <dd>{{ $version->phases->count() }} faz, {{ $version->phases->sum('steps_count') }} adım</dd>
         </div>
-        <div class="machine-summary__fact">
+        <div class="machine-summary__fact machine-summary__fact--materials">
             <dt>Malzeme</dt>
-            <dd>{{ $version->material_required ? 'Zorunlu: ilk adım malzeme girilmeden başlatılamaz' : 'Zorunlu değil' }}</dd>
+            {{-- K-13: beklenen malzemeler listeden; listesi olmayan eski versiyonda yalnızca zorunluluk. --}}
+            <dd>
+                @if ($version->materials->isNotEmpty())
+                    {{ $version->materials->map(fn ($item) => $item->material->code.' ('.($item->is_required ? 'zorunlu' : 'isteğe bağlı').')')->implode(', ') }}
+                @else
+                    {{ $version->material_required ? 'Zorunlu: ilk adım malzeme girilmeden başlatılamaz' : 'Zorunlu değil' }}
+                @endif
+            </dd>
         </div>
     </dl>
 

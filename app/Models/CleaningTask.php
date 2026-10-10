@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'machine_id', 'cleaning_plan_id', 'source', 'trigger_work_order_id', 'work_order_id', 'due_at',
-    'status', 'open_plan_id', 'cleaning_id', 'closed_at',
+    'status', 'open_plan_id', 'cleaning_id', 'closed_at', 'cancelled_by', 'cancel_reason',
 ])]
 class CleaningTask extends Model
 {
@@ -89,6 +89,14 @@ class CleaningTask extends Model
     public function workOrder(): BelongsTo
     {
         return $this->belongsTo(WorkOrder::class);
+    }
+
+    /**
+     * Görevi iptal eden yönetici (K-23).
+     */
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     /**

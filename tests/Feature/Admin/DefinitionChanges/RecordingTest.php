@@ -105,7 +105,8 @@ class RecordingTest extends DefinitionChangesTestCase
         $this->put(route('admin.procedures.update', $procedure), ['code' => 'PRC-YENI', 'name' => 'Dolum hattı temizliği'])->assertRedirect();
         $this->assertChange('updated', ['name' => ['Yeni prosedür', 'Dolum hattı temizliği']], $this->lastChangeOf($procedure));
 
-        $this->put(route('admin.procedures.versions.update', [$procedure, $version]), ['material_required' => '1'])->assertRedirect();
+        // K-13: zorunluluk elle değil, beklenen malzeme listesinden türetilir.
+        $this->post(route('admin.procedures.materials.store', [$procedure, $version]), ['material_id' => $this->makeMaterial('DET-01')->id, 'is_required' => '1'])->assertRedirect();
         $this->assertChange('updated', ['material_required' => [false, true]], $this->lastChangeOf($version));
 
         // Faz: ekleme, düzenleme.
@@ -154,10 +155,10 @@ class RecordingTest extends DefinitionChangesTestCase
         ], $deleted);
         $this->assertSame('PRC-YENI v1 · Ön durulama · Kapağı çıkar', $deleted->subject_label);
 
-        // Versiyon, faz ve adım değişiklikleri prosedürün geçmişindedir.
+        // Versiyon, beklenen malzeme, faz ve adım değişiklikleri prosedürün geçmişindedir.
         $history = DefinitionChange::query()->ofDefinition('procedure', $procedure->id)->get();
-        $this->assertCount(9, $history);
-        $this->assertSame(DefinitionChange::query()->whereIn('subject_type', ['procedure', 'procedure_version', 'procedure_phase', 'procedure_step'])->count(), $history->count());
+        $this->assertCount(10, $history);
+        $this->assertSame(DefinitionChange::query()->whereIn('subject_type', ['procedure', 'procedure_version', 'procedure_version_material', 'procedure_phase', 'procedure_step'])->count(), $history->count());
         $this->assertSame([$this->admin->id], $history->pluck('actor_id')->unique()->values()->all());
 
         // Taslak silinince fazı ve versiyonu da "silindi" olarak kalır.

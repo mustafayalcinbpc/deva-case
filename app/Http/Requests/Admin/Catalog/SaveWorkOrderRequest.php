@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin\Catalog;
 use App\Models\Line;
 use App\Models\Machine;
 use App\Models\WorkOrder;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -13,9 +14,15 @@ use Illuminate\Validation\Validator;
  * Üretim iş emri: ekleme ve düzenleme (K-19). Üretim iş emri bir hatta, bir makineye ya da hiçbirine bağlıdır.
  * Makineye bağlı üretim iş emri o makinenin hattına da bağlıdır: hat boş bırakılırsa makineden gelir,
  * ikisi birlikte seçilirse makine o hatta olmalıdır.
+ *
+ * Ürün ve planlanan zamanlar bilgi içindir (gerçekte ERP'den gelir). Zamanlar gösterim saat
+ * diliminde (config('app.display_timezone')) girilir, UTC saklanır. Durum bu formla değişmez;
+ * "Üretime al" ve "Tamamlandı" WorkOrderLifecycle üzerinden yapılır (K-20 tetiği).
  */
 class SaveWorkOrderRequest extends FormRequest
 {
+    public const INPUT_FORMAT = 'Y-m-d\TH:i';
+
     private ?Machine $machine = null;
 
     public function authorize(): bool
@@ -31,6 +38,9 @@ class SaveWorkOrderRequest extends FormRequest
         return [
             'code' => ['required', 'string', 'max:50', Rule::unique(WorkOrder::class, 'code')->ignore($this->route('work_order'))],
             'description' => ['nullable', 'string', 'max:255'],
+            'product' => ['nullable', 'string', 'max:255'],
+            'planned_start_at' => ['nullable', 'date_format:'.self::INPUT_FORMAT],
+            'planned_end_at' => ['nullable', 'date_format:'.self::INPUT_FORMAT, 'after_or_equal:planned_start_at'],
             'line_id' => ['nullable', 'integer', Rule::exists(Line::class, 'id')],
             'machine_id' => ['nullable', 'integer', Rule::exists(Machine::class, 'id')],
         ];
@@ -60,7 +70,7 @@ class SaveWorkOrderRequest extends FormRequest
     /**
      * Kaydedilecek alanlar; makineye bağlı üretim iş emrinin hattı makineden gelir.
      *
-     * @return array{code: string, description: ?string, line_id: ?int, machine_id: ?int}
+     * @return array{code: string, description: ?string, product: ?string, planned_start_at: ?CarbonImmutable, planned_end_at: ?CarbonImmutable, line_id: ?int, machine_id: ?int}
      */
     public function attributesToSave(): array
     {
@@ -70,6 +80,9 @@ class SaveWorkOrderRequest extends FormRequest
         return [
             'code' => $this->validated('code'),
             'description' => $this->validated('description'),
+            'product' => $this->validated('product'),
+            'planned_start_at' => $this->moment('planned_start_at'),
+            'planned_end_at' => $this->moment('planned_end_at'),
             'line_id' => $machine?->line_id ?? ($lineId === null ? null : (int) $lineId),
             'machine_id' => $machine?->id,
         ];
@@ -83,9 +96,21 @@ class SaveWorkOrderRequest extends FormRequest
         return [
             'code' => 'üretim iş emri kodu',
             'description' => 'açıklama',
+            'product' => 'ürün',
+            'planned_start_at' => 'planlanan başlangıç',
+            'planned_end_at' => 'planlanan bitiş',
             'line_id' => 'hat',
             'machine_id' => 'makine',
         ];
+    }
+
+    private function moment(string $key): ?CarbonImmutable
+    {
+        $value = $this->validated($key);
+
+        return $value === null
+            ? null
+            : CarbonImmutable::createFromFormat(self::INPUT_FORMAT, $value, config('app.display_timezone'))->startOfMinute()->utc();
     }
 
     private function machine(): ?Machine

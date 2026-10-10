@@ -389,14 +389,13 @@ class CleaningDetailTest extends TestCase
         $material = $this->makeMaterial('DET-01');
         $cleaning = $this->openCleaning($ahmet, $this->makeMachine([['steps' => 1, 'min_seconds' => 900]]), helpers: [$mehmet], materials: [$this->entry($material)]);
         $item = CleaningMaterial::query()->where('cleaning_id', $cleaning->id)->firstOrFail();
+        $lot = $this->lot($material, 'LOT-XYZ', '2027-06-30');
         $this->workflow()->startStep($ahmet, $this->stepOf($cleaning, 1));
 
         $errors = $this->sessionErrors([
             'deviation_reason' => ['Gerekçe alanı zorunlu.'],
             'user_ids' => ['Görevliler alanı zorunlu.'],
-            'material_id' => ['Malzeme geçersiz.'],
-            'lot_no' => ['Lot numarası alanı zorunlu.'],
-            'expiry_date' => ['Son kullanma tarihi geçmiş.'],
+            'material_lot_id' => ['Lot alanı zorunlu.'],
             'void_reason' => ['Gerekçe en az 3 karakter olmalı.'],
             'cancel_reason' => ['İptal gerekçesi geçersiz.'],
             'cancel_note' => ['Açıklama alanı zorunlu.'],
@@ -404,9 +403,7 @@ class CleaningDetailTest extends TestCase
         $old = [
             'deviation_reason' => 'Kısa sürdü',
             'user_ids' => [(string) $mehmet->id],
-            'material_id' => (string) $material->id,
-            'lot_no' => 'LOT-XYZ',
-            'expiry_date' => '2027-06-30',
+            'material_lot_id' => (string) $lot->id,
             'void_material_id' => (string) $item->id,
             'void_reason' => 'Ya',
             'cancel_reason' => 'other',
@@ -428,13 +425,10 @@ class CleaningDetailTest extends TestCase
         $this->assertTrue($this->one($response, '#worker-'.$mehmet->id)->hasAttribute('checked'));
         $this->assertFalse($this->one($response, '#worker-'.$ahmet->id)->hasAttribute('checked'));
 
-        $this->assertFieldError($response, '#material-id', 'Malzeme geçersiz.');
-        $this->assertFieldError($response, '#lot-no', 'Lot numarası alanı zorunlu.');
-        $this->assertFieldError($response, '#expiry-date', 'Son kullanma tarihi geçmiş.');
+        // K-14: lot seçimi tek alandır; seçilen lot korunur.
+        $this->assertFieldError($response, '#material-lot-id', 'Lot alanı zorunlu.');
         $this->assertTrue($this->one($response, 'details.material-form')->hasAttribute('open'));
-        $this->assertTrue($this->one($response, '#material-id option[value="'.$material->id.'"]')->hasAttribute('selected'));
-        $this->assertSame('LOT-XYZ', $this->one($response, '#lot-no')->getAttribute('value'));
-        $this->assertSame('2027-06-30', $this->one($response, '#expiry-date')->getAttribute('value'));
+        $this->assertTrue($this->one($response, '#material-lot-id option[value="'.$lot->id.'"]')->hasAttribute('selected'));
 
         // Geçersiz kılma hatası yalnızca gönderilen satırda.
         $this->assertFieldError($response, '#void-reason-'.$item->id, 'Gerekçe en az 3 karakter olmalı.');
@@ -529,10 +523,12 @@ class CleaningDetailTest extends TestCase
         $this->assertNotNull($voidForm->querySelector('textarea[name="void_reason"]'));
         $this->assertNull($voidedItem->querySelector('form'));
 
+        // K-14: ekleme formu malzemeye göre gruplu lot seçimidir; lot no ve SKT elle girilmez.
         $addForm = $this->one($response, '#materials form[action="'.route('cleanings.materials.store', $cleaning).'"]');
-        $this->assertNotNull($addForm->querySelector('select[name="material_id"] option[value="'.$disinfectant->id.'"]'));
-        $this->assertNotNull($addForm->querySelector('input[name="lot_no"]'));
-        $this->assertNotNull($addForm->querySelector('input[name="expiry_date"][type="date"]'));
+        $wrongLot = MaterialLot::query()->where('lot_no', 'LOT-YANLIS')->sole();
+        $this->assertNotNull($addForm->querySelector('select[name="material_lot_id"] optgroup option[value="'.$wrongLot->id.'"]'));
+        $this->assertNull($addForm->querySelector('input[name="lot_no"]'));
+        $this->assertNull($addForm->querySelector('input[name="expiry_date"]'));
 
         // Görevli de malzeme yönetir; ilgisiz operatör listeyi görür ama form görmez.
         $this->workflow()->setWorkers($ahmet, $this->stepOf($cleaning, 2), [$ahmet->id, $mehmet->id]);

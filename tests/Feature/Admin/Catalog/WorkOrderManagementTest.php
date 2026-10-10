@@ -3,6 +3,8 @@
 namespace Tests\Feature\Admin\Catalog;
 
 use App\Enums\CleaningType;
+use App\Enums\WorkOrderStatus;
+use App\Events\WorkOrderCompleted;
 use App\Models\Facility;
 use App\Models\Line;
 use App\Models\Machine;
@@ -12,6 +14,7 @@ use Dom\Element;
 use Dom\HTMLDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Testing\TestResponse;
 use Tests\Feature\Cleaning\Concerns\BuildsCleaningFixtures;
 use Tests\Feature\Cleaning\Concerns\InteractsWithCleaningWorkflow;
@@ -86,10 +89,10 @@ class WorkOrderManagementTest extends TestCase
             ->assertSee('<title>Üretim İş Emirleri', false));
 
         $this->assertSame([
-            ['IE-1', 'Şurup dolum', 'Makine IST / H01 / M01', '1'],
-            ['IE-2', 'Şurup hazırlama', 'Hat IST / H01', '0'],
-            ['IE-3', 'Blister', 'Makine IST / H02 / M05', '0'],
-            ['IE-4', '—', 'Bütün makineler', '0'],
+            ['IE-1', 'Şurup dolum', 'Makine IST / H01 / M01', 'Planlandı', 'Planlanmadı', '1'],
+            ['IE-2', 'Şurup hazırlama', 'Hat IST / H01', 'Planlandı', 'Planlanmadı', '0'],
+            ['IE-3', 'Blister', 'Makine IST / H02 / M05', 'Planlandı', 'Planlanmadı', '0'],
+            ['IE-4', '—', 'Bütün makineler', 'Planlandı', 'Planlanmadı', '0'],
         ], $this->rows($page));
 
         // Hat filtresi: hatta bağlı olanlar ve hattın makinelerine bağlı olanlar.
@@ -304,6 +307,114 @@ class WorkOrderManagementTest extends TestCase
         $this->assertSame($before, $measure(), 'Üretim iş emirleri ilişkileriyle birlikte sabit sayıda sorguyla yüklenir.');
     }
 
+    public function test_product_and_planned_times_are_saved_in_display_timezone(): void
+    {
+        // Zamanlar gösterim saat diliminde girilir (Europe/Istanbul, UTC+3), UTC saklanır.
+        $this->actingAs($this->manager)->post(route('admin.work-orders.store'), [
+            'code' => 'IE-30', 'machine_id' => $this->m01->id, 'product' => 'Parasetamol şurup 150 ml',
+            'planned_start_at' => '2026-10-12T06:00', 'planned_end_at' => '2026-10-14T18:30',
+        ])->assertSessionHasNoErrors();
+
+        $order = WorkOrder::query()->where('code', 'IE-30')->sole();
+        $this->assertSame('Parasetamol şurup 150 ml', $order->product);
+        $this->assertSame(WorkOrderStatus::Planned, $order->status);
+        $this->assertSame('2026-10-12 03:00:00', $order->planned_start_at->utc()->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-10-14 15:30:00', $order->planned_end_at->utc()->format('Y-m-d H:i:s'));
+
+        $page = $this->page($this->actingAs($this->manager)->get(route('admin.work-orders.edit', $order))->assertOk());
+        $this->assertSame('2026-10-12T06:00', $page->getElementById('planned_start_at')->getAttribute('value'));
+        $this->assertSame('2026-10-14T18:30', $page->getElementById('planned_end_at')->getAttribute('value'));
+
+        $row = $this->rows($this->page($this->actingAs($this->manager)->get(route('admin.work-orders.index'))))[0];
+        $this->assertSame(['IE-30', '— Ürün: Parasetamol şurup 150 ml', 'Planlandı', '12.10.2026 06:00 – 14.10.2026 18:30'], [$row[0], $row[1], $row[3], $row[4]]);
+    }
+
+    public function test_planned_end_cannot_be_before_start(): void
+    {
+        $this->actingAs($this->manager)->from(route('admin.work-orders.create'))->post(route('admin.work-orders.store'), [
+            'code' => 'IE-31', 'planned_start_at' => '2026-10-12T06:00', 'planned_end_at' => '2026-10-11T06:00',
+        ])->assertSessionHasErrors(['planned_end_at' => 'planlanan bitiş, planlanan başlangıç tarihi ya da sonrası olmalıdır.']);
+
+        $this->actingAs($this->manager)->from(route('admin.work-orders.create'))->post(route('admin.work-orders.store'), [
+            'code' => 'IE-31', 'planned_start_at' => '12.10.2026 06:00',
+        ])->assertSessionHasErrors(['planned_start_at']);
+
+        $this->assertSame(0, WorkOrder::count());
+    }
+
+    public function test_form_does_not_change_status(): void
+    {
+        $order = WorkOrder::create(['code' => 'IE-1']);
+
+        $this->actingAs($this->manager)->put(route('admin.work-orders.update', $order), [
+            'code' => 'IE-1', 'status' => WorkOrderStatus::Completed->value,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(WorkOrderStatus::Planned, $order->fresh()->status);
+    }
+
+    public function test_status_buttons_move_the_work_order_through_production_to_completion(): void
+    {
+        $order = WorkOrder::create(['code' => 'IE-1', 'machine_id' => $this->m01->id, 'line_id' => $this->m01->line_id]);
+
+        $page = $this->page($this->actingAs($this->manager)->get(route('admin.work-orders.edit', $order))->assertOk());
+        $this->assertNotNull($page->querySelector('form[action="'.route('admin.work-orders.start', $order).'"]'));
+        $this->assertNotNull($page->querySelector('form[action="'.route('admin.work-orders.complete', $order).'"]'));
+
+        $this->actingAs($this->manager)->from(route('admin.work-orders.index'))->post(route('admin.work-orders.start', $order))
+            ->assertRedirect(route('admin.work-orders.index'))
+            ->assertSessionHas('status', 'IE-1 üretime alındı.');
+        $this->assertSame(WorkOrderStatus::InProduction, $order->fresh()->status);
+
+        $this->at('14:30:00');
+        $this->actingAs($this->manager)->from(route('admin.work-orders.index'))->post(route('admin.work-orders.complete', $order))
+            ->assertRedirect(route('admin.work-orders.index'))
+            ->assertSessionHasNoErrors();
+        $order->refresh();
+        $this->assertSame(WorkOrderStatus::Completed, $order->status);
+        $this->assertSame('2026-10-09 14:30:00', $order->completed_at->format('Y-m-d H:i:s'));
+
+        // Tamamlanmış iş emrinin durumu değişmez; düğmeler gösterilmez.
+        $this->actingAs($this->manager)->from(route('admin.work-orders.index'))->post(route('admin.work-orders.complete', $order))
+            ->assertSessionHasErrors(['status' => 'IE-1 Tamamlandı durumunda; Tamamlandı durumuna geçirilemez.']);
+        $page = $this->page($this->actingAs($this->manager)->get(route('admin.work-orders.index'))->assertOk());
+        $this->assertNull($page->querySelector('.work-order-status-action'));
+        $this->assertStringContainsString('Tamamlandı: 09.10.2026', $this->rows($page)[0][4]);
+    }
+
+    public function test_planned_work_order_can_be_completed_directly_and_announces_it_once(): void
+    {
+        Event::fake([WorkOrderCompleted::class]);
+        $order = WorkOrder::create(['code' => 'IE-1']);
+
+        $this->actingAs($this->manager)->post(route('admin.work-orders.complete', $order))->assertSessionHasNoErrors();
+        $this->actingAs($this->manager)->post(route('admin.work-orders.complete', $order))->assertSessionHasErrors('status');
+
+        Event::assertDispatchedTimes(WorkOrderCompleted::class, 1);
+        Event::assertDispatched(WorkOrderCompleted::class, fn (WorkOrderCompleted $event) => $event->workOrderId === $order->id);
+    }
+
+    public function test_list_can_be_filtered_by_status(): void
+    {
+        WorkOrder::create(['code' => 'IE-1']);
+        WorkOrder::create(['code' => 'IE-2', 'status' => WorkOrderStatus::InProduction]);
+        WorkOrder::create(['code' => 'IE-3', 'status' => WorkOrderStatus::Completed, 'completed_at' => now()]);
+
+        $this->assertSame(['IE-2'], $this->codes(['status' => 'in_production']));
+        $this->assertSame(['IE-3'], $this->codes(['status' => 'completed']));
+        $this->assertSame(['IE-1', 'IE-2', 'IE-3'], $this->codes(['status' => 'yok']));
+    }
+
+    public function test_status_routes_are_for_managers_only(): void
+    {
+        $order = WorkOrder::create(['code' => 'IE-1']);
+
+        $this->actingAs($this->operator())->post(route('admin.work-orders.start', $order))->assertForbidden();
+        $this->actingAs($this->operator())->post(route('admin.work-orders.complete', $order))->assertForbidden();
+
+        $this->assertSame(WorkOrderStatus::Planned, $order->fresh()->status);
+    }
+
     // ---------------------------------------------------------------------------------------
 
     /**
@@ -323,7 +434,7 @@ class WorkOrderManagementTest extends TestCase
     private function rows(HTMLDocument $page): array
     {
         return array_map(
-            fn (Element $row) => array_map(fn (Element $cell) => $this->text($cell), array_slice(iterator_to_array($row->querySelectorAll('td')), 0, 4)),
+            fn (Element $row) => array_map(fn (Element $cell) => $this->text($cell), array_slice(iterator_to_array($row->querySelectorAll('td')), 0, 6)),
             iterator_to_array($page->querySelectorAll('tbody tr')),
         );
     }

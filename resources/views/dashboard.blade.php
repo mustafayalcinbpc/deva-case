@@ -52,5 +52,7 @@
         ])
     </section>
 
+    @include('dashboard.tasks', ['tasks' => $tasks, 'now' => $now])
+
     @include('dashboard.open-cleanings', ['rows' => $rows])
 @endsection

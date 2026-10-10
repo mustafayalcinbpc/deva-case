@@ -28,4 +28,12 @@ class VoidMaterialRequest extends FormRequest
     {
         return $this->validated('void_reason');
     }
+
+    /**
+     * Doğrulama hatasında kayıt detayı Malzemeler sekmesinde açılır; hata gizli sekmede kalmaz.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return strtok(parent::getRedirectUrl(), '#').'#materials';
+    }
 }

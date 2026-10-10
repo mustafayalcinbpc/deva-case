@@ -9,6 +9,8 @@ use App\Models\CleaningEvent;
 use App\Models\CleaningMaterial;
 use App\Models\CleaningStep;
 use App\Models\Material;
+use App\Models\MaterialLot;
+use App\Models\ProcedureVersionMaterial;
 use App\Models\User;
 use App\Models\WorkSlice;
 use App\Services\Cleaning\CleaningEventDescriber;
@@ -65,10 +67,10 @@ class CleaningDetailController extends Controller
             'canOperate' => $canOperate,
             'workerChoices' => $canOperate ? $this->workerChoices() : new EloquentCollection,
             'canManageMaterials' => $canManageMaterials,
-            // Kullanımdan kaldırılan malzeme eklenemez; kayıtta zaten olanlar görünmeye devam eder (K-13).
-            'catalog' => $canManageMaterials ? Material::query()->active()->orderBy('code')->get() : new EloquentCollection,
-            'materialMissing' => $cleaning->procedureVersion->material_required
-                && $cleaning->materials->doesntContain(fn (CleaningMaterial $item) => $item->voided_at === null),
+            // K-14: eklenebilen lotlar (lot ve malzemesi kullanımda, SKT geçmemiş), malzemeye göre gruplu.
+            // Kayıtta zaten olanlar görünmeye devam eder (K-13).
+            'lotCatalog' => $canManageMaterials ? $this->lotCatalog() : collect(),
+            ...$this->materialRequirement($cleaning),
             'cancelReasons' => $this->permissions->allowedCancelReasons($user, $cleaning),
             'history' => $this->history($cleaning, $users),
             'chainIntact' => $this->recorder->verifyEvents($cleaning->events),
@@ -87,7 +89,10 @@ class CleaningDetailController extends Controller
             'machine',
             'owner',
             'workOrder',
+            // K-21: kaydın açıldığı görev ve görevi doğuran üretim iş emri (Özet, olay geçmişi).
+            'task.triggerWorkOrder',
             'procedureVersion.procedure',
+            'procedureVersion.materials.material',
             'phases.procedurePhase',
             'steps.procedureStep',
             'steps.activeAssignees',
@@ -323,6 +328,62 @@ class CleaningDetailController extends Controller
             fn ($id) => $users->get((int) $id)?->name ?? "#{$id}",
             array_filter($ids, fn ($id) => $id !== null),
         ));
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Malzemeler (K-12–K-14)
+    // ---------------------------------------------------------------------------------------
+
+    /**
+     * Prosedürün beklediği malzemeler ve kayıttaki geçerli girişleri; ilk adımı engelleyen eksikler.
+     * Kural CleaningWorkflow::assertRequiredMaterials ile aynıdır: listede zorunlu malzeme varsa her
+     * biri için geçerli giriş gerekir; listesi olmayan eski versiyonda material_required en az bir
+     * geçerli giriş ister.
+     *
+     * @return array{expectedMaterials: list<array{material: Material, required: bool, lots: list<string>}>, missingMaterials: Collection<int, Material>, materialMissing: bool}
+     */
+    private function materialRequirement(Cleaning $cleaning): array
+    {
+        $version = $cleaning->procedureVersion;
+        $valid = $cleaning->materials->filter(fn (CleaningMaterial $item) => $item->voided_at === null);
+        $lotsByMaterial = $valid->groupBy('material_id');
+
+        $expected = $version->materials->map(fn (ProcedureVersionMaterial $item) => [
+            'material' => $item->material,
+            'required' => $item->is_required,
+            'lots' => $lotsByMaterial->get($item->material_id, collect())->pluck('lot_no')->unique()->values()->all(),
+        ]);
+
+        $missing = $expected
+            ->filter(fn (array $row) => $row['required'] && $row['lots'] === [])
+            ->map(fn (array $row) => $row['material'])
+            ->values()
+            ->toBase();
+
+        return [
+            'expectedMaterials' => $expected->values()->all(),
+            'missingMaterials' => $missing,
+            'materialMissing' => $expected->contains(fn (array $row) => $row['required'])
+                ? $missing->isNotEmpty()
+                : $version->material_required && $valid->isEmpty(),
+        ];
+    }
+
+    /**
+     * @return Collection<int, EloquentCollection<int, MaterialLot>>
+     */
+    private function lotCatalog(): Collection
+    {
+        // Malzeme koduna göre sıralama PHP'de: sıralama kararlıdır, lot içi sıra (SKT, lot no) korunur.
+        return MaterialLot::query()
+            ->usableOn(now())
+            ->with('material')
+            ->orderBy('expiry_date')
+            ->orderBy('lot_no')
+            ->get()
+            ->sortBy(fn (MaterialLot $lot) => $lot->material->code, SORT_STRING)
+            ->groupBy('material_id')
+            ->toBase();
     }
 
     // ---------------------------------------------------------------------------------------

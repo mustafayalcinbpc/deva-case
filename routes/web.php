@@ -6,6 +6,7 @@ use App\Http\Controllers\CleaningController;
 use App\Http\Controllers\CleaningDetailController;
 use App\Http\Controllers\CleaningMaterialController;
 use App\Http\Controllers\CleaningStepController;
+use App\Http\Controllers\CleaningTaskController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +23,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/cleanings/create', [CleaningController::class, 'create'])->name('cleanings.create');
     Route::post('/cleanings', [CleaningController::class, 'store'])->name('cleanings.store');
     Route::get('/cleanings/{cleaning}', [CleaningDetailController::class, 'show'])->name('cleanings.show');
+
+    // Yapılması gereken temizlik (K-23): görevi yalnızca yönetici iptal eder.
+    Route::post('/tasks/{task}/cancel', [CleaningTaskController::class, 'cancel'])
+        ->middleware('can:manage-definitions')
+        ->name('tasks.cancel');
 
     // Aksiyonlar; adım ve malzeme kayda bağlıdır (başka kaydın adımı 404).
     Route::scopeBindings()->prefix('/cleanings/{cleaning}')->name('cleanings.')->group(function () {

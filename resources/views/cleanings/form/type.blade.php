@@ -1,7 +1,9 @@
 {{--
     K-18: operatör prosedür seçmez, yalnızca temizliğin planlı mı plansız mı olduğunu seçer.
     Varsayılan seçim yoktur: tür sonradan değiştirilemez ve saha defterini etkiler (R-18, R-19).
+    Görevden açılan kayıt planlıdır (K-21): planlı seçili gelir, plansız müdahale seçilemez.
 --}}
+@use('App\Enums\CleaningType')
 <section class="card cleaning-form__section" aria-labelledby="cleaning-form-type">
     <div class="card-header">
         <h2 class="card-title" id="cleaning-form-type">Temizlik türü</h2>
@@ -23,11 +25,14 @@
                                @class(['form-check-input', 'is-invalid' => $errors->has('type')])
                                aria-describedby="type-{{ $type->value }}-help"
                                required
-                               @checked(old('type') === $type->value)>
+                               @disabled($task && $type !== CleaningType::Planned)
+                               @checked($task ? $type === CleaningType::Planned : old('type') === $type->value)>
                         <label for="type-{{ $type->value }}" class="form-check-label type-option__label">{{ $type->label() }}</label>
                         <div id="type-{{ $type->value }}-help" class="form-text type-option__help">
                             @if ($type->hasFieldReference())
                                 Normal temizlik. Saha defterine işlenir; saha defteri referansı ilk adım başlatıldığında otomatik üretilir.
+                            @elseif ($task)
+                                Görevden açılan kayıt plansız müdahale olamaz; acil müdahale için görevsiz yeni kayıt açın.
                             @else
                                 Üretim sırasında beklenmeyen bir durum için acil temizlik. Saha defterine işlenmez, saha defteri referansı olmaz.
                             @endif
