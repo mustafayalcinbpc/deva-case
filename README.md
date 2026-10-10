@@ -23,7 +23,7 @@ docker compose logs -f app      # "ready to handle connections" satırı görün
 docker compose logs -f vite     # arayüz asset'leri: "VITE ... ready" satırı görününce hazırdır
 ```
 
-Ardından **http://localhost:8080** adresi açılır. Demo hesaplarının hepsinin şifresi `1234`; giriş sayfasında da listelenirler:
+Ardından **http://localhost:8005** adresi açılır. Demo hesaplarının hepsinin şifresi `1234`; giriş sayfasında da listelenirler:
 
 | Hesap | Rol |
 |---|---|
@@ -42,7 +42,7 @@ docker compose down                                       # durdur (veri korunur
 
 | Servis | Adres |
 |---|---|
-| Uygulama | http://localhost:8080 |
+| Uygulama | http://localhost:8005 |
 | RabbitMQ yönetim paneli | http://localhost:15672 (`temizlik` / `secret`) |
 | MySQL | `localhost:33060` (`temizlik` / `secret`) |
 
@@ -191,7 +191,7 @@ Giriş sayfası `local` ortamda demo hesaplarını listeler (`config/demo.php`);
 
 | Servis | Adres |
 |---|---|
-| Uygulama (nginx) | http://localhost:8080 |
+| Uygulama (nginx) | http://localhost:8005 |
 | Vite geliştirme sunucusu | http://localhost:5173 (sayfa bunu kendisi kullanır) |
 | RabbitMQ yönetim paneli | http://localhost:15672 (`temizlik` / `secret`) |
 | MySQL | `localhost:33060` (`temizlik` / `secret`) |
