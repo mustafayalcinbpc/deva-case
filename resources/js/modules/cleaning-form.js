@@ -5,7 +5,9 @@
 // - seçilen makinenin prosedürünün beklediği malzeme satırlarını gösterir; diğer makinelerinkini
 //   devre dışı bırakır, gönderilmezler (K-13),
 // - üretim iş emirlerini seçilen makineye göre süzer (K-19; asıl kontrol sunucuda),
-// - ek malzeme satırı ekler ve çıkarır.
+// - ek malzeme satırı ekler ve çıkarır,
+// - makine seçilmeden gönderilirse tarayıcının genel uyarısı yerine alanın altında "Lütfen bir
+//   makine seçin." gösterir; makine seçilince kaldırır.
 
 const INDEX_PLACEHOLDER = /__INDEX__/g;
 
@@ -37,9 +39,47 @@ export default function cleaningForm(form) {
 
         machineSelect.addEventListener('change', update);
         update();
+        requireMachine(machineSelect, form.querySelector('[data-machine-required]'));
     }
 
     setUpMaterialRows(form);
+}
+
+/**
+ * Tarayıcının "Listeden bir öğe seçin" balonu metni değiştirilemez ve seçimden sonra da bir süre
+ * kalır. Onun yerine Bootstrap'in alan altı hatası kullanılır: gönderimde makine boşsa gösterilir,
+ * makine seçilince (sunucunun döndürdüğü makine hatasıyla birlikte) kalkar.
+ */
+function requireMachine(select, message) {
+    if (!message || select.disabled) {
+        return;
+    }
+
+    const describedBy = select.getAttribute('aria-describedby') ?? '';
+
+    const show = (visible) => {
+        message.hidden = !visible;
+        select.classList.toggle('is-invalid', visible);
+        select.setAttribute('aria-describedby', visible ? `${describedBy} ${message.id}`.trim() : describedBy);
+
+        if (visible) {
+            select.setAttribute('aria-invalid', 'true');
+        } else {
+            select.removeAttribute('aria-invalid');
+        }
+    };
+
+    select.addEventListener('invalid', (event) => {
+        event.preventDefault();
+        show(true);
+        select.focus();
+    });
+
+    select.addEventListener('change', () => {
+        if (select.value !== '') {
+            show(false);
+        }
+    });
 }
 
 function selectedMachine(select) {

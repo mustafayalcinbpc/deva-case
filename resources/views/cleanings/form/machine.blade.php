@@ -1,7 +1,8 @@
 {{--
     R-02, K-18: yalnızca kullanımda olan ve geçerli prosedürü bulunan makineler; prosedür makineden
     gelir. Seçilen makinenin özeti (data-machine-summary) ve K-05 uyarısı cleaning-form.js ile
-    gösterilir. JS olmadan da makinede başlamamış kayıt olduğu seçenek metninden anlaşılır.
+    gösterilir. JS olmadan da makinede başlamamış kayıt olduğu seçenek metninden anlaşılır. Makine
+    seçilmeden gönderilirse alanın altında "Lütfen bir makine seçin." görünür, seçilince kalkar.
     Görevden açılan kayıtta (K-21) makine görevden gelir: liste seçili ve kilitli gösterilir,
     değer gizli alanla gönderilir (kilitli liste gönderilmez).
 --}}
@@ -42,6 +43,8 @@
         @error('machine_id')
             <div id="machine_id-error" class="invalid-feedback">{{ $message }}</div>
         @enderror
+        {{-- Makine seçilmeden gönderilince tarayıcının genel uyarısı yerine (cleaning-form.js). --}}
+        <div id="machine_id-required" class="invalid-feedback" data-machine-required hidden>Lütfen bir makine seçin.</div>
         <div id="machine_id-help" class="form-text">
             @if ($task)
                 Makine görevden gelir ve değiştirilemez. Başka bir makine için görevsiz yeni kayıt açın.
