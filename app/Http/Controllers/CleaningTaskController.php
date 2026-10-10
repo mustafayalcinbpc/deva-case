@@ -4,18 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Enums\CleaningTaskStatus;
 use App\Models\CleaningTask;
+use App\Services\Planning\CleaningTaskGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Yapılması gereken temizliğin (görevin) iptali (K-23). Yalnızca yönetici, yalnızca açık görevi
- * ve gerekçe yazarak iptal eder; görev silinmez, planın etkin görevi boşalır. Kayıt açılmış görev
+ * ve gerekçe yazarak iptal eder; görev silinmez, planın sıradaki görevi açılır. Kayıt açılmış görev
  * iptal edilmez: önce kayıt iptal edilir, görev yeniden açık olur.
  */
 class CleaningTaskController extends Controller
 {
-    public function cancel(Request $request, CleaningTask $task): RedirectResponse
+    public function cancel(Request $request, CleaningTask $task, CleaningTaskGenerator $tasks): RedirectResponse
     {
         $validated = $request->validate([
             'cancel_reason' => ['required', 'string', 'max:2000'],
@@ -41,6 +42,9 @@ class CleaningTaskController extends Controller
         if (! $cancelled) {
             return back()->withErrors(['task' => 'Görev artık açık değil; iptal edilemez.']);
         }
+
+        // K-24: planın sıradaki görevi hemen "ileride" görünür.
+        $tasks->generate(now());
 
         return redirect()->route('dashboard')->with('status', "{$task->machine->code} makinesinin görevi iptal edildi.");
     }

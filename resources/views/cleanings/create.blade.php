@@ -19,7 +19,8 @@
 
     Görevden gelindiğinde (?task=ID, K-21) $task doludur: makine ve tür (planlı) görevden gelir ve
     değiştirilemez, üretim iş emri görevin sonraki emriyle dolar; görev gizli alanla gönderilir.
-    İstenen görev artık açık değilse (kayıt açılmış, iptal edilmiş) uyarı gösterilir.
+    İstenen görev artık açık değilse (kayıt açılmış, iptal edilmiş) ya da müdahale vakti henüz
+    gelmediyse (K-24, $upcomingTask) uyarı gösterilir ve form görevsiz açılır.
 --}}
 @section('content')
     <form method="POST" action="{{ route('cleanings.store') }}" id="cleaning-form" class="cleaning-form" data-module="cleaning-form">
@@ -29,6 +30,16 @@
 
         @if ($task)
             @include('cleanings.form.task')
+        @elseif ($upcomingTask)
+            <div class="alert alert-info cleaning-form__task-upcoming" role="alert">
+                {{ $upcomingTask->machine->code }} makinesindeki temizliğin vakti henüz gelmedi:
+                @if ($upcomingTask->scheduled_at)
+                    görevden kayıt <x-datetime :value="$upcomingTask->scheduled_at" format="list" /> sonrasında açılabilir.
+                @else
+                    görevden kayıt {{ $upcomingTask->triggerWorkOrder?->code ?? 'üretim iş emri' }} tamamlanınca açılabilir.
+                @endif
+                <a href="{{ route('dashboard') }}" class="alert-link">Yapılması gereken temizliklere dön</a>
+            </div>
         @elseif (request()->filled('task'))
             <div class="alert alert-warning cleaning-form__task-gone" role="alert">
                 Bu görev artık açık değil: görevden kayıt açılmış ya da görev iptal edilmiş olabilir.

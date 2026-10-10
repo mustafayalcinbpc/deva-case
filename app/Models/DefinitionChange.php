@@ -94,6 +94,7 @@ class DefinitionChange extends Model
         'completed_at' => 'Tamamlanma',
         'kind' => 'Kural',
         'interval_days' => 'Aralık (gün)',
+        'tolerance_hours' => 'Gecikme toleransı (saat)',
         'last_task_at' => 'Son görev',
     ];
 

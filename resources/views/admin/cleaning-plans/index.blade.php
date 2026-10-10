@@ -11,9 +11,10 @@
 @endsection
 
 {{--
-    K-20: makine bazında temizlik planları. Periyodik planlardan görevleri saatlik
-    cleaning:generate-tasks açar; "üretim iş emri tamamlanınca" kuralı tamamlanma anında çalışır.
-    Bir planın aynı anda tek etkin görevi olur (K-21, K-23).
+    K-20, K-24: makine bazında temizlik planları. Planın sıradaki görevi hemen "ileride" olarak açılır
+    (plan, üretim iş emri ve görev ekranları; dakikalık cleaning:generate-tasks kaçanları yakalar);
+    "üretim iş emri tamamlanınca" kuralında görevin vakti emir tamamlanınca gelir. Bir planın aynı
+    anda tek etkin görevi olur (K-21, K-23).
 --}}
 @section('content')
     @if ($errors->has('plan'))

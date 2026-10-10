@@ -66,9 +66,13 @@ class CleaningController extends Controller
 
     public function create(Request $request): View
     {
+        $task = $this->openTask($request);
+
         return view('cleanings.create', [
             // K-21: görevden gelindiyse (?task=ID) form görevle doldurulur; görev açık değilse yok sayılır.
-            'task' => $this->openTask($request),
+            // K-24: müdahale vakti gelmemiş görevden kayıt açılmaz; form görevsiz gelir ve uyarı gösterilir.
+            'task' => $task?->isDue(now()) ? $task : null,
+            'upcomingTask' => $task?->isUpcoming(now()) ? $task : null,
             'machineGroups' => $this->groupByLocation($this->usableMachines()),
             'types' => CleaningType::cases(),
             'helpers' => User::query()

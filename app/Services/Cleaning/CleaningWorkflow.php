@@ -99,7 +99,7 @@ final class CleaningWorkflow
 
             if ($task !== null) {
                 $task = $this->lockTask($task->id);
-                $this->assertTaskOpenable($task, $machine, $type);
+                $this->assertTaskOpenable($task, $machine, $type, $now);
             }
 
             $helperIds = array_values(array_diff($this->uniqueIds($helperIds), [$actor->id]));
@@ -841,10 +841,14 @@ final class CleaningWorkflow
     /**
      * K-21: görevden yalnızca açık görevde, görevin makinesinde ve planlı kayıt açılır.
      */
-    private function assertTaskOpenable(CleaningTask $task, Machine $machine, CleaningType $type): void
+    private function assertTaskOpenable(CleaningTask $task, Machine $machine, CleaningType $type, CarbonImmutable $now): void
     {
         if ($task->status !== CleaningTaskStatus::Open) {
             throw CleaningRuleViolation::taskNotOpen();
+        }
+
+        if (! $task->isDue($now)) {
+            throw CleaningRuleViolation::taskNotDue($task); // K-24
         }
 
         if ($task->machine_id !== $machine->id) {

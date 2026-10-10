@@ -82,18 +82,25 @@ class DemoSeederTest extends TestCase
     }
 
     /**
-     * K-20, K-21, K-23: planlar görev üretir; demo açık (biri gecikmiş), kayda bağlı ve
-     * tamamlanmış görev içerir. Görevden açılan kayıt planlıdır.
+     * K-20, K-21, K-23, K-24: planlar görev üretir; demo açık (biri gecikmiş), ileride (biri
+     * üretimdeki emrin tamamlanmasını bekliyor), kayda bağlı ve tamamlanmış görev içerir. Her
+     * kullanımdaki planın etkin görevi vardır. Görevden açılan kayıt planlıdır.
      */
     private function assertPlansAndTasksShowEveryTaskState(): void
     {
         $this->assertSame(5, CleaningPlan::count());
         $this->assertSame(1, CleaningTask::where('status', CleaningTaskStatus::Done)->count(), 'Tamamlanan görev');
         $this->assertSame(1, CleaningTask::where('status', CleaningTaskStatus::InRecord)->count(), 'Kayda bağlı görev');
-        $this->assertSame(2, CleaningTask::where('status', CleaningTaskStatus::Open)->count(), 'Açık görev');
-        $this->assertTrue(CleaningTask::open()->get()->contains(fn (CleaningTask $task) => $task->isOverdue(now())), 'Gecikmiş görev');
+        $this->assertSame(4, CleaningTask::where('status', CleaningTaskStatus::Open)->count(), 'Açık görev');
+        $this->assertSame(0, CleaningPlan::query()->active()->whereDoesntHave('activeTask')->count(), 'Etkin görevi olmayan plan');
 
-        $fromWorkOrder = CleaningTask::where('source', CleaningTaskSource::WorkOrder)->sole();
+        $open = CleaningTask::open()->with('triggerWorkOrder')->get();
+        $this->assertSame(1, $open->filter(fn (CleaningTask $task) => $task->isOverdue(now()))->count(), 'Gecikmiş görev');
+        $this->assertSame(3, $open->filter(fn (CleaningTask $task) => $task->isUpcoming(now()))->count(), 'İleride görev');
+        $waiting = $open->sole(fn (CleaningTask $task) => $task->scheduled_at === null);
+        $this->assertSame(['IE-2026-1058', WorkOrderStatus::InProduction], [$waiting->triggerWorkOrder->code, $waiting->triggerWorkOrder->status]);
+
+        $fromWorkOrder = CleaningTask::where('source', CleaningTaskSource::WorkOrder)->whereNotNull('cleaning_id')->sole();
         $this->assertSame('IE-2026-1051', $fromWorkOrder->triggerWorkOrder->code);
         $this->assertSame('IE-2026-1056', $fromWorkOrder->workOrder->code);
         $this->assertSame(WorkOrderStatus::Completed, $fromWorkOrder->triggerWorkOrder->status);

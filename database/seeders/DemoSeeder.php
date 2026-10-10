@@ -21,8 +21,10 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use App\Services\Cleaning\CleaningWorkflow;
 use App\Services\Cleaning\MaterialEntry;
+use App\Services\Planning\CleaningTaskGenerator;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Arayüzün gösterecek bir şeyi olsun ve değerlendiren kişi giriş yapabilsin diye demo verisi.
@@ -90,12 +92,24 @@ class DemoSeeder extends Seeder
         $this->now = CarbonImmutable::now('UTC')->startOfSecond();
         $this->today = $this->now->setTimezone(config('app.display_timezone'))->startOfDay();
 
+        // Yükleme sürerken dakikalık görev üretimi (cleaning:generate-tasks, ayrı süreç) planlara
+        // görev açmasın: görevleri seeder kendi zamanıyla açar, en sonda kalanları üretir.
+        $lock = Cache::lock(CleaningTaskGenerator::LOCK, 600);
+        $lock->block(60);
+
         try {
             $this->seedDefinitions();
             $this->seedHistory();
             $this->seedToday();
         } finally {
             CarbonImmutable::setTestNow(); // Carbon 3: Carbon ve CarbonImmutable aynı saati paylaşır.
+        }
+
+        try {
+            // K-24: görevi olmayan planların sıradaki görevi ("ileride").
+            app(CleaningTaskGenerator::class)->generateUnlocked($this->now);
+        } finally {
+            $lock->release();
         }
     }
 
@@ -116,8 +130,8 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * K-20: temizlik planları. Görevleri seedToday üretir; gerçekte cleaning:generate-tasks ve
-     * üretim iş emri tamamlanma tetiği üretir.
+     * K-20: temizlik planları. Görevleri seedToday açar, kalanları en sonda CleaningTaskGenerator
+     * üretir; gerçekte cleaning:generate-tasks ve üretim iş emri tamamlanma tetiği üretir.
      */
     private function seedPlans(): void
     {
@@ -632,8 +646,10 @@ class DemoSeeder extends Seeder
     {
         ['ahmet' => $ahmet, 'mehmet' => $mehmet, 'ayse' => $ayse] = $this->users;
 
-        // K-21, K-23: yapılması gereken temizlikler. Etiketleme makinesinin haftalık görevi dünden
-        // beri bekliyor (gecikti); dolum makinesi 1'in iki haftalık görevi üç gün sonra.
+        // K-21, K-23, K-24: yapılması gereken temizlikler. Etiketleme makinesinin haftalık görevinin
+        // vakti dün 14:00'teydi, hâlâ yapılmadı (gecikti); dolum makinesi 1'in iki haftalık görevi üç
+        // gün sonra (ileride). Karıştırma makinesinin görevi üretimdeki IE-2026-1058'in tamamlanmasını
+        // bekler; onu ve tankın sıradaki görevini en sonda üretici açar.
         $this->travelTo($this->day(1, '06:00'));
         $this->task('H02-M03', $this->day(1, '14:00'));
         $this->task('H01-M02', $this->today->addDays(3)->setTime(14, 0)->utc());
@@ -676,14 +692,14 @@ class DemoSeeder extends Seeder
     }
 
     /**
-     * Makinenin planından açık görev (K-21); planın son görev zamanı güncellenir.
+     * Makinenin planından açık görev (K-21, K-24: vakti $scheduledAt); planın son görev zamanı güncellenir.
      */
-    private function task(string $machine, CarbonImmutable $dueAt, ?string $trigger = null, ?string $next = null): CleaningTask
+    private function task(string $machine, CarbonImmutable $scheduledAt, ?string $trigger = null, ?string $next = null): CleaningTask
     {
         $plan = $this->plans[$machine];
         $task = CleaningTask::openFor(
             $plan,
-            $dueAt,
+            $scheduledAt,
             $trigger !== null ? $this->workOrders[$trigger] : null,
             $next !== null ? $this->workOrders[$next] : null,
         );

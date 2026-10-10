@@ -21,13 +21,14 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Tests\Feature\Cleaning\Concerns\BuildsCleaningFixtures;
 use Tests\Feature\Cleaning\Concerns\InteractsWithCleaningWorkflow;
 use Tests\TestCase;
 
 /**
- * Planlardan görev üretimi (K-20, K-21) ve geciken görevlerin bildirimi (K-23).
+ * Planlardan görev üretimi (K-20, K-21, K-24) ve geciken görevlerin bildirimi (K-23).
  */
 class CleaningTaskGenerationTest extends TestCase
 {
@@ -50,47 +51,67 @@ class CleaningTaskGenerationTest extends TestCase
     {
         $plan = $this->periodic($this->m01, 7);
 
-        $this->assertSame(1, $this->generator()->generateDue(now()));
+        $this->assertSame(1, $this->generator()->generate(now()));
 
         $task = $plan->tasks()->sole();
         $this->assertSame([CleaningTaskStatus::Open, CleaningTaskSource::Periodic, $this->m01->id], [$task->status, $task->source, $task->machine_id]);
-        $this->assertMoment('2026-10-09 08:00:00', $task->due_at);
+        $this->assertMoment('2026-10-09 08:00:00', $task->scheduled_at);
+        $this->assertMoment('2026-10-09 12:00:00', $task->due_at, 'Son tarih: vakit + planın 4 saatlik toleransı.');
+        $this->assertTrue($task->isDue(now()));
         $this->assertMoment('2026-10-09 08:00:00', $plan->fresh()->last_task_at);
     }
 
     public function test_no_new_task_while_the_plan_has_an_active_one(): void
     {
         $plan = $this->periodic($this->m01, 1);
-        $this->generator()->generateDue(now());
+        $this->generator()->generate(now());
 
         $this->at('08:00:00', '2026-10-12');
-        $this->assertSame(0, $this->generator()->generateDue(now()));
+        $this->assertSame(0, $this->generator()->generate(now()));
 
         // Görevden kayıt açılmış olması da etkin görev sayılır.
         $this->workflow()->open($this->operator(), $this->m01, CleaningType::Planned, task: $plan->tasks()->sole());
-        $this->assertSame(0, $this->generator()->generateDue(now()));
+        $this->assertSame(0, $this->generator()->generate(now()));
         $this->assertSame(1, $plan->tasks()->count());
     }
 
-    public function test_next_task_is_due_one_interval_after_the_last_one(): void
+    public function test_next_task_appears_at_once_as_upcoming_one_interval_after_the_last_one(): void
     {
+        // K-24: görev tamamlanınca sıradaki görev hemen "ileride" görünür; vakti gelince kayıt açılır.
         $plan = $this->periodic($this->m01, 7);
-        $this->generator()->generateDue(now());
+        $this->generator()->generate(now());
         $ahmet = $this->operator();
         $this->completeRemainingSteps($ahmet, $this->workflow()->open($ahmet, $this->m01, CleaningType::Planned, task: $plan->tasks()->sole()));
 
-        $this->at('07:59:00', '2026-10-16');
-        $this->assertSame(0, $this->generator()->generateDue(now()), 'Aralık dolmadan görev açılmaz.');
-
-        $this->at('09:00:00', '2026-10-16');
-        $this->assertSame(1, $this->generator()->generateDue(now()));
+        $this->at('09:00:00');
+        $this->assertSame(1, $this->generator()->generate(now()));
 
         $next = $plan->tasks()->open()->sole();
-        $this->assertMoment('2026-10-16 08:00:00', $next->due_at);
-        $this->assertMoment('2026-10-16 09:00:00', $plan->fresh()->last_task_at);
+        $this->assertMoment('2026-10-16 08:00:00', $next->scheduled_at);
+        $this->assertTrue($next->isUpcoming(now()));
+        $this->assertMoment('2026-10-09 09:00:00', $plan->fresh()->last_task_at);
+
+        $this->at('07:59:00', '2026-10-16');
+        $this->assertTrue($next->isUpcoming(now()));
+        $this->at('08:00:00', '2026-10-16');
+        $this->assertTrue($next->isDue(now()));
     }
 
-    public function test_retired_plan_or_machine_and_trigger_plans_produce_no_periodic_task(): void
+    public function test_slots_left_behind_are_skipped(): void
+    {
+        // Günlük plan; 9 Ekim 08:00'deki temizlik 11 Ekim 10:00'da yapıldı. 10 ve 11 Ekim vakitleri
+        // geride kaldı: sıradaki görev 12 Ekim 08:00.
+        $plan = $this->periodic($this->m01, 1);
+        $this->generator()->generate(now());
+        $plan->tasks()->sole()->forceFill(['status' => CleaningTaskStatus::Cancelled, 'open_plan_id' => null])->save();
+
+        $this->at('10:00:00', '2026-10-11');
+        $this->generator()->generate(now());
+
+        $this->assertMoment('2026-10-12 08:00:00', $plan->tasks()->open()->sole()->scheduled_at);
+    }
+
+    public function test_retired_plan_or_machine_and_trigger_plans_without_pending_work_produce_no_task(): void
     {
         $m02 = $this->makeMachine(code: 'M02');
         $m03 = $this->makeMachine(code: 'M03');
@@ -98,12 +119,26 @@ class CleaningTaskGenerationTest extends TestCase
         $this->periodic($m02, 7);
         $m02->update(['is_active' => false]);
         CleaningPlan::create(['machine_id' => $m03->id, 'kind' => CleaningPlanKind::WorkOrderCompleted]);
+        $this->workOrder('IE-9', $m03, WorkOrderStatus::Completed);
 
-        $this->assertSame(0, $this->generator()->generateDue(now()));
+        $this->assertSame(0, $this->generator()->generate(now()));
         $this->assertSame(0, CleaningTask::count());
     }
 
-    public function test_command_opens_due_tasks_and_is_scheduled_hourly(): void
+    public function test_generation_waits_while_another_process_holds_the_lock(): void
+    {
+        // Demo verisi yüklenirken (DemoSeeder kilidi tutar) dakikalık komut görev açmaz.
+        $this->periodic($this->m01, 7);
+        $lock = Cache::lock(CleaningTaskGenerator::LOCK, 60);
+        $this->assertTrue($lock->get());
+
+        $this->assertSame(0, $this->generator()->generate(now()));
+
+        $lock->release();
+        $this->assertSame(1, $this->generator()->generate(now()));
+    }
+
+    public function test_command_opens_tasks_and_runs_every_minute(): void
     {
         $this->periodic($this->m01, 7);
 
@@ -114,7 +149,7 @@ class CleaningTaskGenerationTest extends TestCase
 
         $event = collect(app(Schedule::class)->events())->first(fn ($event) => str_contains($event->command ?? '', 'cleaning:generate-tasks'));
         $this->assertNotNull($event, 'cleaning:generate-tasks zamanlanmış olmalı.');
-        $this->assertSame('0 * * * *', $event->expression);
+        $this->assertSame('* * * * *', $event->expression);
         $this->assertTrue($event->withoutOverlapping);
     }
 
@@ -137,8 +172,58 @@ class CleaningTaskGenerationTest extends TestCase
         $task = $plan->tasks()->sole();
         $this->assertSame(CleaningTaskSource::WorkOrder, $task->source);
         $this->assertSame([$finished->id, $next->id], [$task->trigger_work_order_id, $task->work_order_id], 'Makineye bağlı en erken planlanmış emir sonraki emirdir.');
-        $this->assertMoment('2026-10-09 14:00:00', $task->due_at);
+        $this->assertMoment('2026-10-09 14:00:00', $task->scheduled_at);
+        $this->assertMoment('2026-10-09 18:00:00', $task->due_at, 'Tamamlanma anında gecikmiş sayılmaz; tolerans 4 saat.');
+        $this->assertFalse($task->isOverdue(now()));
+        $this->assertTrue($task->isDue(now()));
         $this->assertMoment('2026-10-09 14:00:00', $plan->fresh()->last_task_at);
+    }
+
+    public function test_task_waits_for_the_pending_work_order_and_its_time_comes_on_completion(): void
+    {
+        // K-24: makinede üretimdeki emir varken görev "ileride" görünür; emir tamamlanınca vakti gelir.
+        $plan = CleaningPlan::create(['machine_id' => $this->m01->id, 'kind' => CleaningPlanKind::WorkOrderCompleted]);
+        $planned = $this->workOrder('IE-4', $this->m01, WorkOrderStatus::Planned, startsInDays: 1);
+        $running = $this->workOrder('IE-1', $this->m01, WorkOrderStatus::InProduction);
+
+        $this->assertSame(1, $this->generator()->generate(now()));
+
+        $task = $plan->tasks()->sole();
+        $this->assertSame([$running->id, $planned->id], [$task->trigger_work_order_id, $task->work_order_id], 'Üretimdeki emir beklenir; sonraki emir planlanmış olandır.');
+        $this->assertNull($task->scheduled_at);
+        $this->assertNull($task->due_at);
+        $this->assertTrue($task->isUpcoming(now()));
+        $this->assertFalse($task->isOverdue(now()->addWeek()));
+        $this->assertSame('Üretim iş emri tamamlanınca', $task->reasonLabel());
+
+        $this->at('14:00:00');
+        app(WorkOrderLifecycle::class)->complete($running);
+
+        $task = $task->fresh();
+        $this->assertSame(1, $plan->tasks()->count(), 'Bekleyen görevin vakti gelir; yeni görev açılmaz.');
+        $this->assertMoment('2026-10-09 14:00:00', $task->scheduled_at);
+        $this->assertMoment('2026-10-09 18:00:00', $task->due_at);
+        $this->assertSame([$running->id, $planned->id], [$task->trigger_work_order_id, $task->work_order_id]);
+        $this->assertTrue($task->isDue(now()));
+        $this->assertSame('Üretim iş emri tamamlandı', $task->reasonLabel());
+
+        $cleaning = $this->workflow()->open($this->operator(), $this->m01, CleaningType::Planned, task: $task);
+        $this->assertSame($task->id, $cleaning->cleaning_task_id);
+    }
+
+    public function test_waiting_task_takes_its_time_from_whichever_work_order_completes_first(): void
+    {
+        $plan = CleaningPlan::create(['machine_id' => $this->m01->id, 'kind' => CleaningPlanKind::WorkOrderCompleted]);
+        $this->workOrder('IE-1', $this->m01, WorkOrderStatus::InProduction);
+        $lineOrder = $this->workOrder('IE-3', null, WorkOrderStatus::InProduction, line: $this->m01->line);
+        $this->generator()->generate(now());
+
+        $this->at('11:00:00');
+        app(WorkOrderLifecycle::class)->complete($lineOrder);
+
+        $task = $plan->tasks()->sole();
+        $this->assertSame($lineOrder->id, $task->trigger_work_order_id);
+        $this->assertMoment('2026-10-09 11:00:00', $task->scheduled_at);
     }
 
     public function test_next_work_order_falls_back_to_the_line_then_to_unbound(): void
@@ -210,8 +295,11 @@ class CleaningTaskGenerationTest extends TestCase
         $this->deactivate($retired);
         $operator = $this->operator();
         $plan = $this->periodic($this->m01, 7);
-        $task = CleaningTask::openFor($plan, now()->subMinutes(30));
-        CleaningTask::openFor($this->periodic($this->makeMachine(code: 'M02'), 7), now()->addHour());
+        // Vakit 02:30, tolerans 4 saat: son tarih 06:30 (İstanbul 09:30) geçti.
+        $task = CleaningTask::openFor($plan, now()->subMinutes(330));
+        // Vakti geçmiş ama tolerans içinde ve vakti gelmemiş görevler gecikmiş değildir.
+        CleaningTask::openFor($this->periodic($this->makeMachine(code: 'M02'), 7), now()->subHour());
+        CleaningTask::openFor($this->periodic($this->makeMachine(code: 'M04'), 7), now()->addHour());
 
         $this->assertSame(1, $this->generator()->notifyOverdue(now()));
         $this->assertSame(0, $this->generator()->notifyOverdue(now()), 'Aynı görev bir kez bildirilir.');
@@ -220,7 +308,7 @@ class CleaningTaskGenerationTest extends TestCase
         $this->assertSame([CleaningTaskOverdueNotification::TYPE, $zeynep->id], [$notification->type, $notification->notifiable_id]);
         $this->assertSame([
             'title' => 'Temizlik gecikti',
-            'message' => 'IST / H01 / M01 — Makine M01: yapılması gereken temizliğin son tarihi (09.10.2026 10:30) geçti, kayıt açılmadı.',
+            'message' => 'IST / H01 / M01 — Makine M01: yapılması gereken temizliğin son tarihi (09.10.2026 09:30) geçti, kayıt açılmadı.',
             'url' => '/',
             'level' => 'warning',
             'task_id' => $task->id,
@@ -231,7 +319,7 @@ class CleaningTaskGenerationTest extends TestCase
     public function test_task_in_record_is_not_overdue(): void
     {
         $this->manager('Zeynep');
-        $task = CleaningTask::openFor($this->periodic($this->m01, 7), now()->subHour());
+        $task = CleaningTask::openFor($this->periodic($this->m01, 7), now()->subHours(6));
         $this->workflow()->open($this->operator(), $this->m01, CleaningType::Planned, task: $task);
 
         $this->assertSame(0, $this->generator()->notifyOverdue(now()));

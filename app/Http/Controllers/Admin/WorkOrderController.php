@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\Catalog\SaveWorkOrderRequest;
 use App\Models\Line;
 use App\Models\Machine;
 use App\Models\WorkOrder;
+use App\Services\Planning\CleaningTaskGenerator;
 use App\Services\Planning\WorkOrderLifecycle;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -62,9 +63,11 @@ class WorkOrderController extends Controller
         return $this->form(new WorkOrder, 0);
     }
 
-    public function store(SaveWorkOrderRequest $request): RedirectResponse
+    public function store(SaveWorkOrderRequest $request, CleaningTaskGenerator $tasks): RedirectResponse
     {
         $workOrder = WorkOrder::create($request->attributesToSave());
+        // K-24: makinede "üretim iş emri tamamlanınca" planı varsa temizlik görevi hemen "ileride" görünür.
+        $tasks->generate(now());
 
         return redirect()
             ->route('admin.work-orders.index')
@@ -76,7 +79,7 @@ class WorkOrderController extends Controller
         return $this->form($workOrder, $workOrder->cleanings()->count());
     }
 
-    public function update(SaveWorkOrderRequest $request, WorkOrder $workOrder): RedirectResponse
+    public function update(SaveWorkOrderRequest $request, WorkOrder $workOrder, CleaningTaskGenerator $tasks): RedirectResponse
     {
         // Eski verilerde makineye bağlı üretim iş emrinin hattı boş olabilir; bağlantı, makinenin hattıyla karşılaştırılır.
         $binding = [$workOrder->machine_id, $workOrder->line_id ?? $workOrder->machine?->line_id];
@@ -94,6 +97,7 @@ class WorkOrderController extends Controller
         }
 
         $workOrder->save();
+        $tasks->generate(now());
 
         return redirect()
             ->route('admin.work-orders.index')
@@ -112,13 +116,13 @@ class WorkOrderController extends Controller
 
     /**
      * Demo: ERP'nin "tamamlandı" bildirimi yerine. Makinesinde "üretim iş emri tamamlanınca"
-     * kurallı plan varsa yapılması gereken temizlik görevi açılır (K-20).
+     * kurallı plan varsa temizlik görevinin vakti gelir, personel görevden kayıt açabilir (K-20, K-24).
      */
     public function complete(WorkOrder $workOrder, WorkOrderLifecycle $lifecycle): RedirectResponse
     {
         $lifecycle->complete($workOrder);
 
-        return back()->with('status', "{$workOrder->code} tamamlandı. Makinede bu tetiğe bağlı temizlik planı varsa görev açılır.");
+        return back()->with('status', "{$workOrder->code} tamamlandı. Makinede bu tetiğe bağlı temizlik planı varsa görevin vakti geldi.");
     }
 
     private function form(WorkOrder $workOrder, int $usage): View

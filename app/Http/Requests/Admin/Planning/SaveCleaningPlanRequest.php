@@ -11,12 +11,15 @@ use Illuminate\Validation\Validator;
 
 /**
  * Temizlik planı: ekleme ve düzenleme (K-20). Periyodik planda aralık (gün) zorunludur; "üretim
- * iş emri tamamlanınca" kuralında aralık yoktur. Bir makinede aynı kurallı tek kullanımdaki plan
- * olur. Yeni plan yalnızca kullanımdaki makineye eklenir.
+ * iş emri tamamlanınca" kuralında aralık yoktur. Gecikme toleransı (saat) her planda vardır (K-24).
+ * Bir makinede aynı kurallı tek kullanımdaki plan olur. Yeni plan yalnızca kullanımdaki makineye
+ * eklenir.
  */
 class SaveCleaningPlanRequest extends FormRequest
 {
     public const MAX_INTERVAL_DAYS = 365;
+
+    public const MAX_TOLERANCE_HOURS = 168;
 
     public function authorize(): bool
     {
@@ -43,6 +46,7 @@ class SaveCleaningPlanRequest extends FormRequest
                 'min:1',
                 'max:'.self::MAX_INTERVAL_DAYS,
             ],
+            'tolerance_hours' => ['required', 'integer', 'min:1', 'max:'.self::MAX_TOLERANCE_HOURS],
         ];
     }
 
@@ -73,7 +77,7 @@ class SaveCleaningPlanRequest extends FormRequest
     }
 
     /**
-     * @return array{machine_id: int, kind: CleaningPlanKind, interval_days: ?int}
+     * @return array{machine_id: int, kind: CleaningPlanKind, interval_days: ?int, tolerance_hours: int}
      */
     public function attributesToSave(): array
     {
@@ -83,6 +87,7 @@ class SaveCleaningPlanRequest extends FormRequest
             'machine_id' => (int) $this->validated('machine_id'),
             'kind' => $kind,
             'interval_days' => $kind === CleaningPlanKind::Periodic ? (int) $this->validated('interval_days') : null,
+            'tolerance_hours' => (int) $this->validated('tolerance_hours'),
         ];
     }
 
@@ -95,6 +100,7 @@ class SaveCleaningPlanRequest extends FormRequest
             'machine_id' => 'makine',
             'kind' => 'kural',
             'interval_days' => 'aralık (gün)',
+            'tolerance_hours' => 'gecikme toleransı (saat)',
         ];
     }
 

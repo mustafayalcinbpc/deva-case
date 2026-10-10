@@ -61,8 +61,8 @@
     margin-inline-end: .35rem;
 }
 
-// Yapılması gereken temizlikler (K-21): gecikmiş satır uyarı tonunda; "Kaydı aç" ve yöneticinin
-// açılır iptal formu aynı hücrede.
+// Yapılması gereken temizlikler (K-21, K-24): gecikmiş satır uyarı tonunda; "Kaydı aç" ve
+// yöneticinin açılır iptal formu aynı hücrede.
 .due-tasks {
     margin-bottom: 1rem;
 }
@@ -83,7 +83,45 @@
 }
 
 .due-tasks__trigger,
-.due-tasks__overdue {
+.due-tasks__overdue,
+.due-tasks__upcoming {
+    margin-inline-start: .35rem;
+}
+
+// K-24: vakti gelenler ve ileride yapılacaklar ayrı gruplar; ileride olan satır soluk.
+.due-tasks__group-title > th {
+    padding-block: .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nc-text-muted);
+    background-color: var(--bs-secondary-bg);
+}
+
+.due-tasks__group-note {
+    margin-inline-start: .5rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.due-tasks__row--upcoming > td {
+    color: var(--nc-text-muted);
+}
+
+.due-tasks__deadline,
+.due-tasks__waiting {
+    display: block;
+    font-size: .8125rem;
+    color: var(--nc-text-muted);
+}
+
+.due-tasks__waiting {
+    font-size: inherit;
+}
+
+.due-tasks__upcoming-count {
     margin-inline-start: .35rem;
 }
 
