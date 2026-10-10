@@ -1,6 +1,6 @@
 # Notlarım — Dijital Temizlik Takip (deva-case)
 
-Son durum: 10 Ekim 2026. `main` = `5344bdb` (GitHub'da). `feature/malzeme-planlama` (prosedür sayfası sekmeleri dahil) yerelde, `main`'e merge bekliyor. Bütün testler geçiyor (830 test).
+Son durum: 10 Ekim 2026. Prosedür sayfası sekmeleri ile malzeme lotları, üretim iş emri durumu, temizlik planları ve görevler `main`'e merge edildi ve GitHub'a push edildi. Bütün testler geçiyor (830 test). Mac'te yeni migration'lar için: `docker compose exec app php artisan migrate:fresh --seed`.
 
 ## Nasıl çalıştırılır
 
