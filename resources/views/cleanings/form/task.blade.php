@@ -34,8 +34,12 @@
                 </dd>
             </div>
             <div class="col-sm-6 col-xl-3">
+                <dt>Müdahale vakti</dt>
+                <dd><x-datetime :value="$task->scheduled_at" format="list" /></dd>
+            </div>
+            <div class="col-sm-6 col-xl-3">
                 <dt>Son tarih</dt>
-                <dd><x-datetime :value="$task->due_at" /></dd>
+                <dd><x-datetime :value="$task->due_at" format="list" /></dd>
             </div>
             @if ($task->workOrder)
                 <div class="col-sm-6 col-xl-3">

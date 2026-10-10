@@ -10,7 +10,6 @@ use App\Models\Cleaning;
 use App\Models\CleaningPlan;
 use App\Models\CleaningTask;
 use App\Models\Machine;
-use App\Models\User;
 use App\Models\WorkOrder;
 use Carbon\CarbonInterface;
 use Dom\Element;
@@ -22,7 +21,7 @@ use Tests\Feature\Cleaning\Concerns\InteractsWithCleaningWorkflow;
 use Tests\TestCase;
 
 /**
- * Yapılması gereken temizlikler (K-21, K-23): gösterge panelindeki açık görevler, görevden kayıt
+ * Yapılması gereken temizlikler (K-21, K-23, K-24): gösterge panelindeki açık görevler, görevden kayıt
  * açma formu, yöneticinin görevi iptali ve kayıtta görev bilgisi. Görevler henüz atanmamıştır;
  * herhangi bir aktif operatör görevden kayıt açabilir ve kaydı açan sorumludur (R-15).
  */
@@ -40,31 +39,62 @@ class CleaningTaskScreensTest extends TestCase
     // Gösterge paneli
     // ---------------------------------------------------------------------------------------
 
-    public function test_dashboard_lists_open_tasks_by_due_time_and_marks_overdue_ones(): void
+    public function test_dashboard_lists_due_tasks_first_and_upcoming_ones_below(): void
     {
+        // K-24: vakti gelenler son tarihe göre üstte; vakti gelmeyenler "İleride yapılacak" altında.
         $filler = $this->makeMachine(code: 'M02');
         $tank = $this->makeMachine(code: 'M01');
         $labeler = $this->makeMachine(code: 'M05');
+        $mixer = $this->makeMachine(code: 'M06');
         $later = $this->taskFor($filler, now()->addDays(3));
-        $overdue = $this->taskFor($tank, now()->subHours(2));
+        $overdue = $this->taskFor($tank, now()->subHours(5));
+        $onTime = $this->taskFor($mixer, now()->subHour());
         $done = $this->taskFor($labeler, now()->subDay());
         $ahmet = $this->operator('Ahmet');
         $this->completeRemainingSteps($ahmet, $this->workflow()->open($ahmet, $labeler, CleaningType::Planned, task: $done));
 
         $response = $this->actingAs($this->operator('Mehmet'))->get(route('dashboard'))->assertOk();
 
-        $rows = $this->page($response)->querySelectorAll('.due-tasks__row');
-        $this->assertSame(["task-{$overdue->id}", "task-{$later->id}"], array_map(fn (Element $row) => $row->id, iterator_to_array($rows)));
+        $ids = fn (string $selector) => array_map(fn (Element $row) => $row->id, iterator_to_array($this->page($response)->querySelectorAll($selector)));
+        $this->assertSame(["task-{$overdue->id}", "task-{$onTime->id}"], $ids('.due-tasks__group--due .due-tasks__row'));
+        $this->assertSame(["task-{$later->id}"], $ids('.due-tasks__group--upcoming .due-tasks__row'));
         $this->assertSame('2', $this->text($this->one($response, '.due-tasks__count')));
+        $this->assertSame('1 ileride', $this->text($this->one($response, '.due-tasks__upcoming-count')));
 
-        $this->assertStringContainsString('Gecikti', $this->text($this->one($response, "#task-{$overdue->id}")));
         $this->assertNotNull($this->one($response, "#task-{$overdue->id}")->querySelector('.status-badge--overdue'));
-        $this->assertNull($this->one($response, "#task-{$later->id}")->querySelector('.status-badge--overdue'));
-        $this->assertStringContainsString('Periyodik plan', $this->text($this->one($response, "#task-{$later->id}")));
+        $this->assertNull($this->one($response, "#task-{$onTime->id}")->querySelector('.status-badge--overdue'), 'Vakti geçti ama tolerans içinde.');
+        $this->assertStringContainsString('son tarih 9 Ekim 14:00', $this->text($this->one($response, "#task-{$onTime->id} .due-tasks__when")));
         $this->assertSame(
             route('cleanings.create', ['task' => $overdue->id]),
             $this->one($response, "#task-{$overdue->id} .due-tasks__open")->getAttribute('href'),
         );
+
+        // İleride: kayıt açma bağlantısı yok, vakti yazar.
+        $upcoming = $this->one($response, "#task-{$later->id}");
+        $this->assertTrue($upcoming->classList->contains('due-tasks__row--upcoming'));
+        $this->assertNull($upcoming->querySelector('.due-tasks__open'));
+        $this->assertNotNull($upcoming->querySelector('.due-tasks__locked'));
+        $this->assertStringContainsString('Periyodik plan', $this->text($upcoming));
+        $this->assertStringContainsString('12 Ekim 11:00 İleride', $this->text($upcoming->querySelector('.due-tasks__when')));
+    }
+
+    public function test_upcoming_task_waiting_for_a_work_order_says_so(): void
+    {
+        $machine = $this->makeMachine();
+        $running = WorkOrder::create([
+            'code' => 'IE-1058', 'line_id' => $machine->line_id, 'machine_id' => $machine->id, 'status' => 'in_production',
+            'planned_end_at' => now()->addHours(6),
+        ]);
+        $plan = CleaningPlan::create(['machine_id' => $machine->id, 'kind' => CleaningPlanKind::WorkOrderCompleted]);
+        $task = CleaningTask::openFor($plan, null, $running);
+
+        $response = $this->actingAs($this->operator())->get(route('dashboard'))->assertOk();
+
+        $row = $this->one($response, ".due-tasks__group--upcoming #task-{$task->id}");
+        $this->assertStringContainsString('Üretim iş emri tamamlanınca IE-1058', $this->text($row));
+        $this->assertSame('Emir tamamlanınca planlanan bitiş 9 Ekim 17:00 İleride', $this->text($row->querySelector('.due-tasks__when')));
+        $this->assertStringContainsString('Şu anda vakti gelen temizlik yok.', $this->text($this->one($response, '.due-tasks__group--due')));
+        $this->assertSame('0', $this->text($this->one($response, '.due-tasks__count')));
     }
 
     public function test_task_row_shows_the_triggering_and_the_next_work_order(): void
@@ -124,8 +154,11 @@ class CleaningTaskScreensTest extends TestCase
         $this->assertSame($manager->id, $task->cancelled_by);
         $this->assertSame('Makine planlı bakımda; temizlik bakım sonrası yapılacak.', $task->cancel_reason);
 
-        // Planın etkin görevi boşaldı: sıradaki görev üretilebilir.
-        $this->assertSame(CleaningTaskStatus::Open, CleaningTask::openFor($task->plan, now()->addWeek())->status);
+        // K-24: planın sıradaki görevi hemen "ileride" açıldı.
+        $next = $task->plan->activeTask()->sole();
+        $this->assertNotSame($task->id, $next->id);
+        $this->assertMoment('2026-10-16 08:00:00', $next->scheduled_at);
+        $this->assertTrue($next->isUpcoming(now()));
     }
 
     public function test_cancel_requires_a_reason_and_reopens_the_form_on_that_row(): void
@@ -182,7 +215,7 @@ class CleaningTaskScreensTest extends TestCase
         $this->makeMachine(code: 'M05');
         [$finished, $next] = $this->workOrders($machine);
         $plan = CleaningPlan::create(['machine_id' => $machine->id, 'kind' => CleaningPlanKind::WorkOrderCompleted]);
-        $task = CleaningTask::openFor($plan, now()->subHour(), $finished, $next);
+        $task = CleaningTask::openFor($plan, now()->subHours(5), $finished, $next);
 
         $response = $this->actingAs($this->operator())->get(route('cleanings.create', ['task' => $task->id]))->assertOk();
 
@@ -201,7 +234,42 @@ class CleaningTaskScreensTest extends TestCase
         $this->assertStringContainsString('M02 — Makine M02', $summary);
         $this->assertStringContainsString('Üretim iş emri tamamlandı · IE-1041', $summary);
         $this->assertStringContainsString('IE-1055', $summary);
+        $this->assertStringContainsString('Müdahale vakti 9 Ekim 06:00', $summary);
+        $this->assertStringContainsString('Son tarih 9 Ekim 10:00', $summary);
         $this->assertStringContainsString('Gecikti', $summary);
+    }
+
+    public function test_create_form_for_an_upcoming_task_says_when_it_can_be_opened(): void
+    {
+        $machine = $this->makeMachine();
+        $task = $this->taskFor($machine, now()->addHours(3));
+
+        $response = $this->actingAs($this->operator())->get(route('cleanings.create', ['task' => $task->id]))->assertOk();
+
+        $this->assertSame(
+            'M03 makinesindeki temizliğin vakti henüz gelmedi: görevden kayıt 9 Ekim 14:00 sonrasında açılabilir. Yapılması gereken temizliklere dön',
+            $this->text($this->one($response, '.cleaning-form__task-upcoming')),
+        );
+        $this->assertNull($this->page($response)->querySelector('input[name="cleaning_task_id"]'));
+        $this->assertNull($this->page($response)->querySelector('.cleaning-form__task, .cleaning-form__task-gone'));
+    }
+
+    public function test_store_before_the_task_time_comes_back_with_the_workflow_error(): void
+    {
+        $machine = $this->makeMachine();
+        $task = $this->taskFor($machine, now()->addHours(3));
+
+        $this->actingAs($this->operator())
+            ->from(route('dashboard'))
+            ->post(route('cleanings.store'), [
+                'cleaning_task_id' => $task->id,
+                'machine_id' => $machine->id,
+                'type' => CleaningType::Planned->value,
+            ])
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHasErrors(['workflow' => 'Bu temizliğin vakti henüz gelmedi; görevden kayıt 09.10.2026 14:00 sonrasında açılabilir.']);
+
+        $this->assertSame(0, Cleaning::count());
     }
 
     public function test_create_form_without_a_task_is_unchanged(): void
@@ -280,7 +348,7 @@ class CleaningTaskScreensTest extends TestCase
     public function test_record_detail_shows_the_task_in_summary_and_history(): void
     {
         $machine = $this->makeMachine();
-        $task = $this->taskFor($machine, now()->addHours(6));
+        $task = $this->taskFor($machine, now()->subHour());
         $ahmet = $this->operator('Ahmet');
         $fromTask = $this->workflow()->open($ahmet, $machine, CleaningType::Planned, task: $task);
         $this->workflow()->cancel($ahmet, $fromTask->fresh(), CancelReason::InvalidRecord, 'Yanlış makine seçildi');
@@ -288,8 +356,8 @@ class CleaningTaskScreensTest extends TestCase
 
         $response = $this->actingAs($ahmet)->get(route('cleanings.show', $fromTask))->assertOk();
 
-        $this->assertSame('Görev Periyodik plan son tarih 09.10.2026 17:00', $this->text($this->one($response, '#summary .cleaning-summary__task')));
-        $this->assertStringContainsString('Görev Periyodik plan, son tarih 09.10.2026 17:00', $this->text($this->one($response, '#history .event-history__item--cleaning-opened')));
+        $this->assertSame('Görev Periyodik plan son tarih 09.10.2026 14:00', $this->text($this->one($response, '#summary .cleaning-summary__task')));
+        $this->assertStringContainsString('Görev Periyodik plan, son tarih 09.10.2026 14:00', $this->text($this->one($response, '#history .event-history__item--cleaning-opened')));
 
         $other = $this->actingAs($ahmet)->get(route('cleanings.show', $withoutTask))->assertOk();
         $this->assertSame('Görev Görevsiz açıldı', $this->text($this->one($other, '#summary .cleaning-summary__task')));
@@ -298,11 +366,11 @@ class CleaningTaskScreensTest extends TestCase
 
     // ---------------------------------------------------------------------------------------
 
-    private function taskFor(Machine $machine, CarbonInterface $dueAt): CleaningTask
+    private function taskFor(Machine $machine, CarbonInterface $scheduledAt): CleaningTask
     {
         $plan = CleaningPlan::create(['machine_id' => $machine->id, 'kind' => CleaningPlanKind::Periodic, 'interval_days' => 7]);
 
-        return CleaningTask::openFor($plan, $dueAt);
+        return CleaningTask::openFor($plan, $scheduledAt);
     }
 
     /**

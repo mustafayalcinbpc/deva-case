@@ -8,12 +8,12 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 #[Signature('cleaning:generate-tasks')]
-#[Description('Periyodik temizlik planlarından zamanı gelen görevleri açar ve geciken görevleri yöneticilere bildirir (K-20, K-23).')]
+#[Description('Etkin görevi olmayan temizlik planlarının sıradaki görevini açar ve geciken görevleri yöneticilere bildirir (K-20, K-23, K-24).')]
 final class GenerateCleaningTasks extends Command
 {
     public function handle(CleaningTaskGenerator $generator): int
     {
-        $opened = $generator->generateDue(now());
+        $opened = $generator->generate(now());
         $notified = $generator->notifyOverdue(now());
 
         $this->info("Açılan görev: {$opened}");

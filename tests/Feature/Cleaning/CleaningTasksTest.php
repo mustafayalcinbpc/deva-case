@@ -7,6 +7,7 @@ use App\Enums\CleaningPlanKind;
 use App\Enums\CleaningTaskSource;
 use App\Enums\CleaningTaskStatus;
 use App\Enums\CleaningType;
+use App\Exceptions\CleaningRuleViolation;
 use App\Models\Cleaning;
 use App\Models\CleaningPlan;
 use App\Models\CleaningTask;
@@ -171,20 +172,65 @@ class CleaningTasksTest extends TestCase
         $this->assertSame($next->id, $task->work_order_id);
     }
 
-    public function test_overdue_is_an_open_task_past_its_due_time(): void
+    public function test_task_is_upcoming_until_its_time_and_overdue_after_the_tolerance(): void
     {
+        // K-24: vakit 09:00, planın toleransı 4 saat: son tarih 13:00.
         $machine = $this->makeMachine();
-        $task = $this->taskFor($machine, dueAt: now()->subHour());
+        $task = $this->taskFor($machine, scheduledAt: now()->addHour());
 
-        $this->assertTrue($task->isOverdue(now()));
-        $this->assertFalse($task->isOverdue(now()->subHours(2)));
+        $this->assertMoment('2026-10-09 13:00:00', $task->due_at);
+        $this->assertTrue($task->isUpcoming(now()));
+        $this->assertFalse($task->isDue(now()));
+        $this->assertTrue($task->isDue(now()->addHour()));
+        $this->assertFalse($task->isOverdue(now()->addHours(5)));
+        $this->assertTrue($task->isOverdue(now()->addHours(5)->addSecond()));
     }
 
-    private function taskFor(Machine $machine, mixed $dueAt = null): CleaningTask
+    public function test_task_tolerance_comes_from_its_plan(): void
+    {
+        $machine = $this->makeMachine();
+        $plan = CleaningPlan::create(['machine_id' => $machine->id, 'kind' => CleaningPlanKind::Periodic, 'interval_days' => 7, 'tolerance_hours' => 24]);
+
+        $this->assertMoment('2026-10-10 08:00:00', CleaningTask::openFor($plan, now())->due_at);
+    }
+
+    public function test_record_is_not_opened_before_the_task_time(): void
+    {
+        $machine = $this->makeMachine();
+        $task = $this->taskFor($machine, scheduledAt: now()->addHours(2));
+
+        $this->assertRuleViolation('task_not_due', fn () => $this->openFromTask($this->operator('Ahmet'), $machine, $task));
+        $this->assertSame(CleaningTaskStatus::Open, $task->fresh()->status);
+
+        $this->at('10:00:00');
+        $cleaning = $this->openFromTask($this->operator('Ahmet'), $machine, $task);
+        $this->assertSame($task->id, $cleaning->cleaning_task_id);
+    }
+
+    public function test_task_waiting_for_its_work_order_cannot_be_opened(): void
+    {
+        $machine = $this->makeMachine();
+        $plan = CleaningPlan::create(['machine_id' => $machine->id, 'kind' => CleaningPlanKind::WorkOrderCompleted]);
+        $running = WorkOrder::create(['code' => 'IE-7', 'machine_id' => $machine->id, 'line_id' => $machine->line_id, 'status' => 'in_production']);
+        $task = CleaningTask::openFor($plan, null, $running);
+
+        $this->assertNull($task->due_at);
+        $this->assertTrue($task->isUpcoming(now()->addYear()));
+        $this->assertFalse($task->isOverdue(now()->addYear()));
+
+        try {
+            $this->openFromTask($this->operator('Ahmet'), $machine, $task);
+            $this->fail('Vakti belli olmayan görevden kayıt açılmamalı.');
+        } catch (CleaningRuleViolation $violation) {
+            $this->assertSame('Bu temizliğin vakti henüz gelmedi; görevden kayıt IE-7 tamamlanınca açılabilir.', $violation->getMessage());
+        }
+    }
+
+    private function taskFor(Machine $machine, mixed $scheduledAt = null): CleaningTask
     {
         $plan = CleaningPlan::create(['machine_id' => $machine->id, 'kind' => CleaningPlanKind::Periodic, 'interval_days' => 7]);
 
-        return CleaningTask::openFor($plan, $dueAt ?? now());
+        return CleaningTask::openFor($plan, $scheduledAt ?? now());
     }
 
     private function openFromTask($owner, Machine $machine, CleaningTask $task, CleaningType $type = CleaningType::Planned)

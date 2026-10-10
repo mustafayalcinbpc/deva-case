@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Planning\SaveCleaningPlanRequest;
 use App\Models\CleaningPlan;
 use App\Models\Machine;
+use App\Services\Planning\CleaningTaskGenerator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -46,9 +47,11 @@ class CleaningPlanController extends Controller
         return $this->form(new CleaningPlan(['kind' => CleaningPlanKind::Periodic, 'interval_days' => 7]), 0);
     }
 
-    public function store(SaveCleaningPlanRequest $request): RedirectResponse
+    public function store(SaveCleaningPlanRequest $request, CleaningTaskGenerator $tasks): RedirectResponse
     {
         $plan = CleaningPlan::create($request->attributesToSave());
+        // K-24: planın ilk görevi hemen personelin önüne düşer.
+        $tasks->generate(now());
 
         return redirect()
             ->route('admin.cleaning-plans.index')
@@ -60,7 +63,7 @@ class CleaningPlanController extends Controller
         return $this->form($cleaningPlan, $cleaningPlan->tasks()->count());
     }
 
-    public function update(SaveCleaningPlanRequest $request, CleaningPlan $cleaningPlan): RedirectResponse
+    public function update(SaveCleaningPlanRequest $request, CleaningPlan $cleaningPlan, CleaningTaskGenerator $tasks): RedirectResponse
     {
         $cleaningPlan->fill($request->attributesToSave());
 
@@ -72,6 +75,7 @@ class CleaningPlanController extends Controller
         }
 
         $cleaningPlan->save();
+        $tasks->generate(now());
 
         return redirect()
             ->route('admin.cleaning-plans.index')
@@ -87,7 +91,7 @@ class CleaningPlanController extends Controller
             ->with('status', "{$cleaningPlan->definitionChangeLabel()} planı kullanımdan kaldırıldı; yeni görev üretmez. Açık görevi varsa olduğu gibi kalır.");
     }
 
-    public function activate(CleaningPlan $cleaningPlan): RedirectResponse
+    public function activate(CleaningPlan $cleaningPlan, CleaningTaskGenerator $tasks): RedirectResponse
     {
         if (CleaningPlan::query()->active()->where('machine_id', $cleaningPlan->machine_id)->where('kind', $cleaningPlan->kind)->exists()) {
             throw ValidationException::withMessages([
@@ -96,6 +100,7 @@ class CleaningPlanController extends Controller
         }
 
         $cleaningPlan->update(['is_active' => true]);
+        $tasks->generate(now());
 
         return redirect()
             ->route('admin.cleaning-plans.index')

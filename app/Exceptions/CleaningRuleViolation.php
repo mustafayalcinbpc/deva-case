@@ -5,6 +5,7 @@ namespace App\Exceptions;
 use App\Models\Cleaning;
 use App\Models\CleaningPhase;
 use App\Models\CleaningStep;
+use App\Models\CleaningTask;
 use App\Models\Machine;
 use App\Models\User;
 use BackedEnum;
@@ -62,6 +63,18 @@ final class CleaningRuleViolation extends DomainException
     public static function taskNotOpen(): self
     {
         return new self('task_not_open', 'Bu görev için kayıt açılamaz; görev açık değil.');
+    }
+
+    /**
+     * K-24: görevin müdahale vakti gelmeden ondan kayıt açılmaz.
+     */
+    public static function taskNotDue(CleaningTask $task): self
+    {
+        $when = $task->scheduled_at !== null
+            ? $task->scheduled_at->setTimezone(config('app.display_timezone'))->format('d.m.Y H:i').' sonrasında'
+            : ($task->triggerWorkOrder?->code ?? 'Üretim iş emri').' tamamlanınca';
+
+        return new self('task_not_due', "Bu temizliğin vakti henüz gelmedi; görevden kayıt {$when} açılabilir.");
     }
 
     public static function taskMachineMismatch(): self

@@ -209,3 +209,25 @@ Renk yazma, token kullan. Türkçe arayüz metni ve dosya başı yorum üslubunu
   - D (K-22 görev ataması) bekliyor.
   - Yeni ekranların sınıflarına özel stil yazılmadı.
   - Malzeme raporunda ayrı lot filtresi yok.
+
+## Düzeltme: görevin vakti (K-24)
+
+Kullanıcı geri bildirimi: üretim iş emri tamamlanınca açılan görev, açıldığı an "gecikti" görünüyordu. Neden: görev ancak vakti gelince açılıyordu ve son tarih vakitle aynıydı.
+
+- **Model:** `cleaning_tasks.scheduled_at` (müdahale vakti; tetik bekleyen görevde NULL) ve `cleaning_plans.tolerance_hours` (varsayılan 4). `due_at` = vakit + tolerans; vakit yoksa NULL.
+- **Durum:** yeni durum eklenmedi. Açık görev vakti gelmediyse "ileride" (`isUpcoming`), geldiyse kayıt açılabilir (`isDue`), son tarih geçtiyse gecikmiş (`isOverdue`).
+- **Üretim (`CleaningTaskGenerator::generate`):**
+  - Periyodik planda sıradaki görev önceki görev kapanınca açılır. Vakti son görevin vaktinden bir aralık sonrasıdır; geride kalan vakitler atlanır.
+  - Tetikli planda görev, makinede bekleyen emir (üretimdeki önce) için vakitsiz açılır. `forCompletedWorkOrder` bekleyen görevin vaktini tamamlanma anına çeker.
+- **Tetikleyiciler:**
+  - Dakikalık `cleaning:generate-tasks`.
+  - Plan ekle, güncelle ve yeniden kullanıma al.
+  - Üretim iş emri ekle ve güncelle.
+  - Görev iptali.
+- **Kilit:** Toplu üretim `cleaning-tasks:generate` önbellek kilidiyle sıraya girer. Demo verisi yüklenirken kilidi DemoSeeder tutar ve en sonda görevi olmayan planları kendisi üretir.
+- **Kural:** `CleaningWorkflow::open` vakti gelmemiş görevden kaydı `task_not_due` ile reddeder.
+- **Ekranlar:**
+  - Gösterge paneli "Vakti gelenler" ve "İleride yapılacak" grupları.
+  - Kayıt formunda vakti gelmemiş görev için uyarı.
+  - Plan listesinde "İleride" ve vakit.
+  - Plan formunda gecikme toleransı.

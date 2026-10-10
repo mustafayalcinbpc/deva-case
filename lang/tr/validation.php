@@ -76,6 +76,7 @@ return [
         'planned_end_at' => 'planlanan bitiş',
         'kind' => 'kural',
         'interval_days' => 'aralık (gün)',
+        'tolerance_hours' => 'gecikme toleransı (saat)',
         'material_id' => 'malzeme',
         'lot_no' => 'lot numarası',
         'expiry_date' => 'son kullanma tarihi',

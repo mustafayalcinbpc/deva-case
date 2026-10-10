@@ -43,24 +43,34 @@ class DashboardController extends Controller
                 'below_minimum' => $this->phasesBelowMinimum(),
             ],
             'rows' => $openCleanings->map(fn (Cleaning $cleaning) => $this->row($cleaning, $request->user()))->values(),
-            'tasks' => $this->openTasks(),
+            ...$this->openTasks(now()),
             'now' => now(),
         ]);
     }
 
     /**
-     * K-21: yapılması gereken temizlikler; son tarihi en yakın (ya da en çok geciken) önce.
+     * K-21, K-24: yapılması gereken temizlikler. Vakti gelenler son tarihi en yakın (ya da en çok
+     * geciken) önce; vakti gelmeyenler "ileride" olarak vakti en yakın önce, vakti henüz belli
+     * olmayanlar (üretim iş emrinin tamamlanması bekleniyor) en sonda.
      *
-     * @return Collection<int, CleaningTask>
+     * @return array{tasks: Collection<int, CleaningTask>, upcomingTasks: Collection<int, CleaningTask>}
      */
-    private function openTasks(): Collection
+    private function openTasks(CarbonInterface $now): array
     {
-        return CleaningTask::query()
+        [$due, $upcoming] = CleaningTask::query()
             ->open()
             ->with(['machine.line.facility', 'triggerWorkOrder', 'workOrder'])
-            ->orderBy('due_at')
             ->orderBy('id')
-            ->get();
+            ->get()
+            ->partition(fn (CleaningTask $task) => $task->isDue($now));
+
+        return [
+            'tasks' => $due->sortBy(fn (CleaningTask $task) => $task->due_at->getTimestamp())->values(),
+            'upcomingTasks' => $upcoming->sortBy(fn (CleaningTask $task) => [
+                $task->scheduled_at === null ? 1 : 0,
+                $task->scheduled_at?->getTimestamp() ?? $task->triggerWorkOrder?->planned_end_at?->getTimestamp() ?? PHP_INT_MAX,
+            ])->values(),
+        ];
     }
 
     /**

@@ -20,7 +20,7 @@ docker compose up -d --build        # ilk açılışta migration + demo verisi k
 
 ## Dokümanlar
 
-- `docs/is-gereksinimleri.md`: case dokümanından çıkarılan gereksinimler (R-01–R-49) ve verdiğimiz kararlar (K-01–K-23).
+- `docs/is-gereksinimleri.md`: case dokümanından çıkarılan gereksinimler (R-01–R-49) ve verdiğimiz kararlar (K-01–K-24).
 - `docs/plan.md`: durum makinesi planı ve sonuçları.
 - `docs/plan-arayuz.md`: AdminLTE kurulumu.
 - `docs/plan-ekranlar.md`: kayıt ekranları.
@@ -71,6 +71,8 @@ docker compose up -d --build        # ilk açılışta migration + demo verisi k
    - temizlik planları (periyodik / üretim iş emri tamamlanınca), görev üretimi (saatlik komut + dinleyici), gecikme bildirimi (K-20);
    - gösterge panelinde "Yapılması gereken temizlikler", görevden kayıt açma, görev iptali (K-21, K-23);
    - port 8005 (`APP_PORT`, `APP_URL`).
+18. **Arayüz düzeltmeleri:** açılır menü grupları, ikonlu dar menü, listelerde "10 Ekim 16:34" tarih biçimi, kısa kayıt numarası (`IST-H01M03-260042`, K-17).
+19. **Görevin vakti (K-24):** görev planlandığı an "ileride" görünür, vakti gelince kayıt açılır; gecikme vakit + plan toleransı (saat) geçince. Üretim iş emri tetikli görev, emir tamamlanınca vakit kazanır.
 
 ## Önemli kararlar (mülakatta sorulabilir)
 
@@ -84,6 +86,7 @@ docker compose up -d --build        # ilk açılışta migration + demo verisi k
 - **K-18:** Her makinenin tek geçerli prosedürü var; planlı ve plansız temizlik aynı prosedürü kullanır.
 - **K-14:** SKT lotun özelliği; operatör lot seçer, yazmaz. Kayıt lot no ve SKT'nin o anki kopyasını taşır.
 - **K-19:** Kayıt, temizliğin hazırladığı *sonraki* üretim iş emrine bağlanır; tamamlanan emir görevde "tetikleyen" olarak durur.
+- **K-24:** Görev önceden görünür, vakti gelmeden ondan kayıt açılmaz; gecikme vakitten tolerans kadar sonra başlar.
 - **K-20, K-21:** Görev ≠ kayıt. Plan görev üretir, kaydı operatör görevden açar ve sorumlusu olur (R-15 korunur, K-06 göreve işlemez).
 
 ## Yapılacaklar / açık konular

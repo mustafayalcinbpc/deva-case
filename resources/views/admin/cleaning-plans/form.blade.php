@@ -25,9 +25,11 @@
 @endsection
 
 {{--
-    K-20: periyodik planda aralık (gün) zorunludur; görev, son görevden bu yana aralık dolunca
-    açılır (ilk görev hemen). "Üretim iş emri tamamlanınca" kuralında görev, makinedeki (ya da
-    makinenin hattına bağlı) üretim iş emri tamamlanınca açılır.
+    K-20, K-24: görev planlandığı an personelin önüne "ileride" olarak düşer, müdahale vakti gelince
+    ondan kayıt açılır. Periyodik planda aralık (gün) zorunludur; vakit, son görevin vaktinden bir
+    aralık sonrasıdır (ilk görev hemen). "Üretim iş emri tamamlanınca" kuralında görev makinede
+    (ya da makinenin hattında) bekleyen emir için açılır, emir tamamlanınca vakti gelir. Vakitten
+    gecikme toleransı kadar sonra görev "Gecikti" olur.
 --}}
 @section('content')
     <form method="POST"
@@ -118,6 +120,24 @@
                     <div id="interval-help" class="form-text">Yalnızca periyodik planda kullanılır.</div>
                     @error('interval_days')
                         <div id="interval_days-error" class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label for="tolerance_hours" class="form-label">Gecikme toleransı (saat)</label>
+                    <input type="number"
+                           id="tolerance_hours"
+                           name="tolerance_hours"
+                           value="{{ old('tolerance_hours', $plan->tolerance_hours) }}"
+                           min="1"
+                           max="{{ \App\Http\Requests\Admin\Planning\SaveCleaningPlanRequest::MAX_TOLERANCE_HOURS }}"
+                           inputmode="numeric"
+                           required
+                           @class(['form-control', 'is-invalid' => $errors->has('tolerance_hours')])
+                           aria-describedby="tolerance-help @error('tolerance_hours') tolerance_hours-error @enderror">
+                    <div id="tolerance-help" class="form-text">Müdahale vaktinden bu kadar saat sonra görev "Gecikti" olur.</div>
+                    @error('tolerance_hours')
+                        <div id="tolerance_hours-error" class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
             </div>
